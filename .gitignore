@@ -11,7 +11,6 @@ vite.config.d.ts
 vite.config.js
 
 # Environment / Local
-.env
 .env.local
 *.log
 .DS_Store
