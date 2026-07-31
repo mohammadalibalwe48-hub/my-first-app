@@ -1,0 +1,17 @@
+# Dependencies
+node_modules
+
+# Production build outputs
+dist
+dist-ssr
+
+# Build cache & generated files
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+
+# Environment / Local
+.env
+.env.local
+*.log
+.DS_Store
