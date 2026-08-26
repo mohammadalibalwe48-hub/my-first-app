@@ -20,3 +20,6 @@ vite.config.js
 
 # Screenshots from design/mobile audits
 *.png
+
+# Scratch output from class-inventory / audit scripts
+.tmp-audit/

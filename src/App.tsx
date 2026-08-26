@@ -19,6 +19,66 @@ const writeStored = (key: string, value: unknown) => {
   }
 };
 
+/**
+ * The eight-pointed Damascene star (نجمة ثمانية) used across Syrian tilework
+ * and ajami woodwork. It carries the section rhythm and marks the table badge.
+ */
+const StarMark = ({ className = "" }: { className?: string }) => (
+  <svg
+    className={`star-mark ${className}`.trim()}
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M12 0.6 14.9 6.4 21.2 3.5 18.4 9.8 24 12l-5.6 2.2 2.8 6.3-6.3-2.9L12 23.4 9.1 17.6 2.8 20.5l2.8-6.3L0 12l5.6-2.2L2.8 3.5l6.3 2.9Z" />
+  </svg>
+);
+
+/**
+ * Reveals every `[data-reveal]` descendant of the returned ref as it scrolls
+ * into view, and re-scans whenever `deps` change so that filtered lists reveal
+ * their new rows too. Motion is opt-out: under `prefers-reduced-motion` every
+ * element is marked revealed immediately and no observer is created.
+ */
+const useScrollReveal = <T extends HTMLElement>(deps: unknown[] = []) => {
+  const ref = useRef<T | null>(null);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+
+    const targets = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-reveal]:not([data-revealed])"),
+    );
+    if (targets.length === 0) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduced.matches || !("IntersectionObserver" in window)) {
+      targets.forEach((node) => {
+        node.dataset.revealed = "true";
+      });
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          (entry.target as HTMLElement).dataset.revealed = "true";
+          observer.unobserve(entry.target);
+        });
+      },
+      { rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
+    );
+
+    targets.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return ref;
+};
+
 type Mode = "dine-in" | "takeaway" | "delivery";
 type View = "menu" | "orders" | "manage";
 type Category = string;
@@ -669,6 +729,13 @@ function App() {
   const [memberships, setMemberships] = useState<RestaurantMembership[]>([]);
   const [authOpen, setAuthOpen] = useState(false);
 
+  // Direction and language belong on the document root so that assistive
+  // technology, font fallback, and page-level layout all agree with the UI.
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+  }, [language]);
+
   useEffect(() => {
     let active = true;
 
@@ -1196,10 +1263,10 @@ function App() {
           <span className="masthead-edition">القائمة اليومية / {new Date().toLocaleDateString("ar-SY", { weekday: "long" })}</span>
           <nav className="desktop-nav editorial-nav" aria-label="التنقل الرئيسي">
             <button className={view === "menu" ? "active" : ""} onClick={() => setView("menu")}>
-              <span>01</span> القائمة
+              القائمة
             </button>
             <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
-              <span>02</span> سجل طلباتي
+              طلباتي
               {orders.length > 0 && <b>{orders.length}</b>}
             </button>
             <button
@@ -1213,7 +1280,7 @@ function App() {
                 setAdminTab("overview");
               }}
             >
-              <span>03</span> مساحة العمل
+              الإدارة
             </button>
           </nav>
         </div>
@@ -1250,6 +1317,7 @@ function App() {
               setQuery={setQuery}
               items={availableItems}
               onSelect={setSelectedItem}
+              onQuickAdd={(item) => addToCart(item)}
             />
           )}
           {view === "orders" && (
@@ -1491,12 +1559,14 @@ function MenuView({
   setQuery: (q: string) => void;
   items: Item[];
   onSelect: (i: Item) => void;
+  onQuickAdd: (i: Item) => void;
 }) {
   const featured = items[0] ?? restaurant.items[0];
   const secondary = items.slice(1, 3);
+  const revealRef = useScrollReveal<HTMLDivElement>([items, category, tag]);
 
   return (
-    <div className="menu-view editorial-menu">
+    <div className="menu-view editorial-menu" ref={revealRef}>
       <section className="opening-spread">
         <div className="opening-copy">
           <div className="opening-line"><span className="eyebrow">سُفرة / {restaurant.city}</span><span className="live-dot">يستقبل الطلبات الآن</span></div>
@@ -1504,13 +1574,13 @@ function MenuView({
           <h1>{restaurant.name}</h1>
           <p className="hero-subtitle">{restaurant.subtitle}</p>
           <div className="opening-note">
-            <span>01</span>
+            <StarMark />
             <p>أطباق يومية تُبنى على النار الهادئة، والخبز الطازج، وذاكرة البيت.</p>
           </div>
           <div className="hero-facts">
-            <span><strong>4.8</strong> تقييم الزوار</span>
-            <span><strong>25</strong> دقيقة تقريباً</span>
-            <span><strong>{restaurant.items.length}</strong> صنفاً متاحاً</span>
+            <span><strong>{restaurant.items.length}</strong> صنفاً في القائمة</span>
+            <span><strong>{categories.length}</strong> قسماً</span>
+            <span><strong>{restaurant.neighborhood}</strong></span>
           </div>
         </div>
         {featured && (
@@ -1521,35 +1591,47 @@ function MenuView({
         )}
       </section>
 
-      <section className="menu-index" aria-label="فهرس القائمة">
+      <section className="menu-index" aria-label="فهرس القائمة" data-reveal>
         <div className="index-intro"><span className="eyebrow">الفهرس</span><h2>اختَر إيقاع<br />وجبتك اليوم</h2></div>
-        <div className="index-search"><span>ابحث في الوصفات</span><label className="search"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم طبق، مكوّن، أو مزاج" /></label><small>{items.length} أطباق منتقاة لك</small></div>
+        <div className="index-search"><span>ابحث في الوصفات</span><label className="search"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم طبق، مكوّن، أو مزاج" /></label><small>{items.length} صنفاً مطابقاً</small></div>
         <div className="currency-switch"><span>عرض الأسعار</span><div className="segmented"><button className={currency === "syp" ? "active" : ""} onClick={() => setCurrency("syp")}>ليرة سورية</button><button className={currency === "usd" ? "active" : ""} onClick={() => setCurrency("usd")}>دولار</button></div></div>
       </section>
 
-      <section className="menu-map">
-        <div className="map-label"><span>تصفح حسب الفصل</span><strong>{category === "كل الأصناف" ? "القائمة كاملة" : category}</strong></div>
+      <section className="menu-map" data-reveal>
+        <div className="map-label"><span>تصفح الأقسام</span><strong>{category === "كل الأصناف" ? "القائمة كاملة" : category}</strong></div>
         <div className="category-row">
-          {["كل الأصناف", "الأكثر طلباً", ...categories.map((entry) => entry.name)].map((entry, index) => (
-            <button key={entry} className={category === entry ? "active" : ""} onClick={() => setCategory(entry)}><small>{String(index + 1).padStart(2, "0")}</small>{entry}</button>
+          {["كل الأصناف", "الأكثر طلباً", ...categories.map((entry) => entry.name)].map((entry) => (
+            <button key={entry} className={category === entry ? "active" : ""} onClick={() => setCategory(entry)}>{entry}</button>
           ))}
         </div>
         <div className="taste-filters"><span>اختيارات المطبخ</span><button className={tag === "all" ? "active" : ""} onClick={() => setTag("all")}>الكل</button><button className={tag === "vegetarian" ? "active" : ""} onClick={() => setTag("vegetarian")}>نباتي</button><button className={tag === "chef" ? "active" : ""} onClick={() => setTag("chef")}>اختيار الشيف</button></div>
       </section>
 
       <section className="menu-catalogue">
-        <header className="catalogue-header"><div><span className="eyebrow">المطبخ اليوم</span><h2>{category === "كل الأصناف" ? "كل الأطباق" : category}</h2></div><p>كل طبق له حكاية قصيرة.<br />اضغط على البطاقة لتكتب نسختك منها.</p><span className="results-count">{items.length} نتيجة</span></header>
+        <header className="catalogue-header" data-reveal><div><span className="eyebrow">المطبخ اليوم</span><h2>{category === "كل الأصناف" ? "كل الأطباق" : category}</h2></div><p>اضغط على أي طبق لتختار الحجم والإضافات.</p><span className="results-count">{items.length} صنفاً</span></header>
         <div className="menu-grid">
-          {items.map((item, index) => (
-            <article className={`menu-card menu-card-${index % 3} ${index === 0 ? "featured-card" : ""}`} key={item.id}>
-              <button className="card-image" onClick={() => onSelect(item)}><img src={item.image} alt={item.name} loading="lazy" />{item.popular && <span className="popular-chip">طلب متكرر</span>}<span className="card-number">{String(index + 1).padStart(2, "0")}</span></button>
-              <div className="card-body"><div className="card-title"><div><small>{item.en}</small><h3>{item.name}</h3></div><span>{formatSyp(item.price)}</span></div><p>{item.desc}</p><div className="card-meta">{item.tags.map((t) => <small key={t}>{tagLabels[t]}</small>)}</div><button className="card-add" onClick={() => onSelect(item)}><span>أضف إلى المائدة</span><b>تفاصيل الطبق</b></button></div>
-            </article>
-          ))}
+          {items.map((item, index) => {
+            const needsChoice = (item.options ?? []).some((group) => group.required);
+            return (
+              <article className={`menu-card menu-card-${index % 3} ${index === 0 ? "featured-card" : ""}`} key={item.id} data-reveal style={{ ["--reveal-i" as string]: String(Math.min(index, 8)) }}>
+                <button className="card-image" onClick={() => onSelect(item)} aria-label={`تفاصيل ${item.name}`}><img src={item.image} alt={item.name} loading="lazy" />{item.popular && <span className="popular-chip">طلب متكرر</span>}</button>
+                <div className="card-body">
+                  <div className="card-title"><div><small>{item.en}</small><h3>{item.name}</h3></div><span>{formatSyp(item.price)}</span></div>
+                  <p>{item.desc}</p>
+                  <div className="card-meta">{item.tags.map((t) => <small key={t}>{tagLabels[t]}</small>)}</div>
+                  {needsChoice ? (
+                    <button className="card-add" onClick={() => onSelect(item)}><span>اختر الحجم والإضافات</span><b>تفاصيل الطبق</b></button>
+                  ) : (
+                    <button className="card-add" onClick={() => onQuickAdd(item)}><span>أضف إلى الطلب</span><b>{formatSyp(item.price)}</b></button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
-      {secondary.length > 0 && <aside className="editorial-callout"><span className="eyebrow">من نفس المائدة</span><strong>{secondary.map((item) => item.name).join(" · ")}</strong><p>تشكيلة صغيرة تكمل اختيارك، وتصلح للمشاركة.</p></aside>}
-      {items.length === 0 && <div className="empty-state"><strong>لم نجد نتيجة مطابقة</strong><span>جرّب كلمة بحث أخرى أو اختر تصنيفاً مختلفاً.</span></div>}
+      {secondary.length > 0 && <aside className="editorial-callout" data-reveal><span className="eyebrow">من نفس المائدة</span><strong>{secondary.map((item) => item.name).join(" · ")}</strong><p>تشكيلة صغيرة تكمل اختيارك، وتصلح للمشاركة.</p></aside>}
+      {items.length === 0 && <div className="empty-state"><strong>لم نجد صنفاً مطابقاً</strong><span>جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً.</span></div>}
     </div>
   );
 }
@@ -1583,14 +1665,14 @@ function ItemModal({
           <header className="dish-heading"><div><span className="eyebrow">بطاقة الطبق / {item.en}</span><h2>{item.name}</h2><p>{item.desc}</p></div><div className="dish-total"><small>يبدأ من</small><strong>{formatSyp(item.price + extra)}</strong>{currency === "usd" && <span>≈ {formatUsd(item.price + extra, rate)}</span>}</div></header>
           <div className="dish-rule"><span>ابنِ طبقك</span><small>اختياراتك تحفظ مع الطلب</small></div>
           <div className="dish-options">
-            {item.options?.map((group, groupIndex) => (
+            {item.options?.map((group) => (
               <fieldset className="option-group" key={group.id}>
-                <legend><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.name}</strong>{group.required && <small>اختيار مطلوب</small>}</legend>
+                <legend><StarMark /><strong>{group.name}</strong>{group.required && <small>اختيار مطلوب</small>}</legend>
                 <div className="option-grid">{group.options.map((option) => <label className={selected[group.id]?.some((entry) => entry.id === option.id) ? "option selected" : "option"} key={option.id}><input type={group.required ? "radio" : "checkbox"} name={group.id} checked={selected[group.id]?.some((entry) => entry.id === option.id)} onChange={() => setSelected((current) => { const existing = current[group.id] ?? []; const next = group.required ? [option] : existing.some((entry) => entry.id === option.id) ? existing.filter((entry) => entry.id !== option.id) : [...existing, option]; return { ...current, [group.id]: next }; })} /><span>{option.name}</span><b>{option.price ? `+${formatSyp(option.price)}` : "أساسي"}</b></label>)}</div>
               </fieldset>
             ))}
           </div>
-          <div className="dish-request"><label className="note-field"><span>ملاحظة للمطبخ <small>اختياري</small></span><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: بدون بصل، الصوص جانباً..." /></label><button disabled={!valid} className="primary wide" onClick={() => onAdd(item, Object.values(selected).flat(), note)}><span>أضف إلى المائدة</span><strong>{formatSyp(item.price + extra)}</strong></button></div>
+          <div className="dish-request"><label className="note-field"><span>ملاحظة للمطبخ <small>اختياري</small></span><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: بدون بصل، الصوص جانباً..." /></label><button disabled={!valid} className="primary wide" onClick={() => onAdd(item, Object.values(selected).flat(), note)}><span>أضف إلى الطلب</span><strong>{formatSyp(item.price + extra)}</strong></button></div>
         </div>
       </section>
     </div>
@@ -1653,7 +1735,7 @@ function CheckoutModal({
     <div className="modal-backdrop">
       <section className="checkout-modal handoff-modal" role="dialog" aria-modal="true">
         <header className="handoff-header">
-          <div><span className="eyebrow">03 / تسليم الطلب</span><h2>لنضع اللمسات الأخيرة</h2><p>معلومات قليلة، ثم تنتقل الوصفة إلى المطبخ.</p></div>
+          <div><span className="eyebrow">إتمام الطلب</span><h2>لنضع اللمسات الأخيرة</h2><p>ثلاث خطوات قصيرة، ثم يصل طلبك إلى المطبخ.</p></div>
           <button className="close" onClick={onClose} aria-label="إغلاق">×</button>
         </header>
         <div className="handoff-layout">
