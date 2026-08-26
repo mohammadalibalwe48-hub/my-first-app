@@ -40,9 +40,11 @@ type OptionGroup = {
 };
 type RestaurantTable = {
   id: string;
+  code: string;
   name: string;
   area: string;
   active: boolean;
+  qrToken?: string;
 };
 type DeliveryZone = {
   id: string;
@@ -247,6 +249,13 @@ const mapAdminOrder = (row: AdminOrderRow, restaurantSlug: string): Order => ({
 });
 
 type PublicMenuPayload = {
+  table: {
+    id: string;
+    code: string;
+    labelAr: string;
+    labelEn: string;
+    area: string;
+  } | null;
   restaurant: {
     slug: string;
     nameAr: string;
@@ -549,7 +558,14 @@ const statusLabels: Record<Order["status"], string> = {
 };
 
 function App() {
-  const [restaurantId, setRestaurantId] = useState("sufra");
+  const [restaurantId, setRestaurantId] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get(
+      "restaurant",
+    );
+    return requested && restaurants.some((r) => r.id === requested)
+      ? requested
+      : "sufra";
+  });
   const [menuByRestaurant, setMenuByRestaurant] = useState<
     Record<string, Item[]>
   >(() => {
@@ -645,6 +661,9 @@ function App() {
   const [notice, setNotice] = useState("");
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [backendReady, setBackendReady] = useState(false);
+  const [tableContext, setTableContext] = useState<
+    PublicMenuPayload["table"]
+  >(null);
   const [authReady, setAuthReady] = useState(false);
   const [staffEmail, setStaffEmail] = useState("");
   const [memberships, setMemberships] = useState<RestaurantMembership[]>([]);
@@ -774,13 +793,21 @@ function App() {
 
   useEffect(() => {
     let active = true;
+    setBackendReady(false);
+    setTableContext(null);
     const loadMenu = async () => {
       const { data, error } = await supabase.rpc("get_public_menu", {
         p_slug: restaurantId,
         p_table_token: new URLSearchParams(location.search).get("tableToken"),
       });
-      if (!active || error || !data) return;
+      if (!active) return;
+      if (error || !data) {
+        setBackendReady(false);
+        setTableContext(null);
+        return;
+      }
       const payload = data as PublicMenuPayload;
+      setTableContext(payload.table);
       const categoryNames = new Map(
         payload.categories.map((entry) => [entry.id, entry.nameAr]),
       );
@@ -969,6 +996,17 @@ function App() {
         .filter((line) => line.qty > 0),
     );
   const placeOrder = async (form: HTMLFormElement) => {
+    if (!isOnline || !backendReady) {
+      setNotice("لا يمكن إرسال الطلب حالياً. تحقق من الاتصال وحاول مجدداً.");
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
+    }
+    const tableToken = new URLSearchParams(location.search).get("tableToken");
+    if (mode === "dine-in" && (!tableToken || !tableContext)) {
+      setNotice("لطلب داخل المطعم، امسح رمز QR الصحيح الموجود على الطاولة.");
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
+    }
     const operationState = readStored<OperationsState | null>(
       `sufra-operations-${restaurantId}`,
       null,
@@ -989,63 +1027,53 @@ function App() {
       window.setTimeout(() => setNotice(""), 3200);
       return;
     }
-    const deliveryFee = mode === "delivery" ? (selectedZone?.fee ?? 0) : 0;
     type OrderReceipt = {
       orderNumber: string;
       publicToken: string;
       total: number;
     };
-    let receipt: OrderReceipt | undefined;
-    if (backendReady) {
-      const { data: submitted, error } = await supabase.rpc(
-        "submit_public_order",
-        {
-          p_payload: {
-            restaurantSlug: restaurantId,
-            idempotencyKey: crypto.randomUUID(),
-            mode,
-            tableToken: new URLSearchParams(location.search).get("tableToken"),
-            deliveryZoneId: selectedZone?.id ?? null,
-            customerName: String(data.get("customer") || "زبون المطعم"),
-            phone: String(data.get("phone") || ""),
-            address: String(data.get("address") || ""),
-            pickupTime: String(data.get("pickup") || ""),
-            paymentMethod: String(data.get("payment") || "الدفع نقداً"),
-            paymentReference: String(data.get("paymentReference") || ""),
-            lines: cart.map((line) => ({
-              itemId: line.item.id,
-              quantity: line.qty,
-              note: line.note,
-              optionIds: line.options.map((option) => option.id),
-            })),
-          },
+    const { data: submitted, error } = await supabase.rpc(
+      "submit_public_order",
+      {
+        p_payload: {
+          restaurantSlug: restaurantId,
+          idempotencyKey: crypto.randomUUID(),
+          mode,
+          tableToken,
+          deliveryZoneId: selectedZone?.id ?? null,
+          customerName: String(data.get("customer") || "زبون المطعم"),
+          phone: String(data.get("phone") || ""),
+          address: String(data.get("address") || ""),
+          pickupTime: String(data.get("pickup") || ""),
+          paymentMethod: String(data.get("payment") || "الدفع نقداً"),
+          paymentReference: String(data.get("paymentReference") || ""),
+          lines: cart.map((line) => ({
+            itemId: line.item.id,
+            quantity: line.qty,
+            note: line.note,
+            optionIds: line.options.map((option) => option.id),
+          })),
         },
-      );
-      if (error || !submitted) {
-        setNotice(`تعذر إرسال الطلب: ${error?.message ?? "خطأ غير معروف"}`);
-        window.setTimeout(() => setNotice(""), 4200);
-        return;
-      }
-      receipt = submitted as unknown as OrderReceipt;
+      },
+    );
+    if (error || !submitted) {
+      setNotice(`تعذر إرسال الطلب: ${error?.message ?? "خطأ غير معروف"}`);
+      window.setTimeout(() => setNotice(""), 4200);
+      return;
     }
+    const receipt = submitted as unknown as OrderReceipt;
     const order: Order = {
-      id:
-        receipt?.orderNumber ??
-        `SF-${Math.floor(1000 + Math.random() * 8999)}`,
+      id: receipt.orderNumber,
       restaurantId,
-      publicToken: receipt?.publicToken,
+      publicToken: receipt.publicToken,
       mode,
       status: "received",
       lines: cart,
       customer: String(data.get("customer") || "زبون المطعم"),
       phone: String(data.get("phone") || ""),
       address: String(data.get("address") || ""),
-      table: String(
-        data.get("table") ||
-        new URLSearchParams(location.search).get("table") ||
-        "T-12",
-      ),
-      total: receipt?.total ?? total + deliveryFee,
+      table: tableContext?.labelAr ?? tableContext?.code ?? "",
+      total: receipt.total,
       payment: String(data.get("payment") || "الدفع نقداً"),
       paymentStatus: "pending",
       paymentReference: String(data.get("paymentReference") || ""),
@@ -1121,7 +1149,7 @@ function App() {
       order.table ? `الطاولة: ${order.table}` : "",
       ...order.lines.map(
         (l) =>
-          `• ${l.qty}× ${l.item.name}${l.options.length ? ` (${l.options.map((o) => o.name).join(", ")})` : ""}`,
+          `- ${l.qty}× ${l.item.name}${l.options.length ? ` (${l.options.map((o) => o.name).join(", ")})` : ""}`,
       ),
       `الإجمالي: ${formatSyp(order.total)}`,
       order.paymentReference ? `مرجع الدفع: ${order.paymentReference}` : "",
@@ -1144,87 +1172,35 @@ function App() {
   };
 
   return (
-    <div className="app-shell" dir={language === "ar" ? "rtl" : "ltr"}>
-      <header className="topbar">
-        <div
-          className="brand"
+    <div
+      className={`app-shell ${view === "manage" ? "management-shell" : "storefront-shell"}`}
+      dir={language === "ar" ? "rtl" : "ltr"}
+    >
+      <header className="topbar editorial-masthead">
+        <button
+          className="brand masthead-brand"
           onClick={() => {
             setView("menu");
             setTrackingOrder(null);
           }}
         >
           <span className="brand-mark">س</span>
-          <div>
-            <strong>سُفرة</strong>
-            <small>QR MENU</small>
-          </div>
-        </div>
-        <div className="top-actions">
-          <span
-            className={
-              isOnline
-                ? "connection-status online"
-                : "connection-status offline"
-            }
-          >
-            {isOnline ? "● متصل" : "○ دون اتصال — محفوظ محلياً"}
-          </span>
-          {staffEmail && (
-            <button
-              className="staff-chip"
-              onClick={() => {
-                setView("manage");
-                setAdminTab("overview");
-              }}
-              title={staffEmail}
-            >
-              <span>◈</span>
-              {memberships[0]?.displayName || staffEmail.split("@")[0]}
-            </button>
-          )}
-          <button
-            className="icon-button"
-            onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-          >
-            {language === "ar" ? "EN" : "عربي"}
-          </button>
-          <button className="cart-button" onClick={() => setCartOpen(true)}>
-            <span>طلبك</span>
-            <b>{cartCount}</b>
-          </button>
-        </div>
-      </header>
-      <div className="app-body">
-        <aside className="sidebar">
-          <div className="location-card">
-            <span className="eyebrow">أنت تتصفح الآن</span>
+          <span className="brand-copy">
+            <small>مائدة دمشقية معاصرة</small>
             <strong>{restaurant.name}</strong>
-            <span>
-              {restaurant.neighborhood}، {restaurant.city}
-            </span>
-            <small className="table-context">
-              ⌂ الطاولة{" "}
-              {new URLSearchParams(location.search).get("table") || "12"}
-            </small>
-            <button onClick={() => setView("menu")} className="link-button">
-              تغيير المطعم ↔
+            <span>{restaurant.neighborhood}، {restaurant.city}</span>
+          </span>
+        </button>
+
+        <div className="masthead-centre">
+          <span className="masthead-edition">القائمة اليومية / {new Date().toLocaleDateString("ar-SY", { weekday: "long" })}</span>
+          <nav className="desktop-nav editorial-nav" aria-label="التنقل الرئيسي">
+            <button className={view === "menu" ? "active" : ""} onClick={() => setView("menu")}>
+              <span>01</span> القائمة
             </button>
-          </div>
-          <nav className="side-nav">
-            <button
-              className={view === "menu" ? "active" : ""}
-              onClick={() => setView("menu")}
-            >
-              <span>▦</span> القائمة الرقمية
-            </button>
-            <button
-              className={view === "orders" ? "active" : ""}
-              onClick={() => setView("orders")}
-            >
-              <span>◷</span> طلباتي{" "}
-              {orders.length > 0 && (
-                <b className="nav-badge">{orders.length}</b>
-              )}
+            <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
+              <span>02</span> سجل طلباتي
+              {orders.length > 0 && <b>{orders.length}</b>}
             </button>
             <button
               className={view === "manage" ? "active" : ""}
@@ -1237,17 +1213,28 @@ function App() {
                 setAdminTab("overview");
               }}
             >
-              <span>◈</span> لوحة المطعم
+              <span>03</span> مساحة العمل
             </button>
           </nav>
-          <div className="sidebar-footer">
-            <div className="help-icon">?</div>
-            <div>
-              <strong>تحتاج مساعدة؟</strong>
-              <span>تواصل معنا</span>
-            </div>
+        </div>
+
+        <div className="top-actions masthead-actions">
+          <div className="service-context">
+            {tableContext && view !== "manage" && <span className="table-context">{tableContext.labelAr}</span>}
+            <span className={isOnline ? "connection-status online" : "connection-status offline"}>
+              {isOnline ? "متصل" : "دون اتصال"}
+            </span>
           </div>
-        </aside>
+          <button className="icon-button language-button" onClick={() => setLanguage(language === "ar" ? "en" : "ar")} aria-label="تغيير اللغة">
+            {language === "ar" ? "EN" : "عربي"}
+          </button>
+          <button className="cart-button masthead-cart" onClick={() => setCartOpen(true)}>
+            <span>كشف الطلب</span>
+            <b>{cartCount}</b>
+          </button>
+        </div>
+      </header>
+      <div className="app-body">
         <main className="main-content">
           {view === "menu" && (
             <MenuView
@@ -1363,8 +1350,7 @@ function App() {
           )}
           {view === "manage" && memberships.length === 0 && (
             <div className="admin-auth-gate">
-              <span className="auth-shield">◈</span>
-              <span className="eyebrow">منطقة محمية</span>
+              <span className="eyebrow">دخول الموظفين</span>
               <h1>{authReady ? "لوحة المطعم للموظفين" : "جارٍ التحقق من الجلسة…"}</h1>
               <p>
                 {staffEmail
@@ -1391,7 +1377,7 @@ function App() {
           )}
         </main>
       </div>
-      {notice && <div className="toast">✓ {notice}</div>}
+      {notice && <div className="toast">{notice}</div>}
       {authOpen && (
         <StaffAuthModal
           onClose={() => setAuthOpen(false)}
@@ -1434,6 +1420,8 @@ function App() {
           onClose={() => setCheckoutOpen(false)}
           onSubmit={placeOrder}
           settings={restaurantSettings}
+          tableContext={tableContext}
+          backendReady={backendReady && isOnline}
         />
       )}
       {trackingOrder && (
@@ -1448,16 +1436,16 @@ function App() {
           className={view === "menu" ? "active" : ""}
           onClick={() => setView("menu")}
         >
-          ▦<span>القائمة</span>
+          <span>القائمة</span>
         </button>
         <button
           className={view === "orders" ? "active" : ""}
           onClick={() => setView("orders")}
         >
-          ◷<span>طلباتي</span>
+          <span>طلباتي</span>
         </button>
         <button onClick={() => setCartOpen(true)}>
-          🛒<span>السلة</span>
+          <span>السلة</span>
           <b>{cartCount}</b>
         </button>
         <button
@@ -1470,7 +1458,7 @@ function App() {
             setView("manage");
           }}
         >
-          ◈<span>الإدارة</span>
+          <span>الإدارة</span>
         </button>
       </div>
     </div>
@@ -1504,129 +1492,65 @@ function MenuView({
   items: Item[];
   onSelect: (i: Item) => void;
 }) {
+  const featured = items[0] ?? restaurant.items[0];
+  const secondary = items.slice(1, 3);
+
   return (
-    <>
-      <div className="hero">
-        <div>
-          <span className="live-dot">● مفتوح الآن</span>
+    <div className="menu-view editorial-menu">
+      <section className="opening-spread">
+        <div className="opening-copy">
+          <div className="opening-line"><span className="eyebrow">سُفرة / {restaurant.city}</span><span className="live-dot">يستقبل الطلبات الآن</span></div>
+          <p className="hero-kicker">مائدة الشام، كما نحبها</p>
           <h1>{restaurant.name}</h1>
-          <p>{restaurant.subtitle}</p>
-          <span className="rating">
-            ★ 4.8 <em>•</em> {restaurant.neighborhood}، {restaurant.city}
-          </span>
-        </div>
-        <div className="hero-logo">{restaurant.logo}</div>
-      </div>
-      <div className="menu-tools">
-        <div className="search">
-          <span>⌕</span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث في القائمة..."
-          />
-          <kbd>⌘ K</kbd>
-        </div>
-        <div className="toggle-row">
-          <div className="segmented">
-            <button
-              className={currency === "syp" ? "active" : ""}
-              onClick={() => setCurrency("syp")}
-            >
-              ل.س
-            </button>
-            <button
-              className={currency === "usd" ? "active" : ""}
-              onClick={() => setCurrency("usd")}
-            >
-              $
-            </button>
+          <p className="hero-subtitle">{restaurant.subtitle}</p>
+          <div className="opening-note">
+            <span>01</span>
+            <p>أطباق يومية تُبنى على النار الهادئة، والخبز الطازج، وذاكرة البيت.</p>
           </div>
-          <span className="rate-note">1$ = {restaurant.rate} ألف ل.س</span>
+          <div className="hero-facts">
+            <span><strong>4.8</strong> تقييم الزوار</span>
+            <span><strong>25</strong> دقيقة تقريباً</span>
+            <span><strong>{restaurant.items.length}</strong> صنفاً متاحاً</span>
+          </div>
         </div>
-      </div>
-      <div className="category-row">
-        {[
-          "كل الأصناف",
-          "الأكثر طلباً",
-          ...categories.map((entry) => entry.name),
-        ].map((entry) => (
-          <button
-            key={entry}
-            className={category === entry ? "active" : ""}
-            onClick={() => setCategory(entry)}
-          >
-            {entry}
+        {featured && (
+          <button className="lead-dish" onClick={() => onSelect(featured)}>
+            <span className="lead-dish-image"><img src={featured.image} alt={featured.name} /></span>
+            <span className="lead-dish-caption"><small>طبق الغلاف / اقتراح اليوم</small><strong>{featured.name}</strong><span>{featured.desc}</span><b>{formatSyp(featured.price)} <em>افتح التفاصيل</em></b></span>
           </button>
-        ))}
-      </div>
-      <div className="filter-row">
-        <span>تصفية سريعة:</span>
-        <button
-          className={tag === "all" ? "active" : ""}
-          onClick={() => setTag("all")}
-        >
-          الكل
-        </button>
-        <button
-          className={tag === "vegetarian" ? "active" : ""}
-          onClick={() => setTag("vegetarian")}
-        >
-          ♧ نباتي
-        </button>
-        <button
-          className={tag === "chef" ? "active" : ""}
-          onClick={() => setTag("chef")}
-        >
-          ✦ اختيار الشيف
-        </button>
-        <span className="results-count">{items.length} أصناف</span>
-      </div>
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">مختاراتنا لك</span>
-          <h2>{category === "كل الأصناف" ? "الأكثر طلباً اليوم" : category}</h2>
+        )}
+      </section>
+
+      <section className="menu-index" aria-label="فهرس القائمة">
+        <div className="index-intro"><span className="eyebrow">الفهرس</span><h2>اختَر إيقاع<br />وجبتك اليوم</h2></div>
+        <div className="index-search"><span>ابحث في الوصفات</span><label className="search"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم طبق، مكوّن، أو مزاج" /></label><small>{items.length} أطباق منتقاة لك</small></div>
+        <div className="currency-switch"><span>عرض الأسعار</span><div className="segmented"><button className={currency === "syp" ? "active" : ""} onClick={() => setCurrency("syp")}>ليرة سورية</button><button className={currency === "usd" ? "active" : ""} onClick={() => setCurrency("usd")}>دولار</button></div></div>
+      </section>
+
+      <section className="menu-map">
+        <div className="map-label"><span>تصفح حسب الفصل</span><strong>{category === "كل الأصناف" ? "القائمة كاملة" : category}</strong></div>
+        <div className="category-row">
+          {["كل الأصناف", "الأكثر طلباً", ...categories.map((entry) => entry.name)].map((entry, index) => (
+            <button key={entry} className={category === entry ? "active" : ""} onClick={() => setCategory(entry)}><small>{String(index + 1).padStart(2, "0")}</small>{entry}</button>
+          ))}
         </div>
-        <span className="section-line" />
-      </div>
-      <div className="menu-grid">
-        {items.map((item) => (
-          <button
-            className="menu-card"
-            key={item.id}
-            onClick={() => onSelect(item)}
-          >
-            <div className="card-image">
-              <img src={item.image} alt="" loading="lazy" />
-              {item.popular && (
-                <span className="popular-chip">الأكثر طلباً</span>
-              )}
-              <span className="plus">+</span>
-            </div>
-            <div className="card-body">
-              <div className="card-title">
-                <h3>{item.name}</h3>
-                <span>{formatSyp(item.price)}</span>
-              </div>
-              <p>{item.desc}</p>
-              <div className="card-meta">
-                {item.tags.map((t) => (
-                  <small key={t}>
-                    {t === "chef" ? "✦ " : ""}
-                    {t === "vegetarian" ? "♧ " : ""}
-                    {tagLabels[t]}
-                  </small>
-                ))}
-                <em>{item.en}</em>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-      {items.length === 0 && (
-        <div className="empty-state">لا توجد أصناف مطابقة للبحث</div>
-      )}
-    </>
+        <div className="taste-filters"><span>اختيارات المطبخ</span><button className={tag === "all" ? "active" : ""} onClick={() => setTag("all")}>الكل</button><button className={tag === "vegetarian" ? "active" : ""} onClick={() => setTag("vegetarian")}>نباتي</button><button className={tag === "chef" ? "active" : ""} onClick={() => setTag("chef")}>اختيار الشيف</button></div>
+      </section>
+
+      <section className="menu-catalogue">
+        <header className="catalogue-header"><div><span className="eyebrow">المطبخ اليوم</span><h2>{category === "كل الأصناف" ? "كل الأطباق" : category}</h2></div><p>كل طبق له حكاية قصيرة.<br />اضغط على البطاقة لتكتب نسختك منها.</p><span className="results-count">{items.length} نتيجة</span></header>
+        <div className="menu-grid">
+          {items.map((item, index) => (
+            <article className={`menu-card menu-card-${index % 3} ${index === 0 ? "featured-card" : ""}`} key={item.id}>
+              <button className="card-image" onClick={() => onSelect(item)}><img src={item.image} alt={item.name} loading="lazy" />{item.popular && <span className="popular-chip">طلب متكرر</span>}<span className="card-number">{String(index + 1).padStart(2, "0")}</span></button>
+              <div className="card-body"><div className="card-title"><div><small>{item.en}</small><h3>{item.name}</h3></div><span>{formatSyp(item.price)}</span></div><p>{item.desc}</p><div className="card-meta">{item.tags.map((t) => <small key={t}>{tagLabels[t]}</small>)}</div><button className="card-add" onClick={() => onSelect(item)}><span>أضف إلى المائدة</span><b>تفاصيل الطبق</b></button></div>
+            </article>
+          ))}
+        </div>
+      </section>
+      {secondary.length > 0 && <aside className="editorial-callout"><span className="eyebrow">من نفس المائدة</span><strong>{secondary.map((item) => item.name).join(" · ")}</strong><p>تشكيلة صغيرة تكمل اختيارك، وتصلح للمشاركة.</p></aside>}
+      {items.length === 0 && <div className="empty-state"><strong>لم نجد نتيجة مطابقة</strong><span>جرّب كلمة بحث أخرى أو اختر تصنيفاً مختلفاً.</span></div>}
+    </div>
   );
 }
 
@@ -1652,87 +1576,23 @@ function ItemModal({
     .flat()
     .reduce((sum, option) => sum + option.price, 0);
   return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="item-modal">
-        <button className="close" onClick={onClose}>
-          ×
-        </button>
-        <img src={item.image} alt="" />
-        <div className="modal-content">
-          <span className="eyebrow">{item.category}</span>
-          <h2>{item.name}</h2>
-          <p className="modal-desc">{item.desc}</p>
-          <div className="modal-price">
-            {formatSyp(item.price + extra)}{" "}
-            <small>
-              {currency === "usd" && `≈ ${formatUsd(item.price + extra, rate)}`}
-            </small>
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <section className="item-modal dish-brief" role="dialog" aria-modal="true" aria-label={item.name}>
+        <aside className="dish-portrait"><img src={item.image} alt={item.name} /><span className="portrait-index">{item.category}</span><button className="close" onClick={onClose} aria-label="إغلاق">×</button></aside>
+        <div className="dish-content">
+          <header className="dish-heading"><div><span className="eyebrow">بطاقة الطبق / {item.en}</span><h2>{item.name}</h2><p>{item.desc}</p></div><div className="dish-total"><small>يبدأ من</small><strong>{formatSyp(item.price + extra)}</strong>{currency === "usd" && <span>≈ {formatUsd(item.price + extra, rate)}</span>}</div></header>
+          <div className="dish-rule"><span>ابنِ طبقك</span><small>اختياراتك تحفظ مع الطلب</small></div>
+          <div className="dish-options">
+            {item.options?.map((group, groupIndex) => (
+              <fieldset className="option-group" key={group.id}>
+                <legend><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.name}</strong>{group.required && <small>اختيار مطلوب</small>}</legend>
+                <div className="option-grid">{group.options.map((option) => <label className={selected[group.id]?.some((entry) => entry.id === option.id) ? "option selected" : "option"} key={option.id}><input type={group.required ? "radio" : "checkbox"} name={group.id} checked={selected[group.id]?.some((entry) => entry.id === option.id)} onChange={() => setSelected((current) => { const existing = current[group.id] ?? []; const next = group.required ? [option] : existing.some((entry) => entry.id === option.id) ? existing.filter((entry) => entry.id !== option.id) : [...existing, option]; return { ...current, [group.id]: next }; })} /><span>{option.name}</span><b>{option.price ? `+${formatSyp(option.price)}` : "أساسي"}</b></label>)}</div>
+              </fieldset>
+            ))}
           </div>
-          {item.options?.map((group) => (
-            <div className="option-group" key={group.id}>
-              <div className="option-label">
-                <strong>{group.name}</strong>
-                {group.required && <span>مطلوب · اختر خياراً</span>}
-              </div>
-              {group.options.map((option) => (
-                <label
-                  className={
-                    selected[group.id]?.some((entry) => entry.id === option.id)
-                      ? "option selected"
-                      : "option"
-                  }
-                  key={option.id}
-                >
-                  <input
-                    type={group.required ? "radio" : "checkbox"}
-                    name={group.id}
-                    checked={selected[group.id]?.some(
-                      (entry) => entry.id === option.id,
-                    )}
-                    onChange={() =>
-                      setSelected((current) => {
-                        const existing = current[group.id] ?? [];
-                        const next = group.required
-                          ? [option]
-                          : existing.some((entry) => entry.id === option.id)
-                            ? existing.filter((entry) => entry.id !== option.id)
-                            : [...existing, option];
-                        return { ...current, [group.id]: next };
-                      })
-                    }
-                  />
-                  <span>{option.name}</span>
-                  <b>
-                    {option.price
-                      ? `+${formatSyp(option.price)}`
-                      : "بدون إضافات"}
-                  </b>
-                </label>
-              ))}
-            </div>
-          ))}
-          <label className="note-field">
-            <span>
-              ملاحظات خاصة <small>(اختياري)</small>
-            </span>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="مثلاً: بدون بصل، الصوص جانباً..."
-            />
-          </label>
-          <button
-            disabled={!valid}
-            className="primary wide"
-            onClick={() => onAdd(item, Object.values(selected).flat(), note)}
-          >
-            أضف إلى الطلب <span>{formatSyp(item.price + extra)}</span>
-          </button>
+          <div className="dish-request"><label className="note-field"><span>ملاحظة للمطبخ <small>اختياري</small></span><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: بدون بصل، الصوص جانباً..." /></label><button disabled={!valid} className="primary wide" onClick={() => onAdd(item, Object.values(selected).flat(), note)}><span>أضف إلى المائدة</span><strong>{formatSyp(item.price + extra)}</strong></button></div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -1754,73 +1614,16 @@ function CartDrawer({
   onQty: (key: string, d: number) => void;
   onCheckout: () => void;
 }) {
+  const itemCount = cart.reduce((a, l) => a + l.qty, 0);
   return (
-    <div
-      className="modal-backdrop drawer-backdrop"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <aside className="cart-drawer">
-        <div className="drawer-head">
-          <div>
-            <span className="eyebrow">طلبك الحالي</span>
-            <h2>
-              سلة الطلب <b>{cart.reduce((a, l) => a + l.qty, 0)}</b>
-            </h2>
-          </div>
-          <button className="close" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        {cart.length === 0 ? (
-          <div className="empty-state">
-            السلة فارغة
-            <br />
-            <button className="link-button" onClick={onClose}>
-              تصفح القائمة
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="cart-lines">
-              {cart.map((line) => (
-                <div className="cart-line" key={line.key}>
-                  <img src={line.item.image} alt="" />
-                  <div className="line-info">
-                    <strong>{line.item.name}</strong>
-                    <small>
-                      {line.options.map((o) => o.name).join("، ") ||
-                        "بدون إضافات"}
-                    </small>
-                    <b>
-                      {formatSyp(
-                        (line.item.price +
-                          line.options.reduce((a, o) => a + o.price, 0)) *
-                        line.qty,
-                      )}
-                    </b>
-                  </div>
-                  <div className="qty">
-                    <button onClick={() => onQty(line.key, -1)}>−</button>
-                    <b>{line.qty}</b>
-                    <button onClick={() => onQty(line.key, 1)}>+</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="cart-summary">
-              <div>
-                <span>المجموع الفرعي</span>
-                <b>{formatSyp(total)}</b>
-              </div>
-              {currency === "usd" && (
-                <small>≈ {formatUsd(total, rate)} USD بسعر صرف تقريبي</small>
-              )}
-              <button className="primary wide" onClick={onCheckout}>
-                متابعة الطلب <span>←</span>
-              </button>
-            </div>
-          </>
-        )}
+    <div className="modal-backdrop drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className="cart-drawer order-desk" role="dialog" aria-modal="true">
+        <header className="drawer-head order-desk-head"><div><span className="eyebrow">ورقة الطلب / قيد التجهيز</span><h2>مائدتك <b>{itemCount}</b></h2></div><button className="close" onClick={onClose} aria-label="إغلاق">×</button></header>
+        {cart.length === 0 ? <div className="empty-state"><strong>لم تبدأ مائدتك بعد</strong><span>اختر طبقاً من الفهرس وسنضعه هنا.</span><button className="link-button" onClick={onClose}>العودة إلى القائمة</button></div> : <>
+          <div className="order-desk-intro"><span>ملخص الاختيارات</span><small>راجع الإضافات والكمية قبل المتابعة</small></div>
+          <div className="cart-lines receipt-lines">{cart.map((line, index) => <article className="cart-line receipt-line" key={line.key}><div className="receipt-marker">{String(index + 1).padStart(2, "0")}</div><img src={line.item.image} alt="" /><div className="line-info"><strong>{line.item.name}</strong><small>{line.options.map((o) => o.name).join("، ") || "بدون إضافات"}</small><b>{formatSyp((line.item.price + line.options.reduce((a, o) => a + o.price, 0)) * line.qty)}</b></div><div className="qty"><button onClick={() => onQty(line.key, -1)} aria-label="تقليل الكمية">−</button><b>{line.qty}</b><button onClick={() => onQty(line.key, 1)} aria-label="زيادة الكمية">+</button></div></article>)}</div>
+          <footer className="cart-summary receipt-summary"><div className="summary-caption"><span>المجموع قبل رسوم التسليم</span><small>يُحسب الإجمالي النهائي في الخطوة التالية</small></div><strong>{formatSyp(total)}</strong>{currency === "usd" && <small>≈ {formatUsd(total, rate)} USD بسعر صرف تقريبي</small>}<button className="primary wide" onClick={onCheckout}>انتقل إلى تفاصيل الطلب</button></footer>
+        </>}
       </aside>
     </div>
   );
@@ -1833,6 +1636,8 @@ function CheckoutModal({
   onClose,
   onSubmit,
   settings,
+  tableContext,
+  backendReady,
 }: {
   total: number;
   mode: Mode;
@@ -1840,146 +1645,176 @@ function CheckoutModal({
   onClose: () => void;
   onSubmit: (form: HTMLFormElement) => void | Promise<void>;
   settings?: RestaurantSettings;
+  tableContext: PublicMenuPayload["table"];
+  backendReady: boolean;
 }) {
+  const missingDineInContext = mode === "dine-in" && !tableContext;
   return (
     <div className="modal-backdrop">
-      <div className="checkout-modal">
-        <button className="close" onClick={onClose}>
-          ×
-        </button>
-        <span className="eyebrow">الخطوة الأخيرة</span>
-        <h2>تفاصيل الطلب</h2>
-        <div className="mode-tabs">
-          {(["dine-in", "takeaway", "delivery"] as Mode[]).map((m) => (
-            <button
-              className={mode === m ? "active" : ""}
-              key={m}
-              onClick={() => setMode(m)}
-            >
-              {m === "dine-in"
-                ? "⌂ في المطعم"
-                : m === "takeaway"
-                  ? "▣ سفري"
-                  : "⌁ توصيل"}
-            </button>
-          ))}
-        </div>
-        {settings &&
-          !settings[
-          mode === "dine-in"
-            ? "dineIn"
-            : mode === "takeaway"
-              ? "takeaway"
-              : "delivery"
-          ] && (
-            <div className="checkout-warning">
-              هذا النوع من الطلبات غير متاح حالياً.
+      <section className="checkout-modal handoff-modal" role="dialog" aria-modal="true">
+        <header className="handoff-header">
+          <div><span className="eyebrow">03 / تسليم الطلب</span><h2>لنضع اللمسات الأخيرة</h2><p>معلومات قليلة، ثم تنتقل الوصفة إلى المطبخ.</p></div>
+          <button className="close" onClick={onClose} aria-label="إغلاق">×</button>
+        </header>
+        <div className="handoff-layout">
+          <div className="handoff-form-column">
+            <div className="handoff-section service-section">
+              <div className="section-marker"><span>01</span><div><strong>كيف تريد طلبك؟</strong><small>اختر طريقة الاستلام المناسبة</small></div></div>
+              <div className="mode-tabs service-cards">
+                {(["dine-in", "takeaway", "delivery"] as Mode[]).map((m) => (
+                  <button
+                    className={mode === m ? "active" : ""}
+                    key={m}
+                    onClick={() => setMode(m)}
+                  >
+                    {m === "dine-in"
+                      ? "في المطعم"
+                      : m === "takeaway"
+                        ? "سفري"
+                        : "توصيل"}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void onSubmit(e.currentTarget);
-          }}
-        >
-          <label>
-            الاسم <input name="customer" required placeholder="اسمك الكريم" />
-          </label>
-          <label>
-            رقم الهاتف{" "}
-            <input
-              name="phone"
-              required={mode !== "dine-in"}
-              placeholder="09XXXXXXXX"
-            />
-          </label>
-          {mode === "dine-in" && (
-            <label>
-              رقم الطاولة <input name="table" defaultValue="T-12" />
-            </label>
-          )}
-          {mode === "delivery" && (
-            <label>
-              العنوان بالتفصيل{" "}
-              <textarea
-                name="address"
-                required
-                placeholder="الحي، الشارع، البناء، أقرب نقطة دالة"
-              />
-            </label>
-          )}
-          {mode === "takeaway" && (
-            <label>
-              وقت الاستلام{" "}
-              <select name="pickup">
-                <option>الآن (25 - 35 دقيقة)</option>
-                <option>بعد ساعة</option>
-                <option>غداً الساعة 1:00 م</option>
-              </select>
-            </label>
-          )}
-          <label>
-            طريقة الدفع{" "}
-            <select name="payment">
-              <option>
-                {mode === "delivery"
-                  ? "الدفع نقداً عند الاستلام"
-                  : "الدفع نقداً"}
-              </option>
-              <option>Syriatel Cash</option>
-              <option>Sham Cash / BEMO</option>
-              <option>MTN Cash</option>
-            </select>
-          </label>
-          <label>
-            مرجع الحوالة <small>(اختياري للمحافظ الإلكترونية)</small>
-            <input
-              name="paymentReference"
-              placeholder="رقم العملية أو اسم المرسل"
-            />
-          </label>
-          {mode === "delivery" && settings?.zones.length ? (
-            <label>
-              منطقة التوصيل
-              <select name="zone">
-                {settings.zones
-                  .filter((zone) => zone.active)
-                  .map((zone) => (
-                    <option key={zone.id} value={zone.id}>
-                      {zone.name} — {formatSyp(zone.fee)} · حد أدنى{" "}
-                      {formatSyp(zone.minimum)}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          ) : null}
-          <div className="checkout-total">
-            <span>الإجمالي</span>
-            <strong>{formatSyp(total)}</strong>
-          </div>
-          {mode === "delivery" && settings?.zones.length ? (
-            <small className="checkout-hint">
-              تطبق أجرة التوصيل والحد الأدنى حسب المنطقة التي يحددها المطعم.
-            </small>
-          ) : null}
-          <button
-            className="primary wide"
-            type="submit"
-            disabled={Boolean(
-              settings &&
+            {settings &&
               !settings[
               mode === "dine-in"
                 ? "dineIn"
                 : mode === "takeaway"
                   ? "takeaway"
                   : "delivery"
-              ],
-            )}
-          >
-            تأكيد الطلب <span>←</span>
-          </button>
-        </form>
-      </div>
+              ] && (
+                <div className="checkout-warning">
+                  هذا النوع من الطلبات غير متاح حالياً.
+                </div>
+              )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onSubmit(e.currentTarget);
+              }}
+            >
+              <div className="handoff-section">
+                <div className="section-marker"><span>02</span><div><strong>إلى من نجهزها؟</strong><small>نستخدمها لتسليم الطلب فقط</small></div></div>
+                <div className="handoff-fields">
+                  <label>
+                    الاسم <input name="customer" required placeholder="اسمك الكريم" />
+                  </label>
+                  <label>
+                    رقم الهاتف{" "}
+                    <input
+                      name="phone"
+                      required={mode !== "dine-in"}
+                      placeholder="09XXXXXXXX"
+                    />
+                  </label>
+                  {mode === "dine-in" &&
+                    (tableContext ? (
+                      <div className="checkout-hint">
+                        الطاولة: <strong>{tableContext.labelAr}</strong>
+                        {tableContext.area ? ` — ${tableContext.area}` : ""}
+                      </div>
+                    ) : (
+                      <div className="checkout-warning">
+                        امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل المطعم.
+                      </div>
+                    ))}
+                  {mode === "delivery" && (
+                    <label>
+                      العنوان بالتفصيل{" "}
+                      <textarea
+                        name="address"
+                        required
+                        placeholder="الحي، الشارع، البناء، أقرب نقطة دالة"
+                      />
+                    </label>
+                  )}
+                  {mode === "takeaway" && (
+                    <label>
+                      وقت الاستلام{" "}
+                      <select name="pickup">
+                        <option>الآن (25 - 35 دقيقة)</option>
+                        <option>بعد ساعة</option>
+                        <option>غداً الساعة 1:00 م</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+              </div>
+              <div className="handoff-section">
+                <div className="section-marker"><span>03</span><div><strong>طريقة الدفع</strong><small>اختر وسيلة الدفع المفضلة</small></div></div>
+                <div className="handoff-fields">
+                  <label>
+                    طريقة الدفع{" "}
+                    <select name="payment">
+                      <option>
+                        {mode === "delivery"
+                          ? "الدفع نقداً عند الاستلام"
+                          : "الدفع نقداً"}
+                      </option>
+                      <option>Syriatel Cash</option>
+                      <option>Sham Cash / BEMO</option>
+                      <option>MTN Cash</option>
+                    </select>
+                  </label>
+                  <label>
+                    مرجع الحوالة <small>(اختياري للمحافظ الإلكترونية)</small>
+                    <input
+                      name="paymentReference"
+                      placeholder="رقم العملية أو اسم المرسل"
+                    />
+                  </label>
+                  {mode === "delivery" && settings?.zones.length ? (
+                    <label>
+                      منطقة التوصيل
+                      <select name="zone">
+                        {settings.zones
+                          .filter((zone) => zone.active)
+                          .map((zone) => (
+                            <option key={zone.id} value={zone.id}>
+                              {zone.name} — {formatSyp(zone.fee)} · حد أدنى{" "}
+                              {formatSyp(zone.minimum)}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+              <div className="checkout-total">
+                <span>الإجمالي</span>
+                <strong>{formatSyp(total)}</strong>
+              </div>
+              {mode === "delivery" && settings?.zones.length ? (
+                <small className="checkout-hint">
+                  تطبق أجرة التوصيل والحد الأدنى حسب المنطقة التي يحددها المطعم.
+                </small>
+              ) : null}
+              <button
+                className="primary wide"
+                type="submit"
+                disabled={
+                  !backendReady ||
+                  missingDineInContext ||
+                  Boolean(
+                    settings &&
+                    !settings[
+                    mode === "dine-in"
+                      ? "dineIn"
+                      : mode === "takeaway"
+                        ? "takeaway"
+                        : "delivery"
+                    ],
+                  )
+                }
+              >
+                تأكيد الطلب
+              </button>
+            </form>
+          </div>
+          <aside className="handoff-receipt"><span className="eyebrow">ملخص الحساب</span><h3>مائدتك جاهزة</h3><div className="receipt-total"><small>الإجمالي المبدئي</small><strong>{formatSyp(total)}</strong></div><p>تظهر رسوم التوصيل أو أي تعديل نهائي بعد مراجعة المطعم.</p><div className="receipt-seal">تأكيد آمن قبل الإرسال</div></aside>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1993,59 +1828,11 @@ function OrdersView({
   onTrack: (o: Order) => void;
   onMenu: () => void;
 }) {
+  const activeOrders = orders.filter((order) => !["completed", "cancelled"].includes(order.status));
   return (
-    <div className="orders-page">
-      <div className="page-header">
-        <div>
-          <span className="eyebrow">متابعة مباشرة</span>
-          <h1>طلباتي</h1>
-          <p>تابع حالة طلباتك الحالية والسابقة.</p>
-        </div>
-        <button className="primary" onClick={onMenu}>
-          + طلب جديد
-        </button>
-      </div>
-      {orders.length === 0 ? (
-        <div className="empty-panel">
-          <div className="empty-icon">◷</div>
-          <h2>لا توجد طلبات بعد</h2>
-          <p>ابدأ بتصفح القائمة وأضف وجبتك المفضلة.</p>
-          <button className="secondary" onClick={onMenu}>
-            تصفح القائمة
-          </button>
-        </div>
-      ) : (
-        <div className="orders-list">
-          {orders.map((order) => (
-            <button
-              className="order-row"
-              key={order.id}
-              onClick={() => onTrack(order)}
-            >
-              <div className="order-number">
-                <strong>{order.id}</strong>
-                <small>
-                  {new Date(order.createdAt).toLocaleTimeString("ar-SY", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </small>
-              </div>
-              <div>
-                <strong>{modeLabels[order.mode]}</strong>
-                <small>
-                  {order.lines.reduce((a, l) => a + l.qty, 0)} أصناف ·{" "}
-                  {formatSyp(order.total)}
-                </small>
-              </div>
-              <span className={`status ${order.status}`}>
-                {statusLabels[order.status]}
-              </span>
-              <span>←</span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="orders-page order-journal">
+      <header className="journal-header"><div><span className="eyebrow">دفتر المائدة / متابعة مباشرة</span><h1>حكاية طلباتك</h1><p>كل طلب يحتفظ بوقته، تفاصيله، وحالته حتى يصل إليك.</p></div><div className="journal-count"><strong>{orders.length}</strong><span>طلبات محفوظة</span></div><button className="primary" onClick={onMenu}>ابدأ طلباً جديداً</button></header>
+      {orders.length === 0 ? <div className="empty-panel journal-empty"><span className="eyebrow">الفصل الأول</span><h2>لم تُكتب أول حكاية بعد</h2><p>ابدأ بتصفح القائمة، واختر ما ترغب أن يصل إلى مائدتك.</p><button className="secondary" onClick={onMenu}>افتح القائمة</button></div> : <div className="journal-layout"><section className="journal-list"><div className="journal-list-head"><span>أرشيف الطلبات</span><small>{activeOrders.length} قيد المتابعة الآن</small></div>{orders.map((order, index) => <button className={`journal-entry ${activeOrders.includes(order) ? "is-live" : ""}`} key={order.id} onClick={() => onTrack(order)}><span className="entry-index">{String(index + 1).padStart(2, "0")}</span><span className="entry-main"><strong>{order.id}</strong><span>{modeLabels[order.mode]} · {order.lines.reduce((a, l) => a + l.qty, 0)} أصناف</span><small>{new Date(order.createdAt).toLocaleDateString("ar-SY", { day: "numeric", month: "long" })}، {new Date(order.createdAt).toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit" })}</small></span><span className="entry-total"><strong>{formatSyp(order.total)}</strong><small className={`status ${order.status}`}>{statusLabels[order.status]}</small></span><span className="entry-arrow">عرض التفاصيل</span></button>)}</section><aside className="journal-aside"><span className="eyebrow">مفتوح الآن</span><h2>{activeOrders.length ? "هناك طلب يتحرك" : "المطبخ بانتظارك"}</h2><p>{activeOrders.length ? "افتح أي طلب قيد التنفيذ لمشاهدة آخر تحديث من المطعم." : "عد إلى القائمة وابدأ تركيبة جديدة من أطباق اليوم."}</p><button className="secondary" onClick={onMenu}>{activeOrders.length ? "استكشف القائمة أيضاً" : "اكتب طلبك التالي"}</button></aside></div>}
     </div>
   );
 }
@@ -2151,8 +1938,7 @@ function StaffAuthModal({
         <button className="close" onClick={onClose} aria-label="إغلاق">
           ×
         </button>
-        <span className="auth-shield">◈</span>
-        <span className="eyebrow">دخول آمن</span>
+        <span className="eyebrow">دخول الموظفين</span>
         <h2>لوحة المطعم</h2>
         <p>
           استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب.
@@ -2183,7 +1969,7 @@ function StaffAuthModal({
               minLength={6}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
+              placeholder="كلمة المرور"
             />
           </label>
           {message && (
@@ -2283,49 +2069,14 @@ function TrackingModal({
   const current = steps.indexOf(displayOrder.status);
   return (
     <div className="modal-backdrop">
-      <div className="tracking-modal">
-        <button className="close" onClick={onClose}>
-          ×
-        </button>
-        <div className="tracking-top">
-          <span className="success-check">✓</span>
-          <div>
-            <span className="eyebrow">طلبك لدى سُفرة</span>
-            <h2>{displayOrder.id}</h2>
-            <p>
-              {modeLabels[displayOrder.mode]} · {formatSyp(displayOrder.total)}
-            </p>
-          </div>
-        </div>
-        <div className="tracker">
-          {steps.map((step, i) => (
-            <div
-              className={i <= current ? "track-step done" : "track-step"}
-              key={step}
-            >
-              <span>{i <= current ? "✓" : i + 1}</span>
-              <small>{statusLabels[step]}</small>
-            </div>
-          ))}
-        </div>
-        <div className="tracking-note">
-          <strong>{statusLabels[displayOrder.status]}</strong>
-          <span>
-            {displayOrder.status === "received"
-              ? "تم إرسال طلبك إلى المطعم، سيتم تأكيده قريباً."
-              : displayOrder.status === "completed"
-                ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك."
-                : "فريقنا يعمل على تجهيز طلبك الآن."}
-          </span>
-          {trackingMessage && <small>{trackingMessage}</small>}
-        </div>
-        <button
-          className="secondary wide"
-          onClick={() => onWhatsApp(displayOrder)}
-        >
-          تواصل مع المطعم عبر واتساب
-        </button>
-      </div>
+      <section className="tracking-modal tracking-dossier" role="dialog" aria-modal="true">
+        <header className="dossier-header"><div><span className="eyebrow">سجل الطلب / {modeLabels[displayOrder.mode]}</span><h2>{displayOrder.id}</h2><p>{formatSyp(displayOrder.total)} · {displayOrder.table || displayOrder.address || "طلب خارجي"}</p></div><button className="close" onClick={onClose} aria-label="إغلاق">×</button></header>
+        <div className="dossier-status"><span className="success-check" aria-hidden="true" /><div><small>الحالة الحالية</small><strong>{statusLabels[displayOrder.status]}</strong><p>{displayOrder.status === "received" ? "تم إرسال طلبك إلى المطعم، سيتم تأكيده قريباً." : displayOrder.status === "completed" ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك." : "فريقنا يعمل على تجهيز طلبك الآن."}</p></div></div>
+        <div className="tracker dossier-timeline">{steps.map((step, i) => <div className={i <= current ? "track-step done" : "track-step"} key={step}><span>{i + 1}</span><div><strong>{statusLabels[step]}</strong><small>{i < current ? "اكتملت" : i === current ? "نحن هنا الآن" : "في انتظارها"}</small></div></div>)}</div>
+        <section className="dossier-lines"><div className="dossier-section-head"><span>محتويات الطلب</span><small>{displayOrder.lines.length} أطباق</small></div>{displayOrder.lines.map((line) => <div className="dossier-line" key={line.key}><span>{line.qty} ×</span><strong>{line.item.name}</strong><small>{line.options.map((option) => option.name).join("، ") || "بدون إضافات"}</small><b>{formatSyp((line.item.price + line.options.reduce((a, o) => a + o.price, 0)) * line.qty)}</b></div>)}</section>
+        {trackingMessage && <p className="tracking-note">{trackingMessage}</p>}
+        <button className="secondary wide" onClick={() => onWhatsApp(displayOrder)}>تواصل مع المطعم عبر واتساب</button>
+      </section>
     </div>
   );
 }
@@ -2455,122 +2206,32 @@ function AdminView({
           .toLowerCase()
           .includes(orderQuery.toLowerCase())),
   );
-  const revenue = orders
-    .filter((o) => o.status !== "cancelled")
-    .reduce((sum, order) => sum + order.total, 0);
   return (
-    <div className="admin-page">
-      <div className="admin-header">
-        <div>
-          <span className="eyebrow">مساحة العمل</span>
-          <h1>لوحة المطعم</h1>
-          <p>
-            إدارة عمليات اليوم — <strong>{restaurant.name}</strong>
-          </p>
-        </div>
-        <div className="admin-account-actions">
-          <div className="staff-identity">
-            <span>
-              {memberships.find(
-                (entry) => entry.restaurantSlug === restaurant.id,
-              )?.displayName || staffEmail}
-            </span>
-            <small>
-              {memberships.find(
-                (entry) => entry.restaurantSlug === restaurant.id,
-              )?.role || "staff"}
-            </small>
-          </div>
-          <div className="restaurant-switch">
-            <span>المطعم الحالي</span>
-            <select
-              value={restaurant.id}
-              onChange={(e) => onSwitch(e.target.value)}
-            >
-              {memberships.map((entry) => (
-                <option key={entry.restaurantId} value={entry.restaurantSlug}>
-                  {entry.restaurantName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            className="secondary sign-out-button"
-            onClick={() => void onSignOut()}
-          >
-            خروج
-          </button>
-        </div>
-      </div>
-      <div className="admin-tabs">
-        <button
-          className={tab === "overview" ? "active" : ""}
-          onClick={() => setTab("overview")}
-        >
-          نظرة عامة
-        </button>
-        <button
-          className={tab === "orders" ? "active" : ""}
-          onClick={() => setTab("orders")}
-        >
-          الطلبات{" "}
-          <b>
-            {
-              orders.filter(
-                (o) => !["completed", "cancelled"].includes(o.status),
-              ).length
-            }
-          </b>
-        </button>
-        <button
-          className={tab === "menu" ? "active" : ""}
-          onClick={() => setTab("menu")}
-        >
-          القائمة <b>{restaurant.items.length}</b>
-        </button>
-        <button
-          className={tab === "tables" ? "active" : ""}
-          onClick={() => setTab("tables")}
-        >
-          الطاولات و QR
-        </button>
-        <button
-          className={tab === "reports" ? "active" : ""}
-          onClick={() => setTab("reports")}
-        >
-          التقارير
-        </button>
-        <button
-          className={tab === "operations" ? "active" : ""}
-          onClick={() => setTab("operations")}
-        >
-          الفريق والتشغيل
-        </button>
-        <button
-          className={tab === "settings" ? "active" : ""}
-          onClick={() => setTab("settings")}
-        >
-          الإعدادات
-        </button>
-      </div>
+    <div className="admin-page operations-workspace">
+      <header className="admin-header workspace-masthead">
+        <div className="masthead-title"><span className="eyebrow">دفتر التشغيل / {new Date().toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" })}</span><h1>{restaurant.name}</h1><p>مساحة العمل اليومية: الطلبات، المطبخ، والفريق في إيقاع واحد.</p></div>
+        <div className="admin-account-actions"><div className="staff-identity"><span>{memberships.find((entry) => entry.restaurantSlug === restaurant.id)?.displayName || staffEmail}</span><small>{memberships.find((entry) => entry.restaurantSlug === restaurant.id)?.role || "staff"} · متصل</small></div><div className="restaurant-switch"><span>تبديل المطعم</span><select value={restaurant.id} onChange={(e) => onSwitch(e.target.value)}>{memberships.map((entry) => <option key={entry.restaurantId} value={entry.restaurantSlug}>{entry.restaurantName}</option>)}</select></div><button className="secondary sign-out-button" onClick={() => void onSignOut()}>خروج آمن</button></div>
+      </header>
+      <div className="workspace-pulse"><div><span>المشهد الآن</span><strong>{visible.length} طلباً في العرض</strong></div><div><span>قيد التنفيذ</span><strong>{orders.filter((o) => !["completed", "cancelled"].includes(o.status)).length}</strong></div><div><span>المطبخ</span><strong>{orders.filter((o) => ["preparing", "ready"].includes(o.status)).length} وصفات</strong></div><div><span>آخر مزامنة</span><strong>مباشر الآن</strong></div></div>
+      <nav className="admin-tabs workspace-index" aria-label="فهرس مساحة العمل"><div className="admin-tabs-heading"><small>مساحة الإدارة</small><strong>فصول التشغيل</strong></div><div className="workspace-nav-group"><span>اليوم</span><button className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>نظرة عامة</button><button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>الطلبات <b>{orders.filter((o) => !["completed", "cancelled"].includes(o.status)).length}</b></button></div><div className="workspace-nav-group"><span>المحتوى</span><button className={tab === "menu" ? "active" : ""} onClick={() => setTab("menu")}>القائمة <b>{restaurant.items.length}</b></button><button className={tab === "tables" ? "active" : ""} onClick={() => setTab("tables")}>الطاولات و QR</button></div><div className="workspace-nav-group"><span>المراجعة</span><button className={tab === "reports" ? "active" : ""} onClick={() => setTab("reports")}>التقارير</button><button className={tab === "operations" ? "active" : ""} onClick={() => setTab("operations")}>الفريق والتشغيل</button><button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>إعدادات المطعم</button></div></nav>
       {tab === "overview" && (
         <AdminOverview
           orders={orders}
-          revenue={revenue}
+          settings={settings}
           onOpenOrders={() => setTab("orders")}
         />
       )}
       {tab === "orders" && (
         <>
           <div className="admin-toolbar order-desk-toolbar">
-            <div className="order-search">
-              <span>⌕</span>
+            <label className="order-search">
+              <span>البحث في الطلبات</span>
               <input
                 value={orderQuery}
                 onChange={(event) => setOrderQuery(event.target.value)}
-                placeholder="رقم الطلب، العميل، الهاتف..."
+                placeholder="رقم الطلب، اسم العميل، أو الهاتف"
               />
-            </div>
+            </label>
             <div className="filter-pills">
               <button
                 className={adminFilter === "all" ? "active" : ""}
@@ -2615,9 +2276,9 @@ function AdminView({
               className={soundEnabled ? "sound-toggle on" : "sound-toggle"}
               onClick={() => setSoundEnabled((value) => !value)}
             >
-              {soundEnabled ? "🔔 التنبيهات مفعلة" : "🔕 التنبيهات متوقفة"}
+              {soundEnabled ? "التنبيهات مفعلة" : "التنبيهات متوقفة"}
             </button>
-            <span className="sync">● متصل الآن · آخر تحديث الآن</span>
+            <span className="sync">متصل الآن · آخر تحديث الآن</span>
           </div>
           <div className="kanban">
             {(
@@ -2824,8 +2485,8 @@ function OperationsPanel({
     kitchen: "المطبخ",
   };
   return (
-    <div className="operations-panel">
-      <div className="manager-intro">
+    <div className="operations-panel operations-ledger">
+      <div className="manager-intro operations-intro">
         <div>
           <span className="eyebrow">التحكم والصلاحيات</span>
           <h2>الفريق وحالة التشغيل</h2>
@@ -2838,12 +2499,13 @@ function OperationsPanel({
               : "operation-state paused"
           }
         >
-          {state.acceptingOrders ? "● يستقبل الطلبات" : "Ⅱ الطلبات متوقفة"}
+          {state.acceptingOrders ? "يستقبل الطلبات" : "الطلبات متوقفة"}
         </span>
       </div>
-      <div className="operations-grid">
-        <section>
-          <h3>تشغيل المطعم</h3>
+      <div className="operations-grid operations-workbench">
+        <section className="service-switchboard">
+          <span className="section-marker">01</span>
+          <h3>لوحة تشغيل المطعم</h3>
           <div className="setting-toggles">
             <label>
               <span>
@@ -2905,9 +2567,9 @@ function OperationsPanel({
             </label>
           </div>
         </section>
-        <section>
+        <section className="staff-roster">
           <div className="settings-section-head">
-            <h3>أعضاء الفريق</h3>
+            <div><span className="section-marker">02</span><h3>سجل أعضاء الفريق</h3></div>
             <button disabled={staffBusy} onClick={() => void addStaff()}>
               {staffBusy ? "جارٍ الحفظ..." : "+ إضافة موظف"}
             </button>
@@ -2962,7 +2624,7 @@ function OperationsPanel({
           </div>
         </section>
       </div>
-      <section className="audit-panel">
+      <section className="audit-panel activity-ledger">
         <div className="settings-section-head">
           <h3>سجل النشاط</h3>
           <small>سجل دائم للعمليات الإدارية</small>
@@ -2970,7 +2632,7 @@ function OperationsPanel({
         <div className="audit-list">
           {state.audit.map((entry) => (
             <div key={entry.id}>
-              <span>✓</span>
+              <span aria-hidden="true" />
               <div>
                 <strong>{entry.action}</strong>
                 <small>
@@ -3110,7 +2772,7 @@ function ReportsPanel({
   };
   return (
     <div className="reports-panel">
-      <div className="manager-intro">
+      <div className="manager-intro report-masthead">
         <div>
           <span className="eyebrow">التحليلات والتصدير</span>
           <h2>تقارير المبيعات والطلبات</h2>
@@ -3121,7 +2783,7 @@ function ReportsPanel({
         </button>
       </div>
       {reportError && <p className="form-error">{reportError}</p>}
-      <div className="report-filters">
+      <div className="report-filters date-folio">
         <label>
           من
           <input
@@ -3147,7 +2809,7 @@ function ReportsPanel({
           كل الفترة
         </button>
       </div>
-      <div className="metric-grid report-metrics">
+      <div className="metric-grid report-metrics report-scoreboard">
         <article>
           <div>
             <small>صافي المبيعات</small>
@@ -3181,8 +2843,8 @@ function ReportsPanel({
           </div>
         </article>
       </div>
-      <div className="report-grid">
-        <section>
+      <div className="report-grid report-spreads">
+        <section className="channel-ledger">
           <div className="panel-title">
             <div>
               <span className="eyebrow">حسب القناة</span>
@@ -3200,7 +2862,7 @@ function ReportsPanel({
             ))}
           </div>
         </section>
-        <section>
+        <section className="best-sellers-ledger">
           <div className="panel-title">
             <div>
               <span className="eyebrow">الأداء</span>
@@ -3228,103 +2890,99 @@ function ReportsPanel({
 
 function AdminOverview({
   orders,
-  revenue,
+  settings,
   onOpenOrders,
 }: {
   orders: Order[];
-  revenue: number;
+  settings: RestaurantSettings;
   onOpenOrders: () => void;
 }) {
-  const active = orders.filter(
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(todayStart.getDate() + 1);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(todayStart.getDate() - 1);
+
+  const inRange = (iso: string, from: Date, to: Date) => {
+    const d = new Date(iso);
+    return d >= from && d < to;
+  };
+  const isPaid = (order: Order) => order.status !== "cancelled";
+
+  const todaysOrders = orders.filter((o) =>
+    inRange(o.createdAt, todayStart, tomorrowStart),
+  );
+  const yesterdaysOrders = orders.filter((o) =>
+    inRange(o.createdAt, yesterdayStart, todayStart),
+  );
+  const todaysRevenue = todaysOrders
+    .filter(isPaid)
+    .reduce((sum, o) => sum + o.total, 0);
+  const yesterdaysRevenue = yesterdaysOrders
+    .filter(isPaid)
+    .reduce((sum, o) => sum + o.total, 0);
+  const activeOrders = orders.filter(
     (o) => !["completed", "cancelled"].includes(o.status),
   ).length;
+  const pendingOrders = orders.filter((o) => o.status === "received").length;
+  const todaysPaidCount = todaysOrders.filter(isPaid).length;
+  const avgOrder = todaysPaidCount
+    ? Math.round(todaysRevenue / todaysPaidCount)
+    : 0;
+
+  const orderTrend = yesterdaysOrders.length
+    ? ((todaysOrders.length - yesterdaysOrders.length) /
+      yesterdaysOrders.length) *
+    100
+    : null;
+  const revenueTrend = yesterdaysRevenue
+    ? ((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100
+    : null;
+
+  const trendLabel = (trend: number | null) =>
+    trend === null
+      ? "—"
+      : `${Math.round(trend) >= 0 ? "+" : ""}${Math.round(trend)}% عن أمس`;
+  const trendClass = (trend: number | null) =>
+    trend === null ? "" : trend >= 0 ? "trend-up" : "trend-down";
+
+  const hourBuckets = Array.from({ length: 24 }, () => 0);
+  orders.forEach((o) => {
+    hourBuckets[new Date(o.createdAt).getHours()] += o.total;
+  });
+  const maxHour = Math.max(...hourBuckets, 1);
+  const operatingHours = Array.from({ length: 15 }, (_, i) => i + 9);
+  const peakRevenue = Math.max(...hourBuckets);
+
+  const statusOrder: Order["status"][] = [
+    "received",
+    "confirmed",
+    "preparing",
+    "ready",
+    "out-for-delivery",
+    "completed",
+    "cancelled",
+  ];
+  const statusColor: Record<Order["status"], string> = {
+    received: "#e5a541",
+    confirmed: "#3b82f6",
+    preparing: "#6385c3",
+    ready: "#42a26b",
+    "out-for-delivery": "#8b5cf6",
+    completed: "#23754a",
+    cancelled: "#a23e38",
+  };
+
   return (
-    <div className="overview">
-      <div className="metric-grid">
-        <article>
-          <span className="metric-icon coral">↗</span>
-          <div>
-            <small>مبيعات اليوم</small>
-            <strong>{formatSyp(revenue)}</strong>
-            <em>+12% عن أمس</em>
-          </div>
-        </article>
-        <article>
-          <span className="metric-icon green">▤</span>
-          <div>
-            <small>طلبات اليوم</small>
-            <strong>{orders.length || 0}</strong>
-            <em>{active} قيد التنفيذ</em>
-          </div>
-        </article>
-        <article>
-          <span className="metric-icon blue">◷</span>
-          <div>
-            <small>متوسط التجهيز</small>
-            <strong>18 دقيقة</strong>
-            <em>أسرع بـ 3 دقائق</em>
-          </div>
-        </article>
-        <article>
-          <span className="metric-icon gold">★</span>
-          <div>
-            <small>رضا العملاء</small>
-            <strong>4.8 / 5</strong>
-            <em>من 124 تقييماً</em>
-          </div>
-        </article>
-      </div>
-      <div className="overview-grid">
-        <section className="activity-panel">
-          <div className="panel-title">
-            <div>
-              <span className="eyebrow">نشاط اليوم</span>
-              <h2>المبيعات حسب الساعة</h2>
-            </div>
-            <span className="legend">● المبيعات</span>
-          </div>
-          <div className="chart-bars">
-            {[28, 42, 34, 66, 53, 84, 71, 92, 63, 48, 78, 57].map((h, i) => (
-              <div key={i}>
-                <span style={{ height: `${h}%` }} />
-                <small>{i + 10}</small>
-              </div>
-            ))}
-          </div>
-        </section>
-        <section className="quick-panel">
-          <div className="panel-title">
-            <div>
-              <span className="eyebrow">إجراءات سريعة</span>
-              <h2>إدارة الوردية</h2>
-            </div>
-          </div>
-          <button onClick={onOpenOrders}>
-            <span>▤</span>
-            <div>
-              <strong>فتح مكتب الطلبات</strong>
-              <small>{active} طلبات تحتاج المتابعة</small>
-            </div>
-            ←
-          </button>
-          <button>
-            <span>⊘</span>
-            <div>
-              <strong>إيقاف استقبال الطلبات</strong>
-              <small>القائمة تبقى متاحة للتصفح</small>
-            </div>
-            <i className="mini-switch on" />
-          </button>
-          <button>
-            <span>⌁</span>
-            <div>
-              <strong>نسخ رابط القائمة</strong>
-              <small>شارك الرابط على وسائل التواصل</small>
-            </div>
-            ←
-          </button>
-        </section>
-      </div>
+    <div className="overview command-briefing">
+      <header className="overview-intro briefing-intro"><div><span className="eyebrow">مذكرة التشغيل / اليوم</span><h1>صورة المطعم الآن</h1><p>قراءة سريعة لما يتحرك في المطبخ، وما يحتاج قراراً منك.</p></div><button className="primary" onClick={onOpenOrders}>افتح مكتب الطلبات</button></header>
+      {orders.length === 0 ? <div className="empty-panel"><h2>ابدأ باستلام الطلبات</h2><p>ستظهر مقاييس اليوم ومخطط الحركة مع أول طلب مؤكد.</p><button className="primary" onClick={onOpenOrders}>فتح مكتب الطلبات</button></div> : <>
+        <section className="briefing-lead"><div className="lead-revenue"><span className="eyebrow">المبيعات المحققة اليوم</span><strong>{formatSyp(todaysRevenue)}</strong>{settings.currencyEstimate && <small>≈ {formatUsd(todaysRevenue, settings.rate)} USD</small>}<em className={trendClass(revenueTrend)}>{trendLabel(revenueTrend)}</em></div><div className="lead-reading"><span>قراءة اليوم</span><h2>{activeOrders ? `${activeOrders} طلبات تتحرك الآن` : "الإيقاع هادئ حالياً"}</h2><p>{pendingOrders ? `${pendingOrders} طلبات جديدة تنتظر التأكيد. افتح مكتب الطلبات حتى لا تتأخر الوصفات.` : "لا توجد طلبات جديدة معلقة، ويمكن للفريق متابعة التحضير."}</p><button className="secondary" onClick={onOpenOrders}>راجع خط الإنتاج</button></div></section>
+        <div className="briefing-stats"><article><span>طلبات اليوم</span><strong>{todaysOrders.length}</strong><em className={trendClass(orderTrend)}>{trendLabel(orderTrend)}</em></article><article><span>قيد المعالجة</span><strong>{activeOrders}</strong><em>{pendingOrders} جديدة</em></article><article><span>متوسط الطلب</span><strong>{formatSyp(avgOrder)}</strong><em>{todaysPaidCount} محتسبة اليوم</em></article></div>
+        <div className="overview-grid briefing-grid"><section className="activity-panel briefing-chart"><div className="panel-title"><div><span className="eyebrow">إيقاع اليوم</span><h2>المبيعات حسب الساعة</h2></div><span className="legend">الذروة {formatSyp(peakRevenue)}</span></div>{peakRevenue > 0 ? <div className="chart-bars">{operatingHours.map((hour) => { const value = hourBuckets[hour]; const height = value ? (value / maxHour) * 100 : 0; return <div key={hour}>{value ? <span style={{ height: `${height}%` }} title={`${formatSyp(value)} — ${hour}:00`} /> : null}<small>{hour}</small></div>; })}</div> : <div className="chart-empty">لا توجد بيانات مبيعات للساعات بعد.</div>}</section><section className="status-breakdown briefing-ledger"><div className="panel-title"><div><span className="eyebrow">سجل الحركة</span><h2>حالة كل طلب</h2></div><span className="legend">{activeOrders} نشط · {orders.length} إجمالي</span></div><div className="status-rows">{statusOrder.map((status) => { const count = orders.filter((o) => o.status === status).length; const revenue = orders.filter((o) => o.status === status && o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0); return <div className="status-row" key={status} style={{ opacity: count ? 1 : 0.5, background: count ? "rgba(0, 0, 0, 0.02)" : "transparent" }}><span className="status-dot" style={{ background: statusColor[status] }} /><span className="status-label">{statusLabels[status]}</span><b className="status-count">{count}</b>{revenue ? <small>{formatSyp(revenue)}</small> : null}</div>; })}</div></section></div>
+        <footer className="dashboard-cta briefing-footer"><span><strong>{activeOrders}</strong> طلبات تحتاج المتابعة · <strong>{pendingOrders}</strong> جديدة</span><button className="primary" onClick={onOpenOrders}>دخول مكتب الطلبات</button></footer>
+      </>}
     </div>
   );
 }
@@ -3342,29 +3000,55 @@ function TablesManager({
   const defaultTables = () =>
     Array.from({ length: 12 }, (_, index) => ({
       id: `table-${index + 1}`,
+      code: String(index + 1),
       name: `الطاولة ${String(index + 1).padStart(2, "0")}`,
       area: index < 8 ? "الصالة الرئيسية" : "التراس",
       active: true,
     }));
-  const [tables, setTables] = useState<RestaurantTable[]>(() =>
-    readStored<RestaurantTable[]>(storageKey, defaultTables()),
-  );
+  const storedTables = () =>
+    readStored<RestaurantTable[]>(storageKey, defaultTables()).map((table) => ({
+      ...table,
+      code: table.code ?? table.id.replace(/^table-/, ""),
+    }));
+  const [tables, setTables] = useState<RestaurantTable[]>(storedTables);
+  const loadTables = async () => {
+    if (!restaurantDatabaseId) return;
+    const { data, error } = await supabase.rpc("get_admin_tables", {
+      p_restaurant_id: restaurantDatabaseId,
+    });
+    if (error) {
+      window.alert(`تعذر تحميل الطاولات: ${error.message}`);
+      return;
+    }
+    setTables((data ?? []) as RestaurantTable[]);
+  };
   useEffect(() => {
-    setTables(readStored<RestaurantTable[]>(storageKey, defaultTables()));
-  }, [storageKey]);
+    setTables(storedTables());
+    void loadTables();
+  }, [storageKey, restaurantDatabaseId]);
   useEffect(
     () => writeStored(storageKey, tables),
     [storageKey, tables],
   );
-  const tableUrl = (table: RestaurantTable) =>
-    `${location.origin}${location.pathname}?restaurant=${restaurant.id}&table=${encodeURIComponent(table.id)}`;
+  const tableUrl = (table: RestaurantTable) => {
+    if (!table.qrToken) return "";
+    const url = new URL(location.pathname, location.origin);
+    url.searchParams.set("restaurant", restaurant.id);
+    url.searchParams.set("table", table.code);
+    url.searchParams.set("tableToken", table.qrToken);
+    return url.toString();
+  };
   const persistTables = async (nextTables: RestaurantTable[]) => {
     if (!restaurantDatabaseId) return;
     const { error } = await supabase.rpc("sync_admin_tables", {
       p_restaurant_id: restaurantDatabaseId,
       p_payload: nextTables,
     });
-    if (error) window.alert(`تعذر حفظ الطاولات: ${error.message}`);
+    if (error) {
+      window.alert(`تعذر حفظ الطاولات: ${error.message}`);
+      return;
+    }
+    await loadTables();
   };
   const updateTables = (nextTables: RestaurantTable[]) => {
     setTables(nextTables);
@@ -3373,13 +3057,16 @@ function TablesManager({
   const save = (form: HTMLFormElement) => {
     const data = new FormData(form);
     const previous = editing === "new" ? null : editing;
+    const code = String(data.get("id")).trim();
     const table: RestaurantTable = {
-      id: previous?.id ?? `table-${String(data.get("id")).trim()}`,
+      id: previous?.id ?? `table-${code}`,
+      code: previous?.code ?? code,
       name: String(data.get("name")).trim(),
       area: String(data.get("area")).trim(),
       active: previous?.active ?? true,
+      qrToken: previous?.qrToken,
     };
-    if (!previous && tables.some((entry) => entry.id === table.id))
+    if (!previous && tables.some((entry) => entry.code === table.code))
       return window.alert("رقم الطاولة مستخدم بالفعل.");
     updateTables(
       previous
@@ -3389,7 +3076,9 @@ function TablesManager({
     setEditing(null);
   };
   const download = async (table: RestaurantTable) => {
-    const url = await QRCode.toDataURL(tableUrl(table), {
+    const targetUrl = tableUrl(table);
+    if (!targetUrl) return window.alert("رمز الطاولة لم يُحمّل بعد.");
+    const url = await QRCode.toDataURL(targetUrl, {
       width: 1000,
       margin: 2,
       color: { dark: "#153a2f", light: "#ffffff" },
@@ -3400,7 +3089,9 @@ function TablesManager({
     link.click();
   };
   const print = async (table: RestaurantTable) => {
-    const qr = await QRCode.toDataURL(tableUrl(table), {
+    const targetUrl = tableUrl(table);
+    if (!targetUrl) return window.alert("رمز الطاولة لم يُحمّل بعد.");
+    const qr = await QRCode.toDataURL(targetUrl, {
       width: 700,
       margin: 2,
     });
@@ -3410,22 +3101,22 @@ function TablesManager({
     );
     popup?.document.close();
   };
+  const activeCount = tables.filter((table) => table.active).length;
   return (
-    <div className="tables-manager">
-      <div className="manager-intro">
+    <div className="tables-manager table-registry">
+      <header className="registry-header">
         <div>
-          <span className="eyebrow">رموز ذكية لكل طاولة</span>
-          <h2>الطاولات ورموز QR</h2>
-          <p>
-            أضف الطاولات وعدّلها واطبع رمزاً حقيقياً يفتح قائمة{" "}
-            {restaurant.name}.
-          </p>
+          <span className="eyebrow">سجل نقاط الخدمة</span>
+          <h2>الطاولات ورموز الوصول</h2>
+          <p>كل رمز يفتح قائمة {restaurant.name} ضمن سياق طاولة موثوق.</p>
         </div>
-        <button className="primary" onClick={() => setEditing("new")}>
-          + إضافة طاولة
-        </button>
-      </div>
-      <div className="table-grid">
+        <div className="registry-summary">
+          <span><small>إجمالي الطاولات</small><strong>{tables.length}</strong></span>
+          <span><small>النشطة الآن</small><strong>{activeCount}</strong></span>
+          <button className="primary" onClick={() => setEditing("new")}>إضافة طاولة</button>
+        </div>
+      </header>
+      <div className="table-grid registry-grid">
         {tables.map((table) => (
           <TableCard
             key={table.id}
@@ -3433,7 +3124,9 @@ function TablesManager({
             url={tableUrl(table)}
             copied={copied === table.id}
             onCopy={() => {
-              navigator.clipboard?.writeText(tableUrl(table));
+              const url = tableUrl(table);
+              if (!url) return window.alert("رمز الطاولة لم يُحمّل بعد.");
+              navigator.clipboard?.writeText(url);
               setCopied(table.id);
             }}
             onDownload={() => download(table)}
@@ -3478,7 +3171,7 @@ function TablesManager({
                     name="id"
                     required
                     disabled={editing !== "new"}
-                    defaultValue={editing === "new" ? "" : editing.id}
+                    defaultValue={editing === "new" ? "" : editing.code}
                   />
                 </label>
                 <label>
@@ -3533,34 +3226,37 @@ function TableCard({
 }) {
   const [svg, setSvg] = useState("");
   useEffect(() => {
+    if (!url) {
+      setSvg("");
+      return;
+    }
     QRCode.toString(url, { type: "svg", margin: 1, width: 220 }).then(setSvg);
   }, [url]);
   return (
-    <article className={!table.active ? "table-inactive" : ""}>
-      <div
-        className="real-qr"
-        aria-label={`QR ${table.name}`}
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
-      <div>
-        <span>{table.active ? "نشطة" : "متوقفة"}</span>
-        <strong>{table.name}</strong>
-        <small>{table.area}</small>
+    <article className={`table-pass ${!table.active ? "table-inactive" : ""}`}>
+      <header className="table-pass-heading">
+        <span className={`table-state ${table.active ? "active" : "paused"}`}>{table.active ? "نشطة" : "متوقفة"}</span>
+        <span className="table-code">{table.code}</span>
+      </header>
+      <div className="table-pass-body">
+        <div className="qr-plate">
+          <div className="real-qr" aria-label={`QR ${table.name}`} dangerouslySetInnerHTML={{ __html: svg }} />
+          <small>امسح لفتح القائمة</small>
+        </div>
+        <div className="table-identity">
+          <span className="eyebrow">نقطة خدمة</span>
+          <strong>{table.name}</strong>
+          <small>{table.area}</small>
+          <button className="copy-link" onClick={onCopy}>{copied ? "تم نسخ الرابط" : "نسخ رابط الوصول"}</button>
+        </div>
       </div>
-      <button onClick={onCopy}>{copied ? "✓ تم النسخ" : "نسخ الرابط"}</button>
-      <button className="download" onClick={onDownload}>
-        ↓ PNG
-      </button>
-      <button className="download" onClick={onPrint}>
-        طباعة
-      </button>
-      <div className="table-actions">
+      <footer className="table-pass-actions">
+        <button className="download" onClick={onDownload}>تنزيل الرمز</button>
+        <button className="download" onClick={onPrint}>طباعة</button>
         <button onClick={onEdit}>تعديل</button>
-        <button onClick={onToggle}>{table.active ? "تعطيل" : "تفعيل"}</button>
-        <button className="danger-text" onClick={onDelete}>
-          حذف
-        </button>
-      </div>
+        <button onClick={onToggle}>{table.active ? "إيقاف" : "تفعيل"}</button>
+        <button className="danger-text" onClick={onDelete}>حذف</button>
+      </footer>
     </article>
   );
 }
@@ -3599,8 +3295,8 @@ function SettingsPanel({
       ],
     }));
   return (
-    <div className="settings-panel">
-      <div className="manager-intro">
+    <div className="settings-panel settings-atlas">
+      <div className="manager-intro settings-masthead">
         <div>
           <span className="eyebrow">إعداد المطعم</span>
           <h2>الهوية والتشغيل والدفع والتوصيل</h2>
@@ -3609,14 +3305,14 @@ function SettingsPanel({
           </p>
         </div>
       </div>
-      <form
+      <form className="settings-dossier"
         onSubmit={(event) => {
           event.preventDefault();
           void save();
         }}
       >
-        <section>
-          <h3>معلومات وهوية المطعم</h3>
+        <section className="settings-chapter identity-chapter">
+          <header><span className="section-marker">01</span><div><small>الواجهة العامة</small><h3>معلومات وهوية المطعم</h3></div></header>
           <div className="settings-fields">
             <label>
               اسم المطعم
@@ -3664,8 +3360,8 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section>
-          <h3>العملة والرسوم</h3>
+        <section className="settings-chapter finance-chapter">
+          <header><span className="section-marker">02</span><div><small>الحسابات</small><h3>العملة والرسوم</h3></div></header>
           <div className="settings-fields">
             <label>
               سعر الدولار (ألف ل.س)
@@ -3715,8 +3411,8 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section>
-          <h3>المحافظ وطرق الدفع</h3>
+        <section className="settings-chapter payment-chapter">
+          <header><span className="section-marker">03</span><div><small>التحصيل</small><h3>المحافظ وطرق الدفع</h3></div></header>
           <div className="settings-fields">
             <label>
               Syriatel Cash
@@ -3741,8 +3437,8 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section>
-          <h3>طرق الطلب المتاحة</h3>
+        <section className="settings-chapter channels-chapter">
+          <header><span className="section-marker">04</span><div><small>قنوات الخدمة</small><h3>طرق الطلب المتاحة</h3></div></header>
           <div className="setting-toggles">
             <label>
               <span>
@@ -3776,8 +3472,8 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section>
-          <h3>ساعات العمل</h3>
+        <section className="settings-chapter hours-chapter">
+          <header><span className="section-marker">05</span><div><small>الجدول الأسبوعي</small><h3>ساعات العمل</h3></div></header>
           <div className="hours-list">
             {draft.hours.map((hour, index) => (
               <div className="hour-row" key={hour.day}>
@@ -3833,7 +3529,7 @@ function SettingsPanel({
             ))}
           </div>
         </section>
-        <section>
+        <section className="settings-chapter delivery-chapter">
           <div className="settings-section-head">
             <h3>مناطق التوصيل</h3>
             <button type="button" onClick={addZone}>
@@ -3927,7 +3623,7 @@ function SettingsPanel({
           </div>
         </section>
         <button className="primary save-settings" type="submit">
-          {saved ? "✓ تم حفظ التغييرات" : "حفظ جميع التغييرات"}
+          {saved ? "تم حفظ التغييرات" : "حفظ جميع التغييرات"}
         </button>
       </form>
     </div>
@@ -3952,54 +3648,12 @@ function OrderCard({
     ready: order.mode === "delivery" ? "out-for-delivery" : "completed",
   };
   return (
-    <article className="admin-order">
-      <div className="order-card-top">
-        <strong>{order.id}</strong>
-        <span>{modeLabels[order.mode]}</span>
-      </div>
-      <button className="order-card-open" onClick={onOpen}>
-        عرض التفاصيل
-      </button>
-      <small>
-        {order.table || order.address || "طلب مباشر"} · {order.customer}
-      </small>
-      <div className="order-card-lines">
-        {order.lines.map((l) => (
-          <div key={l.key}>
-            <span>
-              <b>{l.qty}×</b> {l.item.name}
-            </span>
-            <strong>
-              {formatSyp(
-                (l.item.price + l.options.reduce((a, o) => a + o.price, 0)) *
-                l.qty,
-              )}
-            </strong>
-          </div>
-        ))}
-      </div>
-      <div className="order-card-foot">
-        <strong>{formatSyp(order.total)}</strong>
-        <div>
-          <button className="mini-action" onClick={() => onWhatsApp(order)}>
-            WA
-          </button>
-          {next[order.status] && (
-            <button
-              className="advance"
-              onClick={() => onStatus(order.id, next[order.status])}
-            >
-              {next[order.status] === "confirmed"
-                ? "تأكيد الطلب →"
-                : next[order.status] === "preparing"
-                  ? "بدء التحضير →"
-                  : next[order.status] === "ready"
-                    ? "جاهز →"
-                    : "إتمام الطلب ✓"}
-            </button>
-          )}
-        </div>
-      </div>
+    <article className="admin-order kitchen-ticket">
+      <header className="ticket-heading"><div><span className="ticket-number">{order.id}</span><strong>{modeLabels[order.mode]}</strong></div><span className={`status ${order.status}`}>{statusLabels[order.status]}</span></header>
+      <button className="ticket-customer" onClick={onOpen}><span className="ticket-avatar">{order.customer.slice(0, 1)}</span><span><strong>{order.customer}</strong><small>{order.table || order.address || "طلب مباشر"}</small></span><b>فتح الملف</b></button>
+      <div className="ticket-items">{order.lines.map((l) => <div className="ticket-item" key={l.key}><span><b>{l.qty}×</b>{l.item.name}</span><small>{l.options.map((o) => o.name).join("، ") || "التركيبة الأساسية"}</small><strong>{formatSyp((l.item.price + l.options.reduce((a, o) => a + o.price, 0)) * l.qty)}</strong></div>)}</div>
+      <div className="ticket-meta"><span>الدفع: {order.paymentStatus === "verified" ? "متحقق" : order.paymentStatus === "rejected" ? "مرفوض" : "بانتظار التحقق"}</span><strong>{formatSyp(order.total)}</strong></div>
+      <footer className="ticket-actions"><button className="mini-action" onClick={() => onWhatsApp(order)}>مراسلة العميل</button>{next[order.status] && <button className="advance" onClick={() => onStatus(order.id, next[order.status])}>{next[order.status] === "confirmed" ? "تأكيد واستلام" : next[order.status] === "preparing" ? "إرسال للمطبخ" : next[order.status] === "ready" ? "تحديد كجاهز" : "إتمام الطلب"}</button>}</footer>
     </article>
   );
 }
@@ -4027,166 +3681,138 @@ function OrderDetails({
     if (reason) onStatus(order.id, "cancelled", { cancellationReason: reason });
   };
   return (
-    <div className="modal-backdrop">
-      <div className="order-details-modal">
-        <button className="close" onClick={onClose}>
-          ×
-        </button>
-        <div className="order-details-head">
-          <div>
-            <span className="eyebrow">تفاصيل الطلب</span>
-            <h2>{order.id}</h2>
-            <p>
-              {new Date(order.createdAt).toLocaleString("ar-SY")} ·{" "}
-              {modeLabels[order.mode]}
-            </p>
-          </div>
-          <span className={`status ${order.status}`}>
-            {statusLabels[order.status]}
-          </span>
-        </div>
-        <div className="order-customer-grid">
-          <div>
-            <small>العميل</small>
-            <strong>{order.customer}</strong>
-            <span>{order.phone || "لا يوجد هاتف"}</span>
-          </div>
-          <div>
-            <small>الموقع</small>
-            <strong>{order.table || order.address || "طلب مباشر"}</strong>
-            <span>
-              {order.mode === "delivery" ? "توصيل" : "استلام من المطعم"}
+    <div className="modal-backdrop dossier-backdrop">
+      <section className="order-details-modal service-dossier" role="dialog" aria-modal="true" aria-label={`ملف الطلب ${order.id}`}>
+        <header className="dossier-masthead">
+          <div className="dossier-kicker">
+            <span className="eyebrow">ملف الخدمة / {modeLabels[order.mode]}</span>
+            <span className={`status dossier-status ${order.status}`}>
+              {statusLabels[order.status]}
             </span>
           </div>
-          <div>
-            <small>الدفع</small>
-            <strong>{order.payment}</strong>
-            <span>{order.paymentReference || "لا يوجد مرجع دفع"}</span>
-          </div>
-        </div>
-        <div className="detail-lines">
-          {order.lines.map((line) => (
-            <div key={line.key}>
-              <div>
-                <strong>
-                  {line.qty}× {line.item.name}
-                </strong>
-                <small>
-                  {line.options.map((option) => option.name).join("، ") ||
-                    "بدون إضافات"}
-                  {line.note ? ` · ${line.note}` : ""}
-                </small>
-              </div>
-              <b>
-                {formatSyp(
-                  (line.item.price +
-                    line.options.reduce(
-                      (sum, option) => sum + option.price,
-                      0,
-                    )) *
-                  line.qty,
-                )}
-              </b>
+          <div className="dossier-title-row">
+            <div>
+              <span className="dossier-number">#{order.id}</span>
+              <h2>سجل الطلب والتسليم</h2>
+              <p>{new Date(order.createdAt).toLocaleString("ar-SY")}</p>
             </div>
-          ))}
-        </div>
-        <div className="detail-total">
-          <span>الإجمالي</span>
-          <strong>{formatSyp(order.total)}</strong>
-        </div>
-        <section className="payment-review">
-          <h3>التحقق من الدفع</h3>
-          <div className="payment-actions">
-            <button
-              className={order.paymentStatus === "pending" ? "active" : ""}
-              onClick={() => onChange(order.id, { paymentStatus: "pending" })}
-            >
-              بانتظار التحقق
-            </button>
-            <button
-              className={
-                order.paymentStatus === "verified"
-                  ? "verified active"
-                  : "verified"
-              }
-              onClick={() => onChange(order.id, { paymentStatus: "verified" })}
-            >
-              ✓ تم التحقق
-            </button>
-            <button
-              className={
-                order.paymentStatus === "rejected"
-                  ? "rejected active"
-                  : "rejected"
-              }
-              onClick={() => onChange(order.id, { paymentStatus: "rejected" })}
-            >
-              مرفوض
-            </button>
-            <button
-              className={
-                order.paymentStatus === "refunded"
-                  ? "rejected active"
-                  : "rejected"
-              }
-              onClick={() => onChange(order.id, { paymentStatus: "refunded" })}
-            >
-              مسترد
+            <button className="close dossier-close" onClick={onClose} aria-label="إغلاق الملف">
+              ×
             </button>
           </div>
-        </section>
-        <label className="internal-note">
-          ملاحظة داخلية
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="ملاحظة للمطبخ أو فريق الخدمة..."
-          />
-          <button onClick={() => onChange(order.id, { internalNote: note })}>
-            حفظ الملاحظة
-          </button>
-        </label>
-        <div className="order-status-actions">
-          {(
-            [
-              "received",
-              "confirmed",
-              "preparing",
-              "ready",
-              "out-for-delivery",
-              "completed",
-            ] as Order["status"][]
-          )
-            .filter(
-              (status) =>
-                status !== "out-for-delivery" || order.mode === "delivery",
-            )
-            .map((status) => (
-              <button
-                key={status}
-                className={order.status === status ? "active" : ""}
-                onClick={() => onStatus(order.id, status)}
-              >
-                {statusLabels[status]}
-              </button>
-            ))}
+        </header>
+
+        <div className="dossier-body">
+          <main className="dossier-main">
+            <section className="dossier-section customer-brief">
+              <div className="dossier-section-heading">
+                <span className="section-marker">01</span>
+                <div>
+                  <span className="eyebrow">الضيف</span>
+                  <h3>بيانات التسليم</h3>
+                </div>
+              </div>
+              <div className="customer-brief-grid">
+                <div className="brief-person">
+                  <span className="dossier-avatar">{order.customer.slice(0, 1)}</span>
+                  <div>
+                    <small>اسم العميل</small>
+                    <strong>{order.customer}</strong>
+                    <span>{order.phone || "لا يوجد هاتف مسجل"}</span>
+                  </div>
+                </div>
+                <div>
+                  <small>نقطة التسليم</small>
+                  <strong>{order.table || order.address || "طلب مباشر"}</strong>
+                  <span>{order.mode === "delivery" ? "عنوان توصيل" : modeLabels[order.mode]}</span>
+                </div>
+                <div>
+                  <small>قناة الطلب</small>
+                  <strong>{modeLabels[order.mode]}</strong>
+                  <span>{order.paymentReference || "لا يوجد مرجع دفع"}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="dossier-section dish-manifest">
+              <div className="dossier-section-heading">
+                <span className="section-marker">02</span>
+                <div>
+                  <span className="eyebrow">المحتوى</span>
+                  <h3>بيان الأطباق</h3>
+                </div>
+                <span className="manifest-count">{order.lines.length} أصناف</span>
+              </div>
+              <div className="dossier-lines">
+                {order.lines.map((line, index) => (
+                  <article className="dossier-dish" key={line.key}>
+                    <span className="dish-index">{String(index + 1).padStart(2, "0")}</span>
+                    <div className="dish-copy">
+                      <strong>{line.qty}× {line.item.name}</strong>
+                      <small>
+                        {line.options.map((option) => option.name).join("، ") || "التركيبة الأساسية"}
+                        {line.note ? ` · ${line.note}` : ""}
+                      </small>
+                    </div>
+                    <b>{formatSyp((line.item.price + line.options.reduce((sum, option) => sum + option.price, 0)) * line.qty)}</b>
+                  </article>
+                ))}
+              </div>
+              <div className="dossier-total">
+                <span>القيمة النهائية</span>
+                <strong>{formatSyp(order.total)}</strong>
+              </div>
+            </section>
+
+            <section className="dossier-section payment-review dossier-payment">
+              <div className="dossier-section-heading">
+                <span className="section-marker">03</span>
+                <div>
+                  <span className="eyebrow">المراجعة</span>
+                  <h3>حالة التحصيل</h3>
+                </div>
+                <span className={`payment-stamp ${order.paymentStatus}`}>{order.payment}</span>
+              </div>
+              <div className="payment-actions">
+                <button className={order.paymentStatus === "pending" ? "active" : ""} onClick={() => onChange(order.id, { paymentStatus: "pending" })}>بانتظار التحقق</button>
+                <button className={order.paymentStatus === "verified" ? "verified active" : "verified"} onClick={() => onChange(order.id, { paymentStatus: "verified" })}>تم التحقق</button>
+                <button className={order.paymentStatus === "rejected" ? "rejected active" : "rejected"} onClick={() => onChange(order.id, { paymentStatus: "rejected" })}>مرفوض</button>
+                <button className={order.paymentStatus === "refunded" ? "rejected active" : "rejected"} onClick={() => onChange(order.id, { paymentStatus: "refunded" })}>مسترد</button>
+              </div>
+            </section>
+          </main>
+
+          <aside className="dossier-aside">
+            <section className="dossier-action-board">
+              <span className="eyebrow">الخطوة التالية</span>
+              <h3>حرّك الطلب في مساره</h3>
+              <div className="dossier-status-actions">
+                {(["received", "confirmed", "preparing", "ready", "out-for-delivery", "completed"] as Order["status"][])
+                  .filter((status) => status !== "out-for-delivery" || order.mode === "delivery")
+                  .map((status) => (
+                    <button key={status} className={order.status === status ? "active" : ""} onClick={() => onStatus(order.id, status)}>
+                      <span>{statusLabels[status]}</span>
+                      <small>{order.status === status ? "الحالة الحالية" : "تعيين الحالة"}</small>
+                    </button>
+                  ))}
+              </div>
+            </section>
+
+            <label className="internal-note dossier-note">
+              <span className="eyebrow">غرفة الفريق</span>
+              <strong>ملاحظة داخلية</strong>
+              <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="ملاحظة للمطبخ أو فريق الخدمة..." />
+              <button onClick={() => onChange(order.id, { internalNote: note })}>حفظ الملاحظة</button>
+            </label>
+
+            <footer className="dossier-footer">
+              <button className="secondary" onClick={() => onWhatsApp(order)}>مراسلة العميل</button>
+              {order.status !== "cancelled" && order.status !== "completed" && <button className="danger-button" onClick={cancel}>إلغاء الطلب</button>}
+              {order.cancellationReason && <p className="cancel-reason">سبب الإلغاء: {order.cancellationReason}</p>}
+            </footer>
+          </aside>
         </div>
-        <div className="detail-footer">
-          <button className="secondary" onClick={() => onWhatsApp(order)}>
-            WhatsApp
-          </button>
-          {order.status !== "cancelled" && order.status !== "completed" && (
-            <button className="danger-button" onClick={cancel}>
-              إلغاء الطلب
-            </button>
-          )}
-        </div>
-        {order.cancellationReason && (
-          <p className="cancel-reason">
-            سبب الإلغاء: {order.cancellationReason}
-          </p>
-        )}
-      </div>
+      </section>
     </div>
   );
 }
@@ -4339,8 +3965,8 @@ function MenuManager({
       ? restaurant.items
       : restaurant.items.filter((item) => item.category === categoryFilter);
   return (
-    <div className="menu-manager">
-      <div className="manager-intro">
+    <div className="menu-manager menu-studio">
+      <div className="manager-intro studio-masthead">
         <div>
           <span className="eyebrow">محتوى المطعم</span>
           <h2>عناصر القائمة</h2>
@@ -4350,7 +3976,7 @@ function MenuManager({
           + إضافة صنف جديد
         </button>
       </div>
-      <div className="menu-admin-tools">
+      <div className="menu-admin-tools catalogue-index">
         <div className="filter-pills">
           {["الكل", ...activeCategories.map((category) => category.name)].map(
             (entry) => (
@@ -4372,9 +3998,9 @@ function MenuManager({
         onUpdate={updateCategory}
         onArchive={archiveCategory}
       />
-      <div className="inventory-list">
+      <div className="inventory-list dish-inventory">
         {filtered.map((item) => (
-          <div className="inventory-row" key={item.id}>
+          <article className="inventory-row inventory-dish" key={item.id}>
             <img src={item.image} alt="" />
             <div className="inventory-name">
               <strong>{item.name}</strong>
@@ -4398,7 +4024,7 @@ function MenuManager({
                 حذف
               </button>
             </div>
-          </div>
+          </article>
         ))}
       </div>
       {editing && (
@@ -4527,7 +4153,7 @@ function MenuManager({
                 />
               )}
               <button className="primary wide" type="submit">
-                حفظ الصنف <span>✓</span>
+                حفظ الصنف
               </button>
             </form>
           </div>
@@ -4550,20 +4176,19 @@ function CategoryManager({
 }) {
   const active = categories.filter((entry) => !entry.archived);
   return (
-    <section className="category-manager">
+    <section className="category-manager category-index-card">
       <div className="option-editor-title">
         <div>
           <strong>تصنيفات القائمة</strong>
           <small>رتّب التصنيفات وعدّل ظهورها للزبائن.</small>
         </div>
         <button type="button" onClick={onAdd}>
-          + إضافة تصنيف
+          إضافة تصنيف
         </button>
       </div>
       <div className="category-admin-list">
         {active.map((entry, index) => (
           <div className="category-admin-row" key={entry.id}>
-            <span className="drag-handle">⋮⋮</span>
             <div>
               <input
                 aria-label="اسم التصنيف بالعربية"
@@ -4605,7 +4230,7 @@ function CategoryManager({
                   } as Partial<MenuCategory>);
                 }}
               >
-                ↑
+                تقديم
               </button>
               <button
                 type="button"
@@ -4621,7 +4246,7 @@ function CategoryManager({
                   } as Partial<MenuCategory>);
                 }}
               >
-                ↓
+                تأخير
               </button>
               <button
                 type="button"
@@ -4657,7 +4282,7 @@ function OptionEditor({
       },
     ]);
   return (
-    <div className="option-editor">
+    <div className="option-editor modifier-workshop">
       <div className="option-editor-title">
         <strong>مجموعات الخيارات والإضافات</strong>
         <button type="button" onClick={addGroup}>

@@ -14,3 +14,9 @@ vite.config.js
 .env.local
 *.log
 .DS_Store
+
+# Browser profiles left behind by automated UI audits
+.edge-audit*/
+
+# Screenshots from design/mobile audits
+*.png
