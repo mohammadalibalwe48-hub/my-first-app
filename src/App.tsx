@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
+import {
+  ClipboardList,
+  Globe2,
+  LayoutDashboard,
+  ShoppingBag,
+  Utensils,
+} from "lucide-react";
 import { supabase } from "./supabase";
 
 const readStored = <T,>(key: string, fallback: T): T => {
@@ -1251,7 +1258,7 @@ function App() {
             setTrackingOrder(null);
           }}
         >
-          <span className="brand-mark">س</span>
+           <span className="brand-mark"><span>س</span><Utensils size={18} strokeWidth={2.4} /></span>
           <span className="brand-copy">
             <small>مائدة دمشقية معاصرة</small>
             <strong>{restaurant.name}</strong>
@@ -1262,12 +1269,16 @@ function App() {
         <div className="masthead-centre">
           <span className="masthead-edition">القائمة اليومية / {new Date().toLocaleDateString("ar-SY", { weekday: "long" })}</span>
           <nav className="desktop-nav editorial-nav" aria-label="التنقل الرئيسي">
-            <button className={view === "menu" ? "active" : ""} onClick={() => setView("menu")}>
-              القائمة
-            </button>
-            <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
-              طلباتي
-              {orders.length > 0 && <b>{orders.length}</b>}
+             <button className={view === "menu" ? "active" : ""} onClick={() => setView("menu")}>
+               <Utensils className="nav-icon" size={16} strokeWidth={2.2} />
+               <span className="nav-index">01</span>
+               القائمة
+             </button>
+             <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
+               <ClipboardList className="nav-icon" size={16} strokeWidth={2.2} />
+               <span className="nav-index">02</span>
+               طلباتي
+               {orders.length > 0 && <b>{orders.length}</b>}
             </button>
             <button
               className={view === "manage" ? "active" : ""}
@@ -1279,9 +1290,11 @@ function App() {
                 setView("manage");
                 setAdminTab("overview");
               }}
-            >
-              الإدارة
-            </button>
+             >
+               <LayoutDashboard className="nav-icon" size={16} strokeWidth={2.2} />
+               <span className="nav-index">03</span>
+               الإدارة
+             </button>
           </nav>
         </div>
 
@@ -1290,14 +1303,16 @@ function App() {
             {tableContext && view !== "manage" && <span className="table-context">{tableContext.labelAr}</span>}
             <span className={isOnline ? "connection-status online" : "connection-status offline"}>
               {isOnline ? "متصل" : "دون اتصال"}
-            </span>
-          </div>
-          <button className="icon-button language-button" onClick={() => setLanguage(language === "ar" ? "en" : "ar")} aria-label="تغيير اللغة">
-            {language === "ar" ? "EN" : "عربي"}
-          </button>
-          <button className="cart-button masthead-cart" onClick={() => setCartOpen(true)}>
-            <span>كشف الطلب</span>
-            <b>{cartCount}</b>
+           </span>
+           </div>
+           <button className="icon-button language-button" onClick={() => setLanguage(language === "ar" ? "en" : "ar")} aria-label="تغيير اللغة">
+             <Globe2 size={15} strokeWidth={2.2} />
+             {language === "ar" ? "EN" : "عربي"}
+           </button>
+           <button className="cart-button masthead-cart" onClick={() => setCartOpen(true)}>
+             <ShoppingBag size={17} strokeWidth={2.3} />
+             <span>كشف الطلب</span>
+             <b>{cartCount}</b>
           </button>
         </div>
       </header>
@@ -1502,18 +1517,21 @@ function App() {
       <div className="mobile-nav">
         <button
           className={view === "menu" ? "active" : ""}
-          onClick={() => setView("menu")}
-        >
-          <span>القائمة</span>
-        </button>
+         onClick={() => setView("menu")}
+         >
+           <Utensils size={17} strokeWidth={2.2} />
+           <span>القائمة</span>
+         </button>
         <button
           className={view === "orders" ? "active" : ""}
-          onClick={() => setView("orders")}
-        >
-          <span>طلباتي</span>
-        </button>
-        <button onClick={() => setCartOpen(true)}>
-          <span>السلة</span>
+         onClick={() => setView("orders")}
+         >
+           <ClipboardList size={17} strokeWidth={2.2} />
+           <span>طلباتي</span>
+         </button>
+         <button onClick={() => setCartOpen(true)}>
+           <ShoppingBag size={17} strokeWidth={2.2} />
+           <span>السلة</span>
           <b>{cartCount}</b>
         </button>
         <button
@@ -1525,8 +1543,9 @@ function App() {
             }
             setView("manage");
           }}
-        >
-          <span>الإدارة</span>
+         >
+           <LayoutDashboard size={17} strokeWidth={2.2} />
+           <span>الإدارة</span>
         </button>
       </div>
     </div>
@@ -1546,6 +1565,7 @@ function MenuView({
   setQuery,
   items,
   onSelect,
+  onQuickAdd,
 }: {
   restaurant: Restaurant;
   categories: MenuCategory[];
