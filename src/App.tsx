@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
   ArrowRight,
+  ArrowUp,
+  Check,
   ClipboardList,
   Globe2,
   LayoutDashboard,
+  Minus,
   Plus,
   Search,
   ShieldCheck,
-  ShoppingBag,
   ShoppingBasket,
+  Store,
+  Truck,
   Utensils,
   X,
 } from "lucide-react";
@@ -1297,7 +1301,7 @@ function App() {
             {language === "ar" ? "EN" : "عربي"}
           </button>
           <button className="navbar__btn navbar__cart" onClick={() => setCartOpen(true)}>
-            <ShoppingBag />
+            <ShoppingBasket />
             <span className="navbar__btn-text">كشف الطلب</span>
             <b>{cartCount}</b>
           </button>
@@ -1420,29 +1424,43 @@ function App() {
             />
           )}
           {view === "manage" && memberships.length === 0 && (
-            <div>
-              <span>دخول الموظفين</span>
-              <h1>{authReady ? "لوحة المطعم للموظفين" : "جارٍ التحقق من الجلسة…"}</h1>
-              <p>
-                {staffEmail
-                  ? "الحساب مسجل، لكنه لا يملك عضوية فعّالة في أي مطعم. اطلب من المالك إضافتك إلى فريق العمل."
-                  : "سجّل الدخول بحساب موظف مرتبط بالمطعم للوصول إلى الطلبات والإعدادات والتقارير."}
-              </p>
-              {authReady && !staffEmail && (
-                <button onClick={() => setAuthOpen(true)}>
-                  تسجيل دخول الموظفين
-                </button>
-              )}
-              {staffEmail && (
-                <button
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    setView("menu");
-                  }}
-                >
-                  تسجيل الخروج
-                </button>
-              )}
+            <div className="section staff-gate">
+              <div className="staff-gate__card">
+                <span className="staff-gate__icon">
+                  <ShieldCheck />
+                </span>
+                <span className="section-kicker" style={{ justifyContent: "center" }}>
+                  دخول الموظفين
+                </span>
+                <h1>
+                  {authReady ? "لوحة المطعم للموظفين" : "جارٍ التحقق من الجلسة…"}
+                </h1>
+                <p>
+                  {staffEmail
+                    ? "الحساب مسجل، لكنه لا يملك عضوية فعّالة في أي مطعم. اطلب من المالك إضافتك إلى فريق العمل."
+                    : "سجّل الدخول بحساب موظف مرتبط بالمطعم للوصول إلى الطلبات والإعدادات والتقارير."}
+                </p>
+                {authReady && !staffEmail && (
+                  <button
+                    className="btn btn--gold"
+                    onClick={() => setAuthOpen(true)}
+                  >
+                    <ShieldCheck />
+                    تسجيل دخول الموظفين
+                  </button>
+                )}
+                {staffEmail && (
+                  <button
+                    className="btn btn--outline"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      setView("menu");
+                    }}
+                  >
+                    تسجيل الخروج
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </main>
@@ -1512,7 +1530,7 @@ function App() {
           aria-label="العودة إلى الأعلى"
           title="العودة إلى الأعلى"
         >
-          ↑
+          <ArrowUp />
         </button>
       )}
       <nav className="mobile-nav" aria-label="التنقل السريع">
@@ -2083,14 +2101,14 @@ function CartDrawer({
                       onClick={() => onQty(line.key, -1)}
                       aria-label="تقليل الكمية"
                     >
-                      −
+                      <Minus />
                     </button>
                     <b>{line.qty}</b>
                     <button
                       onClick={() => onQty(line.key, 1)}
                       aria-label="زيادة الكمية"
                     >
-                      +
+                      <Plus />
                     </button>
                   </div>
                 </article>
@@ -2169,6 +2187,13 @@ function CheckoutModal({
                     className={mode === m ? "active" : ""}
                     onClick={() => setMode(m)}
                   >
+                    {m === "dine-in" ? (
+                      <Store />
+                    ) : m === "takeaway" ? (
+                      <ShoppingBasket />
+                    ) : (
+                      <Truck />
+                    )}
                     {m === "dine-in"
                       ? "في المطعم"
                       : m === "takeaway"
@@ -2735,7 +2760,7 @@ function TrackingModal({
                   : ""
                 }`}
             >
-              <i>{i < current ? "✓" : i + 1}</i>
+              <i>{i < current ? <Check /> : i + 1}</i>
               <strong>{statusLabels[step]}</strong>
               <small>
                 {i < current ? "اكتملت" : i === current ? "نحن هنا الآن" : "في انتظارها"}
@@ -5914,7 +5939,7 @@ function OptionEditor({
                       )
                     }
                   >
-                    ×
+                    <X />
                   </button>
                 </div>
               ))}
