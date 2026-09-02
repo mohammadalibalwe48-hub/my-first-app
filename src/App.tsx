@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
+  ArrowRight,
   ClipboardList,
   Globe2,
   LayoutDashboard,
+  Plus,
+  Search,
+  ShieldCheck,
   ShoppingBag,
+  ShoppingBasket,
   Utensils,
+  X,
 } from "lucide-react";
 import { supabase } from "./supabase";
 
@@ -24,66 +30,6 @@ const writeStored = (key: string, value: unknown) => {
   } catch {
     // Keep the in-memory UI usable when browser storage is unavailable or full.
   }
-};
-
-/**
- * The eight-pointed Damascene star (نجمة ثمانية) used across Syrian tilework
- * and ajami woodwork. It carries the section rhythm and marks the table badge.
- */
-const StarMark = ({ className = "" }: { className?: string }) => (
-  <svg
-    className={`star-mark ${className}`.trim()}
-    viewBox="0 0 24 24"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <path d="M12 0.6 14.9 6.4 21.2 3.5 18.4 9.8 24 12l-5.6 2.2 2.8 6.3-6.3-2.9L12 23.4 9.1 17.6 2.8 20.5l2.8-6.3L0 12l5.6-2.2L2.8 3.5l6.3 2.9Z" />
-  </svg>
-);
-
-/**
- * Reveals every `[data-reveal]` descendant of the returned ref as it scrolls
- * into view, and re-scans whenever `deps` change so that filtered lists reveal
- * their new rows too. Motion is opt-out: under `prefers-reduced-motion` every
- * element is marked revealed immediately and no observer is created.
- */
-const useScrollReveal = <T extends HTMLElement>(deps: unknown[] = []) => {
-  const ref = useRef<T | null>(null);
-
-  useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-
-    const targets = Array.from(
-      root.querySelectorAll<HTMLElement>("[data-reveal]:not([data-revealed])"),
-    );
-    if (targets.length === 0) return;
-
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (reduced.matches || !("IntersectionObserver" in window)) {
-      targets.forEach((node) => {
-        node.dataset.revealed = "true";
-      });
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          (entry.target as HTMLElement).dataset.revealed = "true";
-          observer.unobserve(entry.target);
-        });
-      },
-      { rootMargin: "0px 0px -10% 0px", threshold: 0.05 },
-    );
-
-    targets.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  return ref;
 };
 
 type Mode = "dine-in" | "takeaway" | "delivery";
@@ -625,6 +571,22 @@ const statusLabels: Record<Order["status"], string> = {
 };
 
 function App() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Scroll-to-top floating action button — appears after the hero scrolls past.
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 560);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [restaurantId, setRestaurantId] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get(
       "restaurant",
@@ -809,6 +771,30 @@ function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Secret admin access — no link anywhere in the UI points here. The only way
+  // in is typing /admin (or ?admin=1) directly in the address bar, so ordinary
+  // customers never see that an admin panel exists. If the visitor is already a
+  // signed-in staff member we open the dashboard; otherwise we silently open the
+  // staff login modal. The query parameter is then scrubbed from the URL.
+  useEffect(() => {
+    if (!authReady) return;
+    const path = window.location.pathname.replace(/\/+$/, "");
+    const params = new URLSearchParams(window.location.search);
+    const isSecretAdminRoute = path === "/admin" || params.get("admin") === "1";
+    if (!isSecretAdminRoute) return;
+
+    if (staffEmail && memberships.length > 0) {
+      setView("manage");
+      setAdminTab("overview");
+    } else {
+      setAuthOpen(true);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("admin");
+    window.history.replaceState(null, "", url.toString());
+  }, [authReady, staffEmail, memberships]);
 
   useEffect(() => {
     const membership = memberships.find(
@@ -1246,78 +1232,79 @@ function App() {
   };
 
   return (
-    <div
-      className={`app-shell ${view === "manage" ? "management-shell" : "storefront-shell"}`}
-      dir={language === "ar" ? "rtl" : "ltr"}
-    >
-      <header className="topbar editorial-masthead">
+    <div className="app-root" dir={language === "ar" ? "rtl" : "ltr"}>
+      <header className={`navbar${scrolled ? " navbar--scrolled" : ""}`}>
         <button
-          className="brand masthead-brand"
+          className="navbar__brand"
           onClick={() => {
             setView("menu");
             setTrackingOrder(null);
+            window.scrollTo({ top: 0, behavior: "smooth" });
           }}
+          aria-label="العودة إلى القائمة"
         >
-           <span className="brand-mark"><span>س</span><Utensils size={18} strokeWidth={2.4} /></span>
-          <span className="brand-copy">
-            <small>مائدة دمشقية معاصرة</small>
-            <strong>{restaurant.name}</strong>
-            <span>{restaurant.neighborhood}، {restaurant.city}</span>
+          <span className="navbar__logo">{restaurant.logo || "س"}</span>
+          <span>
+            <strong className="navbar__brand-name">{restaurant.name}</strong>
+            <small className="navbar__brand-sub">مائدة دمشقية معاصرة</small>
+            <span className="navbar__brand-loc">{restaurant.neighborhood}، {restaurant.city}</span>
           </span>
         </button>
 
-        <div className="masthead-centre">
-          <span className="masthead-edition">القائمة اليومية / {new Date().toLocaleDateString("ar-SY", { weekday: "long" })}</span>
-          <nav className="desktop-nav editorial-nav" aria-label="التنقل الرئيسي">
-             <button className={view === "menu" ? "active" : ""} onClick={() => setView("menu")}>
-               <Utensils className="nav-icon" size={16} strokeWidth={2.2} />
-               <span className="nav-index">01</span>
-               القائمة
-             </button>
-             <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
-               <ClipboardList className="nav-icon" size={16} strokeWidth={2.2} />
-               <span className="nav-index">02</span>
-               طلباتي
-               {orders.length > 0 && <b>{orders.length}</b>}
-            </button>
+        <nav className="navbar__nav" aria-label="التنقل الرئيسي">
+          <button
+            className={`navbar__link${view === "menu" ? " navbar__link--active" : ""}`}
+            onClick={() => setView("menu")}
+          >
+            <Utensils />
+            <span className="navbar__btn-text">القائمة</span>
+          </button>
+          <button
+            className={`navbar__link${view === "orders" ? " navbar__link--active" : ""}`}
+            onClick={() => setView("orders")}
+          >
+            <ClipboardList />
+            <span className="navbar__btn-text">طلباتي</span>
+            {orders.length > 0 && <b>{orders.length}</b>}
+          </button>
+          {staffEmail && memberships.length > 0 && (
             <button
-              className={view === "manage" ? "active" : ""}
+              className={`navbar__link${view === "manage" ? " navbar__link--active" : ""}`}
               onClick={() => {
-                if (!staffEmail || memberships.length === 0) {
-                  setAuthOpen(true);
-                  return;
-                }
                 setView("manage");
                 setAdminTab("overview");
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-             >
-               <LayoutDashboard className="nav-icon" size={16} strokeWidth={2.2} />
-               <span className="nav-index">03</span>
-               الإدارة
-             </button>
-          </nav>
-        </div>
+            >
+              <LayoutDashboard />
+              <span className="navbar__btn-text">الإدارة</span>
+            </button>
+          )}
+        </nav>
 
-        <div className="top-actions masthead-actions">
-          <div className="service-context">
-            {tableContext && view !== "manage" && <span className="table-context">{tableContext.labelAr}</span>}
-            <span className={isOnline ? "connection-status online" : "connection-status offline"}>
-              {isOnline ? "متصل" : "دون اتصال"}
-           </span>
-           </div>
-           <button className="icon-button language-button" onClick={() => setLanguage(language === "ar" ? "en" : "ar")} aria-label="تغيير اللغة">
-             <Globe2 size={15} strokeWidth={2.2} />
-             {language === "ar" ? "EN" : "عربي"}
-           </button>
-           <button className="cart-button masthead-cart" onClick={() => setCartOpen(true)}>
-             <ShoppingBag size={17} strokeWidth={2.3} />
-             <span>كشف الطلب</span>
-             <b>{cartCount}</b>
+        <div className="navbar__actions">
+          <div className="navbar__status">
+            <i className={isOnline ? "" : "is-off"} />
+            <span>{isOnline ? "متصل" : "دون اتصال"}</span>
+            {tableContext && view !== "manage" && <b>· {tableContext.labelAr}</b>}
+          </div>
+          <button
+            className="navbar__btn"
+            onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+            aria-label="تغيير اللغة"
+          >
+            <Globe2 />
+            {language === "ar" ? "EN" : "عربي"}
+          </button>
+          <button className="navbar__btn navbar__cart" onClick={() => setCartOpen(true)}>
+            <ShoppingBag />
+            <span className="navbar__btn-text">كشف الطلب</span>
+            <b>{cartCount}</b>
           </button>
         </div>
       </header>
-      <div className="app-body">
-        <main className="main-content">
+      <div>
+        <main>
           {view === "menu" && (
             <MenuView
               restaurant={restaurant}
@@ -1331,6 +1318,7 @@ function App() {
               query={query}
               setQuery={setQuery}
               items={availableItems}
+              loading={!backendReady}
               onSelect={setSelectedItem}
               onQuickAdd={(item) => addToCart(item)}
             />
@@ -1432,8 +1420,8 @@ function App() {
             />
           )}
           {view === "manage" && memberships.length === 0 && (
-            <div className="admin-auth-gate">
-              <span className="eyebrow">دخول الموظفين</span>
+            <div>
+              <span>دخول الموظفين</span>
               <h1>{authReady ? "لوحة المطعم للموظفين" : "جارٍ التحقق من الجلسة…"}</h1>
               <p>
                 {staffEmail
@@ -1441,13 +1429,12 @@ function App() {
                   : "سجّل الدخول بحساب موظف مرتبط بالمطعم للوصول إلى الطلبات والإعدادات والتقارير."}
               </p>
               {authReady && !staffEmail && (
-                <button className="primary" onClick={() => setAuthOpen(true)}>
+                <button onClick={() => setAuthOpen(true)}>
                   تسجيل دخول الموظفين
                 </button>
               )}
               {staffEmail && (
                 <button
-                  className="secondary"
                   onClick={async () => {
                     await supabase.auth.signOut();
                     setView("menu");
@@ -1460,7 +1447,11 @@ function App() {
           )}
         </main>
       </div>
-      {notice && <div className="toast">{notice}</div>}
+      {notice && (
+        <div className="toast" role="status">
+          {notice}
+        </div>
+      )}
       {authOpen && (
         <StaffAuthModal
           onClose={() => setAuthOpen(false)}
@@ -1514,40 +1505,48 @@ function App() {
           onWhatsApp={openWhatsApp}
         />
       )}
-      <div className="mobile-nav">
+      {showTop && view !== "manage" && (
+        <button
+          className="scroll-top"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="العودة إلى الأعلى"
+          title="العودة إلى الأعلى"
+        >
+          ↑
+        </button>
+      )}
+      <nav className="mobile-nav" aria-label="التنقل السريع">
         <button
           className={view === "menu" ? "active" : ""}
-         onClick={() => setView("menu")}
-         >
-           <Utensils size={17} strokeWidth={2.2} />
-           <span>القائمة</span>
-         </button>
-        <button
-          className={view === "orders" ? "active" : ""}
-         onClick={() => setView("orders")}
-         >
-           <ClipboardList size={17} strokeWidth={2.2} />
-           <span>طلباتي</span>
-         </button>
-         <button onClick={() => setCartOpen(true)}>
-           <ShoppingBag size={17} strokeWidth={2.2} />
-           <span>السلة</span>
+          onClick={() => {
+            setView("menu");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <Utensils />
+          <span>القائمة</span>
+        </button>
+        <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
+          <ClipboardList />
+          <span>طلباتي</span>
+        </button>
+        <button onClick={() => setCartOpen(true)}>
+          <ShoppingBasket />
+          <span>السلة</span>
           <b>{cartCount}</b>
         </button>
-        <button
-          className={view === "manage" ? "active" : ""}
-          onClick={() => {
-            if (!staffEmail || memberships.length === 0) {
-              setAuthOpen(true);
-              return;
-            }
-            setView("manage");
-          }}
-         >
-           <LayoutDashboard size={17} strokeWidth={2.2} />
-           <span>الإدارة</span>
-        </button>
-      </div>
+        {staffEmail && memberships.length > 0 && (
+          <button
+            className={view === "manage" ? "active" : ""}
+            onClick={() => {
+              setView("manage");
+            }}
+          >
+            <LayoutDashboard />
+            <span>الإدارة</span>
+          </button>
+        )}
+      </nav>
     </div>
   );
 }
@@ -1564,6 +1563,7 @@ function MenuView({
   query,
   setQuery,
   items,
+  loading,
   onSelect,
   onQuickAdd,
 }: {
@@ -1578,80 +1578,295 @@ function MenuView({
   query: string;
   setQuery: (q: string) => void;
   items: Item[];
+  loading?: boolean;
   onSelect: (i: Item) => void;
   onQuickAdd: (i: Item) => void;
 }) {
   const featured = items[0] ?? restaurant.items[0];
   const secondary = items.slice(1, 3);
-  const revealRef = useScrollReveal<HTMLDivElement>([items, category, tag]);
+
+  const heroImage = featured?.image ?? items[0]?.image ?? images.mezze;
 
   return (
-    <div className="menu-view editorial-menu" ref={revealRef}>
-      <section className="opening-spread">
-        <div className="opening-copy">
-          <div className="opening-line"><span className="eyebrow">سُفرة / {restaurant.city}</span><span className="live-dot">يستقبل الطلبات الآن</span></div>
-          <p className="hero-kicker">مائدة الشام، كما نحبها</p>
-          <h1>{restaurant.name}</h1>
-          <p className="hero-subtitle">{restaurant.subtitle}</p>
-          <div className="opening-note">
-            <StarMark />
-            <p>أطباق يومية تُبنى على النار الهادئة، والخبز الطازج، وذاكرة البيت.</p>
+    <div className="menu-view">
+      {/* Hero — full-screen food photography with dark overlay */}
+      <section className="hero">
+        <div className="hero__bg" style={{ backgroundImage: `url(${heroImage})` }} aria-hidden="true" />
+        <div className="float-deco float-deco--basil" aria-hidden="true">
+          <svg viewBox="0 0 200 200" fill="none">
+            <path d="M100 200C60 160 50 120 60 80C70 120 100 140 100 200Z" fill="#5a8f4e" opacity="0.5" />
+            <path d="M100 200C140 160 150 120 140 80C130 120 100 140 100 200Z" fill="#6aa05a" opacity="0.4" />
+            <path d="M100 190C95 170 95 150 100 130C105 150 105 170 100 190Z" fill="#7ab369" opacity="0.6" />
+          </svg>
+        </div>
+        <div className="float-deco float-deco--spice" aria-hidden="true">
+          <svg viewBox="0 0 200 200" fill="none">
+            <circle cx="60" cy="60" r="5" fill="#c8a951" opacity="0.7" />
+            <circle cx="80" cy="50" r="4" fill="#d4a843" opacity="0.5" />
+            <circle cx="52" cy="78" r="4" fill="#c8a951" opacity="0.4" />
+            <circle cx="95" cy="72" r="3" fill="#e8cc82" opacity="0.6" />
+            <circle cx="44" cy="50" r="3" fill="#a8863a" opacity="0.5" />
+          </svg>
+        </div>
+        <div className="hero__content">
+          <span className="hero__eyebrow">
+            <i />
+            {restaurant.city} · {restaurant.neighborhood}
+          </span>
+          <p className="hero__script">مائدة الشام، كما نحبها</p>
+          <h1 className="hero__title">
+            {restaurant.name} <em>سُفرة</em>
+          </h1>
+          <p className="hero__subtitle">{restaurant.subtitle}</p>
+          <p className="hero__desc">
+            أطباق يومية تُبنى على النار الهادئة، والخبز الطازج، وذاكرة البيت.
+          </p>
+          <div className="hero__cta">
+            <button
+              className="btn btn--gold"
+              onClick={() =>
+                document
+                  .getElementById("menu-catalogue")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              تصفح القائمة
+              <ArrowRight />
+            </button>
+            <button
+              className="btn btn--outline"
+              onClick={() => onSelect(featured)}
+            >
+              اقتراح اليوم
+            </button>
           </div>
-          <div className="hero-facts">
-            <span><strong>{restaurant.items.length}</strong> صنفاً في القائمة</span>
-            <span><strong>{categories.length}</strong> قسماً</span>
-            <span><strong>{restaurant.neighborhood}</strong></span>
+          <div className="hero__stats">
+            <span className="hero__stat">
+              <strong>{restaurant.items.length}</strong>
+              <small>صنفاً في القائمة</small>
+            </span>
+            <span className="hero__stat">
+              <strong>{categories.length}</strong>
+              <small>قسماً مختاراً بعناية</small>
+            </span>
+            <span className="hero__stat">
+              <strong>{restaurant.neighborhood}</strong>
+              <small>في قلب {restaurant.city}</small>
+            </span>
           </div>
         </div>
         {featured && (
-          <button className="lead-dish" onClick={() => onSelect(featured)}>
-            <span className="lead-dish-image"><img src={featured.image} alt={featured.name} /></span>
-            <span className="lead-dish-caption"><small>طبق الغلاف / اقتراح اليوم</small><strong>{featured.name}</strong><span>{featured.desc}</span><b>{formatSyp(featured.price)} <em>افتح التفاصيل</em></b></span>
+          <button className="hero__featured" onClick={() => onSelect(featured)}>
+            <span className="hero__featured-media">
+              <img src={featured.image} alt={featured.name} loading="lazy" />
+            </span>
+            <span className="hero__featured-body">
+              <small className="hero__featured-kicker">طبق الغلاف · اقتراح اليوم</small>
+              <strong className="hero__featured-name">{featured.name}</strong>
+              <span className="hero__featured-desc">{featured.desc}</span>
+              <span className="hero__featured-foot">
+                <b className="hero__featured-price">{formatSyp(featured.price)}</b>
+                <em className="hero__featured-open">افتح التفاصيل <ArrowRight /></em>
+              </span>
+            </span>
           </button>
         )}
       </section>
 
-      <section className="menu-index" aria-label="فهرس القائمة" data-reveal>
-        <div className="index-intro"><span className="eyebrow">الفهرس</span><h2>اختَر إيقاع<br />وجبتك اليوم</h2></div>
-        <div className="index-search"><span>ابحث في الوصفات</span><label className="search"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم طبق، مكوّن، أو مزاج" /></label><small>{items.length} صنفاً مطابقاً</small></div>
-        <div className="currency-switch"><span>عرض الأسعار</span><div className="segmented"><button className={currency === "syp" ? "active" : ""} onClick={() => setCurrency("syp")}>ليرة سورية</button><button className={currency === "usd" ? "active" : ""} onClick={() => setCurrency("usd")}>دولار</button></div></div>
-      </section>
-
-      <section className="menu-map" data-reveal>
-        <div className="map-label"><span>تصفح الأقسام</span><strong>{category === "كل الأصناف" ? "القائمة كاملة" : category}</strong></div>
-        <div className="category-row">
-          {["كل الأصناف", "الأكثر طلباً", ...categories.map((entry) => entry.name)].map((entry) => (
-            <button key={entry} className={category === entry ? "active" : ""} onClick={() => setCategory(entry)}>{entry}</button>
-          ))}
+      {/* Search + currency index */}
+      <section className="section section--alt" aria-label="فهرس القائمة">
+        <div className="menu-index">
+          <div className="menu-index__title">
+            <span className="section-kicker">الفهرس</span>
+            <h2>اختَر إيقاع وجبتك اليوم</h2>
+          </div>
+          <div className="menu-index__search">
+            <label>
+              <Search />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="اسم طبق، مكوّن، أو مزاج…"
+              />
+            </label>
+            <small className="menu-index__count">{items.length} صنفاً مطابقاً</small>
+          </div>
+          <div className="menu-index__currency">
+            <small>عرض الأسعار</small>
+            <div className="currency-toggle">
+              <button
+                className={currency === "syp" ? "active" : ""}
+                onClick={() => setCurrency("syp")}
+              >
+                ليرة سورية
+              </button>
+              <button
+                className={currency === "usd" ? "active" : ""}
+                onClick={() => setCurrency("usd")}
+              >
+                دولار
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="taste-filters"><span>اختيارات المطبخ</span><button className={tag === "all" ? "active" : ""} onClick={() => setTag("all")}>الكل</button><button className={tag === "vegetarian" ? "active" : ""} onClick={() => setTag("vegetarian")}>نباتي</button><button className={tag === "chef" ? "active" : ""} onClick={() => setTag("chef")}>اختيار الشيف</button></div>
       </section>
 
-      <section className="menu-catalogue">
-        <header className="catalogue-header" data-reveal><div><span className="eyebrow">المطبخ اليوم</span><h2>{category === "كل الأصناف" ? "كل الأطباق" : category}</h2></div><p>اضغط على أي طبق لتختار الحجم والإضافات.</p><span className="results-count">{items.length} صنفاً</span></header>
-        <div className="menu-grid">
-          {items.map((item, index) => {
-            const needsChoice = (item.options ?? []).some((group) => group.required);
-            return (
-              <article className={`menu-card menu-card-${index % 3} ${index === 0 ? "featured-card" : ""}`} key={item.id} data-reveal style={{ ["--reveal-i" as string]: String(Math.min(index, 8)) }}>
-                <button className="card-image" onClick={() => onSelect(item)} aria-label={`تفاصيل ${item.name}`}><img src={item.image} alt={item.name} loading="lazy" />{item.popular && <span className="popular-chip">طلب متكرر</span>}</button>
-                <div className="card-body">
-                  <div className="card-title"><div><small>{item.en}</small><h3>{item.name}</h3></div><span>{formatSyp(item.price)}</span></div>
-                  <p>{item.desc}</p>
-                  <div className="card-meta">{item.tags.map((t) => <small key={t}>{tagLabels[t]}</small>)}</div>
-                  {needsChoice ? (
-                    <button className="card-add" onClick={() => onSelect(item)}><span>اختر الحجم والإضافات</span><b>تفاصيل الطبق</b></button>
-                  ) : (
-                    <button className="card-add" onClick={() => onQuickAdd(item)}><span>أضف إلى الطلب</span><b>{formatSyp(item.price)}</b></button>
-                  )}
+      <div className="divider" aria-hidden="true">
+        <span>✦</span>
+      </div>
+
+      {/* Category pills */}
+      <section className="section section--carded categories" id="menu-catalogue">
+        <div className="categories__heading">
+          <span className="section-kicker">تصفح الأقسام</span>
+          <strong>{category === "كل الأصناف" ? "القائمة كاملة" : category}</strong>
+        </div>
+        <div className="pills">
+          {["كل الأصناف", "الأكثر طلباً", ...categories.map((entry) => entry.name)].map(
+            (entry) => (
+              <button
+                key={entry}
+                className={`pill${category === entry ? " pill--active" : ""}`}
+                onClick={() => setCategory(entry)}
+              >
+                {entry}
+              </button>
+            ),
+          )}
+        </div>
+        <div className="tag-row">
+          <span>اختيارات المطبخ:</span>
+          <button
+            className={`pill${tag === "all" ? " pill--active" : ""}`}
+            onClick={() => setTag("all")}
+          >
+            الكل
+          </button>
+          <button
+            className={`pill${tag === "vegetarian" ? " pill--active" : ""}`}
+            onClick={() => setTag("vegetarian")}
+          >
+            نباتي
+          </button>
+          <button
+            className={`pill${tag === "chef" ? " pill--active" : ""}`}
+            onClick={() => setTag("chef")}
+          >
+            اختيار الشيف
+          </button>
+        </div>
+      </section>
+
+      {/* Menu grid */}
+      <section className="section menu">
+        <div className="menu__head">
+          <div>
+            <span className="section-script">المطبخ اليوم</span>
+            <h2 className="section-title">
+              {category === "كل الأصناف" ? <em>كل الأطباق</em> : <em>{category}</em>}
+            </h2>
+            <p className="menu__head-note">اضغط على أي طبق لتختار الحجم والإضافات.</p>
+          </div>
+          <span className="menu__count">{items.length} صنفاً</span>
+        </div>
+
+        <div className="menu__grid">
+          {loading
+            ? Array.from({ length: 6 }).map((_, index) => (
+              <div className="menu-card menu-card--skeleton" key={index} aria-hidden="true">
+                <div className="menu-card__media menu-skeleton__media" />
+                <div className="menu-card__body">
+                  <div className="menu-skeleton__line menu-skeleton__line--title" />
+                  <div className="menu-skeleton__line menu-skeleton__line--text" />
+                  <div className="menu-skeleton__line menu-skeleton__line--text-short" />
+                  <div className="menu-skeleton__line menu-skeleton__line--btn" />
                 </div>
-              </article>
-            );
-          })}
+              </div>
+            ))
+            : items.map((item) => {
+              const needsChoice = (item.options ?? []).some((group) => group.required);
+              return (
+                <article className="menu-card" key={item.id}>
+                  <button
+                    className="menu-card__media"
+                    onClick={() => onSelect(item)}
+                    aria-label={`تفاصيل ${item.name}`}
+                  >
+                    <img
+                      className="menu-card__img"
+                      src={item.image}
+                      alt={item.name}
+                      loading="lazy"
+                    />
+                    {item.popular && (
+                      <span className="menu-card__badge">الأكثر طلباً</span>
+                    )}
+                  </button>
+                  <div className="menu-card__body">
+                    <div className="menu-card__title-row">
+                      <h3 className="menu-card__name">
+                        {item.name}
+                        <small className="menu-card__en">{item.en}</small>
+                      </h3>
+                      <span className="menu-card__price">
+                        {currency === "usd" ? formatUsd(item.price, restaurant.rate) : formatSyp(item.price)}
+                      </span>
+                    </div>
+                    <p className="menu-card__desc">{item.desc}</p>
+                    {item.tags.length > 0 && (
+                      <div className="menu-card__tags">
+                        {item.tags.map((t) => (
+                          <small className="menu-card__tag" key={t}>
+                            {tagLabels[t]}
+                          </small>
+                        ))}
+                      </div>
+                    )}
+                    <div className="menu-card__actions">
+                      {needsChoice ? (
+                        <button
+                          className="menu-card__btn menu-card__btn--details"
+                          onClick={() => onSelect(item)}
+                        >
+                          اختر الحجم والإضافات
+                          <ArrowRight />
+                        </button>
+                      ) : (
+                        <button
+                          className="menu-card__btn menu-card__btn--add"
+                          onClick={() => onQuickAdd(item)}
+                        >
+                          <Plus />
+                          أضف إلى الطلب
+                          {currency === "usd"
+                            ? formatUsd(item.price, restaurant.rate)
+                            : formatSyp(item.price)}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
         </div>
+
+        {secondary.length > 0 && (
+          <aside className="side-suggestion">
+            <span>من نفس المائدة</span>
+            <strong>{secondary.map((item) => item.name).join(" · ")}</strong>
+            <p>تشكيلة صغيرة تكمل اختيارك، وتصلح للمشاركة.</p>
+          </aside>
+        )}
+        {items.length === 0 && (
+          <div className="empty-state">
+            <h3>لم نجد صنفاً مطابقاً</h3>
+            <p>جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً.</p>
+            <button className="btn btn--outline" onClick={() => setQuery("")}>
+              مسح البحث
+            </button>
+          </div>
+        )}
       </section>
-      {secondary.length > 0 && <aside className="editorial-callout" data-reveal><span className="eyebrow">من نفس المائدة</span><strong>{secondary.map((item) => item.name).join(" · ")}</strong><p>تشكيلة صغيرة تكمل اختيارك، وتصلح للمشاركة.</p></aside>}
-      {items.length === 0 && <div className="empty-state"><strong>لم نجد صنفاً مطابقاً</strong><span>جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً.</span></div>}
     </div>
   );
 }
@@ -1678,21 +1893,108 @@ function ItemModal({
     .flat()
     .reduce((sum, option) => sum + option.price, 0);
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <section className="item-modal dish-brief" role="dialog" aria-modal="true" aria-label={item.name}>
-        <aside className="dish-portrait"><img src={item.image} alt={item.name} /><span className="portrait-index">{item.category}</span><button className="close" onClick={onClose} aria-label="إغلاق">×</button></aside>
-        <div className="dish-content">
-          <header className="dish-heading"><div><span className="eyebrow">بطاقة الطبق / {item.en}</span><h2>{item.name}</h2><p>{item.desc}</p></div><div className="dish-total"><small>يبدأ من</small><strong>{formatSyp(item.price + extra)}</strong>{currency === "usd" && <span>≈ {formatUsd(item.price + extra, rate)}</span>}</div></header>
-          <div className="dish-rule"><span>ابنِ طبقك</span><small>اختياراتك تحفظ مع الطلب</small></div>
-          <div className="dish-options">
+    <div
+      className="modal-backdrop"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <section
+        className="modal item-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={item.name}
+      >
+        <aside className="item-modal__media">
+          <img src={item.image} alt={item.name} />
+          <span className="item-modal__cat">{item.category}</span>
+        </aside>
+        <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+          <X />
+        </button>
+        <div className="item-modal__content">
+          <header className="item-modal__head">
+            <span className="kicker">بطاقة الطبق / {item.en}</span>
+            <h2>{item.name}</h2>
+            <p>{item.desc}</p>
+            <div className="item-modal__price">
+              <strong>{formatSyp(item.price + extra)}</strong>
+              {currency === "usd" && (
+                <small>≈ {formatUsd(item.price + extra, rate)} USD</small>
+              )}
+            </div>
+          </header>
+
+          <div>
+            <span className="section-kicker">ابنِ طبقك</span>
+            <small style={{ color: "var(--text-faint)", display: "block" }}>
+              اختياراتك تحفظ مع الطلب
+            </small>
+          </div>
+
+          <div style={{ display: "grid", gap: "14px" }}>
             {item.options?.map((group) => (
               <fieldset className="option-group" key={group.id}>
-                <legend><StarMark /><strong>{group.name}</strong>{group.required && <small>اختيار مطلوب</small>}</legend>
-                <div className="option-grid">{group.options.map((option) => <label className={selected[group.id]?.some((entry) => entry.id === option.id) ? "option selected" : "option"} key={option.id}><input type={group.required ? "radio" : "checkbox"} name={group.id} checked={selected[group.id]?.some((entry) => entry.id === option.id)} onChange={() => setSelected((current) => { const existing = current[group.id] ?? []; const next = group.required ? [option] : existing.some((entry) => entry.id === option.id) ? existing.filter((entry) => entry.id !== option.id) : [...existing, option]; return { ...current, [group.id]: next }; })} /><span>{option.name}</span><b>{option.price ? `+${formatSyp(option.price)}` : "أساسي"}</b></label>)}</div>
+                <legend>
+                  <strong>{group.name}</strong>
+                  {group.required && <small>اختيار مطلوب</small>}
+                </legend>
+                <div className="option-group__list">
+                  {group.options.map((option) => {
+                    const checked = selected[group.id]?.some(
+                      (entry) => entry.id === option.id,
+                    );
+                    return (
+                      <label
+                        key={option.id}
+                        className={`option-row${checked ? " has-check" : ""}`}
+                      >
+                        <input
+                          type={group.required ? "radio" : "checkbox"}
+                          name={group.id}
+                          checked={checked}
+                          onChange={() =>
+                            setSelected((current) => {
+                              const existing = current[group.id] ?? [];
+                              const next = group.required
+                                ? [option]
+                                : existing.some((entry) => entry.id === option.id)
+                                  ? existing.filter((entry) => entry.id !== option.id)
+                                  : [...existing, option];
+                              return { ...current, [group.id]: next };
+                            })
+                          }
+                        />
+                        <span>{option.name}</span>
+                        <b>{option.price ? `+${formatSyp(option.price)}` : "أساسي"}</b>
+                      </label>
+                    );
+                  })}
+                </div>
               </fieldset>
             ))}
           </div>
-          <div className="dish-request"><label className="note-field"><span>ملاحظة للمطبخ <small>اختياري</small></span><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="مثلاً: بدون بصل، الصوص جانباً..." /></label><button disabled={!valid} className="primary wide" onClick={() => onAdd(item, Object.values(selected).flat(), note)}><span>أضف إلى الطلب</span><strong>{formatSyp(item.price + extra)}</strong></button></div>
+
+          <label className="note-field">
+            <span>
+              ملاحظة للمطبخ <small>اختياري</small>
+            </span>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="مثلاً: بدون بصل، الصوص جانباً..."
+            />
+          </label>
+
+          <div className="item-modal__addbar">
+            <button
+              className="btn btn--gold"
+              disabled={!valid}
+              onClick={() => onAdd(item, Object.values(selected).flat(), note)}
+            >
+              <Plus />
+              أضف إلى الطلب
+              <strong>{formatSyp(item.price + extra)}</strong>
+            </button>
+          </div>
         </div>
       </section>
     </div>
@@ -1718,14 +2020,100 @@ function CartDrawer({
 }) {
   const itemCount = cart.reduce((a, l) => a + l.qty, 0);
   return (
-    <div className="modal-backdrop drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="cart-drawer order-desk" role="dialog" aria-modal="true">
-        <header className="drawer-head order-desk-head"><div><span className="eyebrow">ورقة الطلب / قيد التجهيز</span><h2>مائدتك <b>{itemCount}</b></h2></div><button className="close" onClick={onClose} aria-label="إغلاق">×</button></header>
-        {cart.length === 0 ? <div className="empty-state"><strong>لم تبدأ مائدتك بعد</strong><span>اختر طبقاً من الفهرس وسنضعه هنا.</span><button className="link-button" onClick={onClose}>العودة إلى القائمة</button></div> : <>
-          <div className="order-desk-intro"><span>ملخص الاختيارات</span><small>راجع الإضافات والكمية قبل المتابعة</small></div>
-          <div className="cart-lines receipt-lines">{cart.map((line, index) => <article className="cart-line receipt-line" key={line.key}><div className="receipt-marker">{String(index + 1).padStart(2, "0")}</div><img src={line.item.image} alt="" /><div className="line-info"><strong>{line.item.name}</strong><small>{line.options.map((o) => o.name).join("، ") || "بدون إضافات"}</small><b>{formatSyp((line.item.price + line.options.reduce((a, o) => a + o.price, 0)) * line.qty)}</b></div><div className="qty"><button onClick={() => onQty(line.key, -1)} aria-label="تقليل الكمية">−</button><b>{line.qty}</b><button onClick={() => onQty(line.key, 1)} aria-label="زيادة الكمية">+</button></div></article>)}</div>
-          <footer className="cart-summary receipt-summary"><div className="summary-caption"><span>المجموع قبل رسوم التسليم</span><small>يُحسب الإجمالي النهائي في الخطوة التالية</small></div><strong>{formatSyp(total)}</strong>{currency === "usd" && <small>≈ {formatUsd(total, rate)} USD بسعر صرف تقريبي</small>}<button className="primary wide" onClick={onCheckout}>انتقل إلى تفاصيل الطلب</button></footer>
-        </>}
+    <div
+      className="modal-backdrop cart-drawer"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <aside
+        className="modal cart-drawer__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="كشف الطلب"
+      >
+        <header className="cart-drawer__head">
+          <div>
+            <span className="kicker">ورقة الطلب / قيد التجهيز</span>
+            <h2>
+              مائدتك <b>{itemCount}</b>
+            </h2>
+          </div>
+          <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+            <X />
+          </button>
+        </header>
+        {cart.length === 0 ? (
+          <div className="cart-empty">
+            <ShoppingBasket />
+            <h3>لم تبدأ مائدتك بعد</h3>
+            <p>اختر طبقاً من الفهرس وسنضعه هنا.</p>
+            <button className="btn btn--outline" onClick={onClose}>
+              العودة إلى القائمة
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: "16px 26px 0" }}>
+              <span className="section-kicker">ملخص الاختيارات</span>
+              <small style={{ color: "var(--text-faint)", display: "block" }}>
+                راجع الإضافات والكمية قبل المتابعة
+              </small>
+            </div>
+            <div className="cart-drawer__lines">
+              {cart.map((line, index) => (
+                <article className="cart-line" key={line.key}>
+                  <span className="cart-line__index">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <img className="cart-line__img" src={line.item.image} alt="" />
+                  <div className="cart-line__info">
+                    <strong>{line.item.name}</strong>
+                    <small>
+                      {line.options.map((o) => o.name).join("، ") || "بدون إضافات"}
+                    </small>
+                    <b>
+                      {formatSyp(
+                        (line.item.price +
+                          line.options.reduce((a, o) => a + o.price, 0)) *
+                        line.qty,
+                      )}
+                    </b>
+                  </div>
+                  <div className="cart-line__qty">
+                    <button
+                      onClick={() => onQty(line.key, -1)}
+                      aria-label="تقليل الكمية"
+                    >
+                      −
+                    </button>
+                    <b>{line.qty}</b>
+                    <button
+                      onClick={() => onQty(line.key, 1)}
+                      aria-label="زيادة الكمية"
+                    >
+                      +
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <footer className="cart-drawer__foot">
+              <div className="cart-drawer__total">
+                <span className="section-kicker">المجموع قبل رسوم التسليم</span>
+                <strong>{formatSyp(total)}</strong>
+              </div>
+              {currency === "usd" && (
+                <small>≈ {formatUsd(total, rate)} USD بسعر صرف تقريبي</small>
+              )}
+              <button
+                className="btn btn--gold cart-drawer__checkout"
+                onClick={onCheckout}
+              >
+                انتقل إلى تفاصيل الطلب
+                <ArrowRight />
+              </button>
+            </footer>
+          </>
+        )}
       </aside>
     </div>
   );
@@ -1753,20 +2141,32 @@ function CheckoutModal({
   const missingDineInContext = mode === "dine-in" && !tableContext;
   return (
     <div className="modal-backdrop">
-      <section className="checkout-modal handoff-modal" role="dialog" aria-modal="true">
-        <header className="handoff-header">
-          <div><span className="eyebrow">إتمام الطلب</span><h2>لنضع اللمسات الأخيرة</h2><p>ثلاث خطوات قصيرة، ثم يصل طلبك إلى المطبخ.</p></div>
-          <button className="close" onClick={onClose} aria-label="إغلاق">×</button>
+      <section className="modal checkout-modal" role="dialog" aria-modal="true">
+        <header className="checkout-modal__head">
+          <div>
+            <span className="section-kicker">إتمام الطلب</span>
+            <h2>لنضع اللمسات الأخيرة</h2>
+            <p>ثلاث خطوات قصيرة، ثم يصل طلبك إلى المطبخ.</p>
+          </div>
+          <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+            <X />
+          </button>
         </header>
-        <div className="handoff-layout">
-          <div className="handoff-form-column">
-            <div className="handoff-section service-section">
-              <div className="section-marker"><span>01</span><div><strong>كيف تريد طلبك؟</strong><small>اختر طريقة الاستلام المناسبة</small></div></div>
-              <div className="mode-tabs service-cards">
+        <div className="checkout-body">
+          <div className="checkout-form">
+            <div className="step">
+              <div className="step__head">
+                <span className="step__num">01</span>
+                <div>
+                  <strong>كيف تريد طلبك؟</strong>
+                  <small>اختر طريقة الاستلام المناسبة</small>
+                </div>
+              </div>
+              <div className="mode-select">
                 {(["dine-in", "takeaway", "delivery"] as Mode[]).map((m) => (
                   <button
-                    className={mode === m ? "active" : ""}
                     key={m}
+                    className={mode === m ? "active" : ""}
                     onClick={() => setMode(m)}
                   >
                     {m === "dine-in"
@@ -1777,33 +2177,43 @@ function CheckoutModal({
                   </button>
                 ))}
               </div>
+              {settings &&
+                !settings[
+                mode === "dine-in"
+                  ? "dineIn"
+                  : mode === "takeaway"
+                    ? "takeaway"
+                    : "delivery"
+                ] && (
+                  <div className="warn-note" style={{ marginTop: "12px" }}>
+                    هذا النوع من الطلبات غير متاح حالياً.
+                  </div>
+                )}
             </div>
-            {settings &&
-              !settings[
-              mode === "dine-in"
-                ? "dineIn"
-                : mode === "takeaway"
-                  ? "takeaway"
-                  : "delivery"
-              ] && (
-                <div className="checkout-warning">
-                  هذا النوع من الطلبات غير متاح حالياً.
-                </div>
-              )}
+
             <form
+              className="checkout-form"
+              style={{ padding: 0 }}
               onSubmit={(e) => {
                 e.preventDefault();
                 void onSubmit(e.currentTarget);
               }}
             >
-              <div className="handoff-section">
-                <div className="section-marker"><span>02</span><div><strong>إلى من نجهزها؟</strong><small>نستخدمها لتسليم الطلب فقط</small></div></div>
-                <div className="handoff-fields">
-                  <label>
-                    الاسم <input name="customer" required placeholder="اسمك الكريم" />
+              <div className="step">
+                <div className="step__head">
+                  <span className="step__num">02</span>
+                  <div>
+                    <strong>إلى من نجهزها؟</strong>
+                    <small>نستخدمها لتسليم الطلب فقط</small>
+                  </div>
+                </div>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>الاسم</span>
+                    <input name="customer" required placeholder="اسمك الكريم" />
                   </label>
-                  <label>
-                    رقم الهاتف{" "}
+                  <label className="form-field">
+                    <span>رقم الهاتف</span>
                     <input
                       name="phone"
                       required={mode !== "dine-in"}
@@ -1812,18 +2222,18 @@ function CheckoutModal({
                   </label>
                   {mode === "dine-in" &&
                     (tableContext ? (
-                      <div className="checkout-hint">
+                      <div className="table-chip">
                         الطاولة: <strong>{tableContext.labelAr}</strong>
                         {tableContext.area ? ` — ${tableContext.area}` : ""}
                       </div>
                     ) : (
-                      <div className="checkout-warning">
+                      <div className="warn-note form-grid--full">
                         امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل المطعم.
                       </div>
                     ))}
                   {mode === "delivery" && (
-                    <label>
-                      العنوان بالتفصيل{" "}
+                    <label className="form-field form-grid--full">
+                      <span>العنوان بالتفصيل</span>
                       <textarea
                         name="address"
                         required
@@ -1832,8 +2242,8 @@ function CheckoutModal({
                     </label>
                   )}
                   {mode === "takeaway" && (
-                    <label>
-                      وقت الاستلام{" "}
+                    <label className="form-field">
+                      <span>وقت الاستلام</span>
                       <select name="pickup">
                         <option>الآن (25 - 35 دقيقة)</option>
                         <option>بعد ساعة</option>
@@ -1843,11 +2253,18 @@ function CheckoutModal({
                   )}
                 </div>
               </div>
-              <div className="handoff-section">
-                <div className="section-marker"><span>03</span><div><strong>طريقة الدفع</strong><small>اختر وسيلة الدفع المفضلة</small></div></div>
-                <div className="handoff-fields">
-                  <label>
-                    طريقة الدفع{" "}
+
+              <div className="step">
+                <div className="step__head">
+                  <span className="step__num">03</span>
+                  <div>
+                    <strong>طريقة الدفع</strong>
+                    <small>اختر وسيلة الدفع المفضلة</small>
+                  </div>
+                </div>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>طريقة الدفع</span>
                     <select name="payment">
                       <option>
                         {mode === "delivery"
@@ -1859,16 +2276,18 @@ function CheckoutModal({
                       <option>MTN Cash</option>
                     </select>
                   </label>
-                  <label>
-                    مرجع الحوالة <small>(اختياري للمحافظ الإلكترونية)</small>
+                  <label className="form-field">
+                    <span>
+                      مرجع الحوالة <small>(اختياري للمحافظ الإلكترونية)</small>
+                    </span>
                     <input
                       name="paymentReference"
                       placeholder="رقم العملية أو اسم المرسل"
                     />
                   </label>
                   {mode === "delivery" && settings?.zones.length ? (
-                    <label>
-                      منطقة التوصيل
+                    <label className="form-field">
+                      <span>منطقة التوصيل</span>
                       <select name="zone">
                         {settings.zones
                           .filter((zone) => zone.active)
@@ -1883,17 +2302,18 @@ function CheckoutModal({
                   ) : null}
                 </div>
               </div>
+
               <div className="checkout-total">
                 <span>الإجمالي</span>
                 <strong>{formatSyp(total)}</strong>
               </div>
               {mode === "delivery" && settings?.zones.length ? (
-                <small className="checkout-hint">
+                <small style={{ color: "var(--text-faint)" }}>
                   تطبق أجرة التوصيل والحد الأدنى حسب المنطقة التي يحددها المطعم.
                 </small>
               ) : null}
               <button
-                className="primary wide"
+                className="btn btn--gold"
                 type="submit"
                 disabled={
                   !backendReady ||
@@ -1911,10 +2331,24 @@ function CheckoutModal({
                 }
               >
                 تأكيد الطلب
+                <ArrowRight />
               </button>
             </form>
           </div>
-          <aside className="handoff-receipt"><span className="eyebrow">ملخص الحساب</span><h3>مائدتك جاهزة</h3><div className="receipt-total"><small>الإجمالي المبدئي</small><strong>{formatSyp(total)}</strong></div><p>تظهر رسوم التوصيل أو أي تعديل نهائي بعد مراجعة المطعم.</p><div className="receipt-seal">تأكيد آمن قبل الإرسال</div></aside>
+
+          <aside className="checkout-aside">
+            <span className="section-kicker">ملخص الحساب</span>
+            <h3>مائدتك جاهزة</h3>
+            <div className="sum-row">
+              <small>الإجمالي المبدئي</small>
+              <strong>{formatSyp(total)}</strong>
+            </div>
+            <p>تظهر رسوم التوصيل أو أي تعديل نهائي بعد مراجعة المطعم.</p>
+            <div className="trust-note">
+              <ShieldCheck />
+              <span>تأكيد آمن قبل الإرسال</span>
+            </div>
+          </aside>
         </div>
       </section>
     </div>
@@ -1932,9 +2366,98 @@ function OrdersView({
 }) {
   const activeOrders = orders.filter((order) => !["completed", "cancelled"].includes(order.status));
   return (
-    <div className="orders-page order-journal">
-      <header className="journal-header"><div><span className="eyebrow">دفتر المائدة / متابعة مباشرة</span><h1>حكاية طلباتك</h1><p>كل طلب يحتفظ بوقته، تفاصيله، وحالته حتى يصل إليك.</p></div><div className="journal-count"><strong>{orders.length}</strong><span>طلبات محفوظة</span></div><button className="primary" onClick={onMenu}>ابدأ طلباً جديداً</button></header>
-      {orders.length === 0 ? <div className="empty-panel journal-empty"><span className="eyebrow">الفصل الأول</span><h2>لم تُكتب أول حكاية بعد</h2><p>ابدأ بتصفح القائمة، واختر ما ترغب أن يصل إلى مائدتك.</p><button className="secondary" onClick={onMenu}>افتح القائمة</button></div> : <div className="journal-layout"><section className="journal-list"><div className="journal-list-head"><span>أرشيف الطلبات</span><small>{activeOrders.length} قيد المتابعة الآن</small></div>{orders.map((order, index) => <button className={`journal-entry ${activeOrders.includes(order) ? "is-live" : ""}`} key={order.id} onClick={() => onTrack(order)}><span className="entry-index">{String(index + 1).padStart(2, "0")}</span><span className="entry-main"><strong>{order.id}</strong><span>{modeLabels[order.mode]} · {order.lines.reduce((a, l) => a + l.qty, 0)} أصناف</span><small>{new Date(order.createdAt).toLocaleDateString("ar-SY", { day: "numeric", month: "long" })}، {new Date(order.createdAt).toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit" })}</small></span><span className="entry-total"><strong>{formatSyp(order.total)}</strong><small className={`status ${order.status}`}>{statusLabels[order.status]}</small></span><span className="entry-arrow">عرض التفاصيل</span></button>)}</section><aside className="journal-aside"><span className="eyebrow">مفتوح الآن</span><h2>{activeOrders.length ? "هناك طلب يتحرك" : "المطبخ بانتظارك"}</h2><p>{activeOrders.length ? "افتح أي طلب قيد التنفيذ لمشاهدة آخر تحديث من المطعم." : "عد إلى القائمة وابدأ تركيبة جديدة من أطباق اليوم."}</p><button className="secondary" onClick={onMenu}>{activeOrders.length ? "استكشف القائمة أيضاً" : "اكتب طلبك التالي"}</button></aside></div>}
+    <div className="section orders">
+      <header className="orders__head">
+        <div>
+          <span className="section-kicker">دفتر المائدة / متابعة مباشرة</span>
+          <h1 className="section-title">حكاية طلباتك</h1>
+          <p className="section-sub">
+            كل طلب يحتفظ بوقته، تفاصيله، وحالته حتى يصل إليك.
+          </p>
+        </div>
+        <div className="orders__count">
+          <strong>{orders.length}</strong>
+          <small>طلبات محفوظة</small>
+        </div>
+        <button className="btn btn--gold" onClick={onMenu}>
+          ابدأ طلباً جديداً
+          <ArrowRight />
+        </button>
+      </header>
+
+      {orders.length === 0 ? (
+        <div className="empty-state">
+          <span className="section-script">الفصل الأول</span>
+          <h3>لم تُكتب أول حكاية بعد</h3>
+          <p>ابدأ بتصفح القائمة، واختر ما ترغب أن يصل إلى مائدتك.</p>
+          <button className="btn btn--outline" onClick={onMenu}>
+            افتح القائمة
+          </button>
+        </div>
+      ) : (
+        <div className="orders__layout">
+          <section className="orders__list">
+            <div style={{ marginBottom: "16px" }}>
+              <span className="section-kicker">أرشيف الطلبات</span>
+              <small style={{ color: "var(--text-faint)", display: "block" }}>
+                {activeOrders.length} قيد المتابعة الآن
+              </small>
+            </div>
+            {orders.map((order, index) => (
+              <button
+                className="order-row"
+                key={order.id}
+                onClick={() => onTrack(order)}
+              >
+                <span className="order-row__num">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="order-row__mid">
+                  <strong>{order.id}</strong>
+                  <span>
+                    {modeLabels[order.mode]} ·{" "}
+                    {order.lines.reduce((a, l) => a + l.qty, 0)} أصناف
+                  </span>
+                  <small>
+                    {new Date(order.createdAt).toLocaleDateString("ar-SY", {
+                      day: "numeric",
+                      month: "long",
+                    })}
+                    ،{" "}
+                    {new Date(order.createdAt).toLocaleTimeString("ar-SY", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </small>
+                </span>
+                <span className="order-row__end">
+                  <strong>{formatSyp(order.total)}</strong>
+                  <small>{statusLabels[order.status]}</small>
+                  <span className="order-row__go">عرض التفاصيل</span>
+                </span>
+              </button>
+            ))}
+          </section>
+
+          <aside className="orders__side">
+            <span className="section-kicker">مفتوح الآن</span>
+            <h3>
+              {activeOrders.length ? "هناك طلب يتحرك" : "المطبخ بانتظارك"}
+            </h3>
+            <p>
+              {activeOrders.length
+                ? "افتح أي طلب قيد التنفيذ لمشاهدة آخر تحديث من المطعم."
+                : "عد إلى القائمة وابدأ تركيبة جديدة من أطباق اليوم."}
+            </p>
+            <button
+              className="btn btn--outline"
+              onClick={onMenu}
+            >
+              {activeOrders.length ? "استكشف القائمة أيضاً" : "اكتب طلبك التالي"}
+            </button>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
@@ -2032,15 +2555,17 @@ function StaffAuthModal({
   };
 
   return (
-    <div className="modal-backdrop auth-backdrop" onMouseDown={onClose}>
+    <div className="modal-backdrop" onMouseDown={onClose}>
       <div
-        className="staff-auth-modal"
+        className="modal modal--narrow auth-card"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className="close" onClick={onClose} aria-label="إغلاق">
-          ×
+        <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+          <X />
         </button>
-        <span className="eyebrow">دخول الموظفين</span>
+        <span className="section-kicker" style={{ justifyContent: "center" }}>
+          دخول الموظفين
+        </span>
         <h2>لوحة المطعم</h2>
         <p>
           استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب.
@@ -2051,8 +2576,8 @@ function StaffAuthModal({
             void signIn();
           }}
         >
-          <label>
-            البريد الإلكتروني
+          <label className="form-field">
+            <span>البريد الإلكتروني</span>
             <input
               type="email"
               autoComplete="email"
@@ -2062,8 +2587,8 @@ function StaffAuthModal({
               placeholder={ownerEmail}
             />
           </label>
-          <label>
-            كلمة المرور
+          <label className="form-field">
+            <span>كلمة المرور</span>
             <input
               type="password"
               autoComplete="current-password"
@@ -2074,17 +2599,13 @@ function StaffAuthModal({
               placeholder="كلمة المرور"
             />
           </label>
-          {message && (
-            <div className="auth-message" role="status">
-              {message}
-            </div>
-          )}
-          <button className="primary wide" type="submit" disabled={loading}>
+          {message && <div className="auth-msg">{message}</div>}
+          <button className="btn btn--gold" type="submit" disabled={loading}>
             {loading ? "جارٍ تسجيل الدخول…" : "تسجيل الدخول"}
           </button>
           {email.trim().toLowerCase() === ownerEmail && (
             <button
-              className="secondary wide"
+              className="btn btn--outline"
               type="button"
               disabled={loading || password.length < 6}
               onClick={() => void signUpInitialOwner()}
@@ -2093,7 +2614,7 @@ function StaffAuthModal({
             </button>
           )}
           <button
-            className="auth-reset"
+            className="link-btn"
             type="button"
             disabled={loading}
             onClick={() => void resetPassword()}
@@ -2101,7 +2622,7 @@ function StaffAuthModal({
             نسيت كلمة المرور؟
           </button>
         </form>
-        <small className="auth-security-note">
+        <small>
           الصلاحيات مرتبطة بعضوية المطعم وتُطبق في قاعدة البيانات.
         </small>
       </div>
@@ -2171,13 +2692,94 @@ function TrackingModal({
   const current = steps.indexOf(displayOrder.status);
   return (
     <div className="modal-backdrop">
-      <section className="tracking-modal tracking-dossier" role="dialog" aria-modal="true">
-        <header className="dossier-header"><div><span className="eyebrow">سجل الطلب / {modeLabels[displayOrder.mode]}</span><h2>{displayOrder.id}</h2><p>{formatSyp(displayOrder.total)} · {displayOrder.table || displayOrder.address || "طلب خارجي"}</p></div><button className="close" onClick={onClose} aria-label="إغلاق">×</button></header>
-        <div className="dossier-status"><span className="success-check" aria-hidden="true" /><div><small>الحالة الحالية</small><strong>{statusLabels[displayOrder.status]}</strong><p>{displayOrder.status === "received" ? "تم إرسال طلبك إلى المطعم، سيتم تأكيده قريباً." : displayOrder.status === "completed" ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك." : "فريقنا يعمل على تجهيز طلبك الآن."}</p></div></div>
-        <div className="tracker dossier-timeline">{steps.map((step, i) => <div className={i <= current ? "track-step done" : "track-step"} key={step}><span>{i + 1}</span><div><strong>{statusLabels[step]}</strong><small>{i < current ? "اكتملت" : i === current ? "نحن هنا الآن" : "في انتظارها"}</small></div></div>)}</div>
-        <section className="dossier-lines"><div className="dossier-section-head"><span>محتويات الطلب</span><small>{displayOrder.lines.length} أطباق</small></div>{displayOrder.lines.map((line) => <div className="dossier-line" key={line.key}><span>{line.qty} ×</span><strong>{line.item.name}</strong><small>{line.options.map((option) => option.name).join("، ") || "بدون إضافات"}</small><b>{formatSyp((line.item.price + line.options.reduce((a, o) => a + o.price, 0)) * line.qty)}</b></div>)}</section>
-        {trackingMessage && <p className="tracking-note">{trackingMessage}</p>}
-        <button className="secondary wide" onClick={() => onWhatsApp(displayOrder)}>تواصل مع المطعم عبر واتساب</button>
+      <section
+        className="modal tracking-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`تتبع الطلب ${displayOrder.id}`}
+      >
+        <header className="tracking__head">
+          <div>
+            <span className="kicker">سجل الطلب / {modeLabels[displayOrder.mode]}</span>
+            <h2>{displayOrder.id}</h2>
+            <p>
+              {formatSyp(displayOrder.total)} ·{" "}
+              {displayOrder.table || displayOrder.address || "طلب خارجي"}
+            </p>
+          </div>
+          <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+            <X />
+          </button>
+        </header>
+
+        <div className="tracking__status-banner">
+          <small>الحالة الحالية</small>
+          <strong>{statusLabels[displayOrder.status]}</strong>
+          <p>
+            {displayOrder.status === "received"
+              ? "تم إرسال طلبك إلى المطعم، سيتم تأكيده قريباً."
+              : displayOrder.status === "completed"
+                ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك."
+                : "فريقنا يعمل على تجهيز طلبك الآن."}
+          </p>
+        </div>
+
+        <div className="tracking__steps">
+          {steps.map((step, i) => (
+            <div
+              key={step}
+              className={`tracking__step${i < current
+                ? " tracking__step--done"
+                : i === current
+                  ? " tracking__step--current"
+                  : ""
+                }`}
+            >
+              <i>{i < current ? "✓" : i + 1}</i>
+              <strong>{statusLabels[step]}</strong>
+              <small>
+                {i < current ? "اكتملت" : i === current ? "نحن هنا الآن" : "في انتظارها"}
+              </small>
+            </div>
+          ))}
+        </div>
+
+        <section className="tracking__lines">
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border-soft)" }}>
+            <span className="section-kicker">محتويات الطلب</span>
+            <small style={{ color: "var(--text-faint)", display: "block" }}>
+              {displayOrder.lines.length} أطباق
+            </small>
+          </div>
+          {displayOrder.lines.map((line) => (
+            <div className="tracking__line" key={line.key}>
+              <span>{line.qty} ×</span>
+              <div>
+                <strong>{line.item.name}</strong>
+                <small>
+                  {line.options.map((option) => option.name).join("، ") || "بدون إضافات"}
+                </small>
+              </div>
+              <b>
+                {formatSyp(
+                  (line.item.price +
+                    line.options.reduce((a, o) => a + o.price, 0)) *
+                  line.qty,
+                )}
+              </b>
+            </div>
+          ))}
+        </section>
+
+        <div className="tracking__foot">
+          {trackingMessage && <span className="tracking__msg">{trackingMessage}</span>}
+          <button
+            className="btn btn--outline"
+            onClick={() => onWhatsApp(displayOrder)}
+          >
+            تواصل مع المطعم عبر واتساب
+          </button>
+        </div>
       </section>
     </div>
   );
@@ -2309,13 +2911,134 @@ function AdminView({
           .includes(orderQuery.toLowerCase())),
   );
   return (
-    <div className="admin-page operations-workspace">
-      <header className="admin-header workspace-masthead">
-        <div className="masthead-title"><span className="eyebrow">دفتر التشغيل / {new Date().toLocaleDateString("ar-SY", { weekday: "long", day: "numeric", month: "long" })}</span><h1>{restaurant.name}</h1><p>مساحة العمل اليومية: الطلبات، المطبخ، والفريق في إيقاع واحد.</p></div>
-        <div className="admin-account-actions"><div className="staff-identity"><span>{memberships.find((entry) => entry.restaurantSlug === restaurant.id)?.displayName || staffEmail}</span><small>{memberships.find((entry) => entry.restaurantSlug === restaurant.id)?.role || "staff"} · متصل</small></div><div className="restaurant-switch"><span>تبديل المطعم</span><select value={restaurant.id} onChange={(e) => onSwitch(e.target.value)}>{memberships.map((entry) => <option key={entry.restaurantId} value={entry.restaurantSlug}>{entry.restaurantName}</option>)}</select></div><button className="secondary sign-out-button" onClick={() => void onSignOut()}>خروج آمن</button></div>
+    <div className="admin section">
+      <header className="admin__head">
+        <div>
+          <span className="section-kicker">
+            دفتر التشغيل /{" "}
+            {new Date().toLocaleDateString("ar-SY", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </span>
+          <h1>{restaurant.name}</h1>
+          <p className="section-sub">
+            مساحة العمل اليومية: الطلبات، المطبخ، والفريق في إيقاع واحد.
+          </p>
+        </div>
+        <div className="admin__meta">
+          <div className="admin__user">
+            <strong>
+              {memberships.find(
+                (entry) => entry.restaurantSlug === restaurant.id,
+              )?.displayName || staffEmail}
+            </strong>
+            <small>
+              {memberships.find(
+                (entry) => entry.restaurantSlug === restaurant.id,
+              )?.role || "staff"}{" "}
+              · متصل
+            </small>
+          </div>
+          <div className="admin__switch">
+            <select
+              value={restaurant.id}
+              onChange={(e) => onSwitch(e.target.value)}
+              aria-label="تبديل المطعم"
+            >
+              {memberships.map((entry) => (
+                <option key={entry.restaurantId} value={entry.restaurantSlug}>
+                  {entry.restaurantName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn--outline" onClick={() => void onSignOut()}>
+            خروج آمن
+          </button>
+        </div>
       </header>
-      <div className="workspace-pulse"><div><span>المشهد الآن</span><strong>{visible.length} طلباً في العرض</strong></div><div><span>قيد التنفيذ</span><strong>{orders.filter((o) => !["completed", "cancelled"].includes(o.status)).length}</strong></div><div><span>المطبخ</span><strong>{orders.filter((o) => ["preparing", "ready"].includes(o.status)).length} وصفات</strong></div><div><span>آخر مزامنة</span><strong>مباشر الآن</strong></div></div>
-      <nav className="admin-tabs workspace-index" aria-label="فهرس مساحة العمل"><div className="admin-tabs-heading"><small>مساحة الإدارة</small><strong>فصول التشغيل</strong></div><div className="workspace-nav-group"><span>اليوم</span><button className={tab === "overview" ? "active" : ""} onClick={() => setTab("overview")}>نظرة عامة</button><button className={tab === "orders" ? "active" : ""} onClick={() => setTab("orders")}>الطلبات <b>{orders.filter((o) => !["completed", "cancelled"].includes(o.status)).length}</b></button></div><div className="workspace-nav-group"><span>المحتوى</span><button className={tab === "menu" ? "active" : ""} onClick={() => setTab("menu")}>القائمة <b>{restaurant.items.length}</b></button><button className={tab === "tables" ? "active" : ""} onClick={() => setTab("tables")}>الطاولات و QR</button></div><div className="workspace-nav-group"><span>المراجعة</span><button className={tab === "reports" ? "active" : ""} onClick={() => setTab("reports")}>التقارير</button><button className={tab === "operations" ? "active" : ""} onClick={() => setTab("operations")}>الفريق والتشغيل</button><button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>إعدادات المطعم</button></div></nav>
+
+      <div className="admin__stats">
+        <div className="admin__stat">
+          <span>المشهد الآن</span>
+          <strong>{visible.length} طلباً في العرض</strong>
+        </div>
+        <div className="admin__stat">
+          <span>قيد التنفيذ</span>
+          <strong>
+            {
+              orders.filter(
+                (o) => !["completed", "cancelled"].includes(o.status),
+              ).length
+            }
+          </strong>
+        </div>
+        <div className="admin__stat">
+          <span>المطبخ</span>
+          <strong>
+            {orders.filter((o) => ["preparing", "ready"].includes(o.status))
+              .length}{" "}
+            وصفات
+          </strong>
+        </div>
+        <div className="admin__stat">
+          <span>آخر مزامنة</span>
+          <strong>مباشر الآن</strong>
+        </div>
+      </div>
+
+      <nav className="admin__nav" aria-label="فهرس مساحة العمل">
+        <button
+          className={tab === "overview" ? "active" : ""}
+          onClick={() => setTab("overview")}
+        >
+          نظرة عامة
+        </button>
+        <button
+          className={tab === "orders" ? "active" : ""}
+          onClick={() => setTab("orders")}
+        >
+          الطلبات{" "}
+          <b>
+            {orders.filter(
+              (o) => !["completed", "cancelled"].includes(o.status),
+            ).length}
+          </b>
+        </button>
+        <button
+          className={tab === "menu" ? "active" : ""}
+          onClick={() => setTab("menu")}
+        >
+          القائمة <b>{restaurant.items.length}</b>
+        </button>
+        <button
+          className={tab === "tables" ? "active" : ""}
+          onClick={() => setTab("tables")}
+        >
+          الطاولات و QR
+        </button>
+        <button
+          className={tab === "reports" ? "active" : ""}
+          onClick={() => setTab("reports")}
+        >
+          التقارير
+        </button>
+        <button
+          className={tab === "operations" ? "active" : ""}
+          onClick={() => setTab("operations")}
+        >
+          الفريق والتشغيل
+        </button>
+        <button
+          className={tab === "settings" ? "active" : ""}
+          onClick={() => setTab("settings")}
+        >
+          إعدادات المطعم
+        </button>
+      </nav>
+
       {tab === "overview" && (
         <AdminOverview
           orders={orders}
@@ -2325,62 +3048,62 @@ function AdminView({
       )}
       {tab === "orders" && (
         <>
-          <div className="admin-toolbar order-desk-toolbar">
-            <label className="order-search">
-              <span>البحث في الطلبات</span>
-              <input
-                value={orderQuery}
-                onChange={(event) => setOrderQuery(event.target.value)}
-                placeholder="رقم الطلب، اسم العميل، أو الهاتف"
-              />
-            </label>
-            <div className="filter-pills">
-              <button
-                className={adminFilter === "all" ? "active" : ""}
-                onClick={() => setAdminFilter("all")}
+          <div className="panel">
+            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "flex-end" }}>
+              <label className="form-field" style={{ flex: "1 1 260px" }}>
+                <span>البحث في الطلبات</span>
+                <input
+                  value={orderQuery}
+                  onChange={(event) => setOrderQuery(event.target.value)}
+                  placeholder="رقم الطلب، اسم العميل، أو الهاتف"
+                />
+              </label>
+              <div className="pills" style={{ marginTop: 0 }}>
+                {(["all", "dine-in", "takeaway", "delivery"] as const).map(
+                  (filter) => (
+                    <button
+                      key={filter}
+                      className={`pill${adminFilter === filter ? " pill--active" : ""}`}
+                      onClick={() => setAdminFilter(filter)}
+                    >
+                      {filter === "all"
+                        ? "الكل"
+                        : filter === "dine-in"
+                          ? "في المطعم"
+                          : filter === "takeaway"
+                            ? "سفري"
+                            : "توصيل"}
+                    </button>
+                  ),
+                )}
+              </div>
+              <select
+                className="form-field"
+                style={{ padding: "12px 15px", background: "rgba(255,255,255,0.035)", border: "1px solid var(--border-soft)", borderRadius: "12px", color: "var(--text)" }}
+                aria-label="تصفية حسب الحالة"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as typeof statusFilter)
+                }
               >
-                الكل
-              </button>
+                <option value="all">كل الحالات</option>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
               <button
-                className={adminFilter === "dine-in" ? "active" : ""}
-                onClick={() => setAdminFilter("dine-in")}
+                className="btn btn--outline"
+                style={{ padding: "10px 18px", fontSize: "0.82rem" }}
+                onClick={() => setSoundEnabled((value) => !value)}
               >
-                في المطعم
+                {soundEnabled ? "التنبيهات مفعلة" : "التنبيهات متوقفة"}
               </button>
-              <button
-                className={adminFilter === "takeaway" ? "active" : ""}
-                onClick={() => setAdminFilter("takeaway")}
-              >
-                سفري
-              </button>
-              <button
-                className={adminFilter === "delivery" ? "active" : ""}
-                onClick={() => setAdminFilter("delivery")}
-              >
-                توصيل
-              </button>
+              <span style={{ color: "var(--text-faint)", fontSize: "0.78rem" }}>
+                متصل الآن · آخر تحديث الآن
+              </span>
             </div>
-            <select
-              aria-label="تصفية حسب الحالة"
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as typeof statusFilter)
-              }
-            >
-              <option value="all">كل الحالات</option>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <button
-              className={soundEnabled ? "sound-toggle on" : "sound-toggle"}
-              onClick={() => setSoundEnabled((value) => !value)}
-            >
-              {soundEnabled ? "التنبيهات مفعلة" : "التنبيهات متوقفة"}
-            </button>
-            <span className="sync">متصل الآن · آخر تحديث الآن</span>
           </div>
           <div className="kanban">
             {(
@@ -2394,13 +3117,11 @@ function AdminView({
                 "cancelled",
               ] as Order["status"][]
             ).map((status) => (
-              <section className="kanban-column" key={status}>
-                <div className="column-heading">
-                  <span className={`dot ${status}`} />
+              <section className="kanban-col" key={status}>
+                <div className="kanban-col__head">
                   <h3>
-                    {status === "received"
-                      ? "طلبات جديدة"
-                      : statusLabels[status]}
+                    <i />
+                    {status === "received" ? "طلبات جديدة" : statusLabels[status]}
                   </h3>
                   <b>{visible.filter((o) => o.status === status).length}</b>
                 </div>
@@ -2416,7 +3137,9 @@ function AdminView({
                     />
                   ))}
                 {visible.filter((o) => o.status === status).length === 0 && (
-                  <div className="column-empty">لا توجد طلبات</div>
+                  <div style={{ color: "var(--text-faint)", fontSize: "0.8rem", padding: "10px" }}>
+                    لا توجد طلبات
+                  </div>
                 )}
               </section>
             ))}
@@ -2587,31 +3310,44 @@ function OperationsPanel({
     kitchen: "المطبخ",
   };
   return (
-    <div className="operations-panel operations-ledger">
-      <div className="manager-intro operations-intro">
+    <div>
+      <div className="panel__head">
         <div>
-          <span className="eyebrow">التحكم والصلاحيات</span>
+          <span className="section-kicker">التحكم والصلاحيات</span>
           <h2>الفريق وحالة التشغيل</h2>
-          <p>تحكم باستقبال الطلبات والتنبيهات ووصول الموظفين.</p>
+          <p className="section-sub">
+            تحكم باستقبال الطلبات والتنبيهات ووصول الموظفين.
+          </p>
         </div>
         <span
-          className={
-            state.acceptingOrders
-              ? "operation-state open"
-              : "operation-state paused"
-          }
+          style={{
+            alignSelf: "flex-start",
+            padding: "8px 16px",
+            borderRadius: "var(--radius-pill)",
+            border: "1px solid var(--border)",
+            color: state.acceptingOrders ? "var(--gold-light)" : "var(--danger)",
+            fontSize: "0.82rem",
+            fontWeight: 700,
+          }}
         >
           {state.acceptingOrders ? "يستقبل الطلبات" : "الطلبات متوقفة"}
         </span>
       </div>
-      <div className="operations-grid operations-workbench">
-        <section className="service-switchboard">
-          <span className="section-marker">01</span>
-          <h3>لوحة تشغيل المطعم</h3>
-          <div className="setting-toggles">
-            <label>
+      <div className="admin-row">
+        <section className="panel">
+          <div className="panel__head">
+            <div>
+              <span className="step__num" style={{ display: "inline-grid", marginBottom: "10px" }}>
+                01
+              </span>
+              <h3>لوحة تشغيل المطعم</h3>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: "12px" }}>
+            <label className="checkbox-pill">
               <span>
-                استقبال الطلبات<small>إيقافه يبقي القائمة متاحة للتصفح</small>
+                استقبال الطلبات
+                <small>إيقافه يبقي القائمة متاحة للتصفح</small>
               </span>
               <input
                 type="checkbox"
@@ -2626,9 +3362,10 @@ function OperationsPanel({
                 }
               />
             </label>
-            <label>
+            <label className="checkbox-pill">
               <span>
-                إشعارات المتصفح<small>إظهار إشعار عند وصول طلب</small>
+                إشعارات المتصفح
+                <small>إظهار إشعار عند وصول طلب</small>
               </span>
               <input
                 type="checkbox"
@@ -2652,9 +3389,10 @@ function OperationsPanel({
                 }}
               />
             </label>
-            <label>
+            <label className="checkbox-pill">
               <span>
-                التنبيه الصوتي<small>صوت عند وصول طلب جديد</small>
+                التنبيه الصوتي
+                <small>صوت عند وصول طلب جديد</small>
               </span>
               <input
                 type="checkbox"
@@ -2669,22 +3407,44 @@ function OperationsPanel({
             </label>
           </div>
         </section>
-        <section className="staff-roster">
-          <div className="settings-section-head">
-            <div><span className="section-marker">02</span><h3>سجل أعضاء الفريق</h3></div>
-            <button disabled={staffBusy} onClick={() => void addStaff()}>
+        <section className="panel">
+          <div className="panel__head">
+            <div>
+              <span className="step__num" style={{ display: "inline-grid", marginBottom: "10px" }}>
+                02
+              </span>
+              <h3>سجل أعضاء الفريق</h3>
+            </div>
+            <button
+              className="btn btn--outline"
+              style={{ padding: "9px 16px", fontSize: "0.82rem" }}
+              disabled={staffBusy}
+              onClick={() => void addStaff()}
+            >
               {staffBusy ? "جارٍ الحفظ..." : "+ إضافة موظف"}
             </button>
           </div>
-          {operationError && <p className="form-error">{operationError}</p>}
-          <div className="staff-list">
+          {operationError && (
+            <div className="warn-note" style={{ marginBottom: "12px" }}>
+              {operationError}
+            </div>
+          )}
+          <div className="admin-list">
             {state.staff.map((member) => (
-              <div key={member.id}>
-                <div>
+              <div className="admin-list-item" key={member.id}>
+                <div style={{ flex: 1 }}>
                   <strong>{member.name}</strong>
                   <small>{roleLabels[member.role]}</small>
                 </div>
                 <select
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "10px",
+                    color: "var(--text)",
+                    padding: "8px 10px",
+                    outline: "none",
+                  }}
                   value={member.role}
                   disabled={member.role === "owner"}
                   onChange={(event) =>
@@ -2701,6 +3461,8 @@ function OperationsPanel({
                   )}
                 </select>
                 <button
+                  className="btn btn--ghost"
+                  style={{ fontSize: "0.76rem", padding: "6px 10px" }}
                   disabled={member.role === "owner" || staffBusy}
                   onClick={() =>
                     void manageStaff("toggle", member, {
@@ -2711,7 +3473,12 @@ function OperationsPanel({
                   {member.active ? "تعطيل" : "تفعيل"}
                 </button>
                 <button
-                  className="danger-text"
+                  className="btn btn--ghost"
+                  style={{
+                    fontSize: "0.76rem",
+                    padding: "6px 10px",
+                    color: "var(--danger)",
+                  }}
                   disabled={member.role === "owner" || staffBusy}
                   onClick={() => {
                     if (window.confirm(`حذف وصول ${member.name} نهائياً؟`)) {
@@ -2726,15 +3493,29 @@ function OperationsPanel({
           </div>
         </section>
       </div>
-      <section className="audit-panel activity-ledger">
-        <div className="settings-section-head">
-          <h3>سجل النشاط</h3>
-          <small>سجل دائم للعمليات الإدارية</small>
+      <section className="panel">
+        <div className="panel__head">
+          <div>
+            <h3>سجل النشاط</h3>
+            <small style={{ color: "var(--text-faint)" }}>
+              سجل دائم للعمليات الإدارية
+            </small>
+          </div>
         </div>
-        <div className="audit-list">
+        <div className="admin-list">
           {state.audit.map((entry) => (
-            <div key={entry.id}>
-              <span aria-hidden="true" />
+            <div className="admin-list-item" key={entry.id}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: "9px",
+                  height: "9px",
+                  borderRadius: "50%",
+                  background: "var(--gold)",
+                  boxShadow: "0 0 10px var(--gold)",
+                  flex: "0 0 auto",
+                }}
+              />
               <div>
                 <strong>{entry.action}</strong>
                 <small>
@@ -2745,7 +3526,9 @@ function OperationsPanel({
             </div>
           ))}
           {!state.audit.length && (
-            <div className="column-empty">لا توجد أنشطة مسجلة بعد</div>
+            <div style={{ color: "var(--text-faint)", fontSize: "0.86rem" }}>
+              لا توجد أنشطة مسجلة بعد
+            </div>
           )}
         </div>
       </section>
@@ -2873,29 +3656,31 @@ function ReportsPanel({
     URL.revokeObjectURL(link.href);
   };
   return (
-    <div className="reports-panel">
-      <div className="manager-intro report-masthead">
+    <div>
+      <div className="panel__head">
         <div>
-          <span className="eyebrow">التحليلات والتصدير</span>
+          <span className="section-kicker">التحليلات والتصدير</span>
           <h2>تقارير المبيعات والطلبات</h2>
-          <p>نتائج فعلية محسوبة من الطلبات المحفوظة في هذا المطعم.</p>
+          <p className="section-sub">
+            نتائج فعلية محسوبة من الطلبات المحفوظة في هذا المطعم.
+          </p>
         </div>
-        <button className="primary" onClick={exportCsv}>
+        <button className="btn btn--outline" onClick={exportCsv}>
           تنزيل CSV
         </button>
       </div>
-      {reportError && <p className="form-error">{reportError}</p>}
-      <div className="report-filters date-folio">
-        <label>
-          من
+      {reportError && <div className="warn-note">{reportError}</div>}
+      <div className="panel" style={{ display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "flex-end" }}>
+        <label className="form-field">
+          <span>من</span>
           <input
             type="date"
             value={from}
             onChange={(event) => setFrom(event.target.value)}
           />
         </label>
-        <label>
-          إلى
+        <label className="form-field">
+          <span>إلى</span>
           <input
             type="date"
             value={to}
@@ -2903,6 +3688,8 @@ function ReportsPanel({
           />
         </label>
         <button
+          className="btn btn--ghost"
+          style={{ padding: "10px 18px", fontSize: "0.82rem" }}
           onClick={() => {
             setFrom("");
             setTo("");
@@ -2911,77 +3698,98 @@ function ReportsPanel({
           كل الفترة
         </button>
       </div>
-      <div className="metric-grid report-metrics report-scoreboard">
-        <article>
-          <div>
-            <small>صافي المبيعات</small>
-            <strong>{formatSyp(reportRevenue)}</strong>
-            <em>دون الطلبات الملغاة</em>
-          </div>
+      <div className="report-grid">
+        <article className="report-card">
+          <small>صافي المبيعات</small>
+          <strong>{formatSyp(reportRevenue)}</strong>
+          <em>دون الطلبات الملغاة</em>
         </article>
-        <article>
-          <div>
-            <small>عدد الطلبات</small>
-            <strong>{reportOrderCount}</strong>
-            <em>{reportPaidCount} طلب محتسب</em>
-          </div>
+        <article className="report-card">
+          <small>عدد الطلبات</small>
+          <strong>{reportOrderCount}</strong>
+          <em>{reportPaidCount} طلب محتسب</em>
         </article>
-        <article>
-          <div>
-            <small>متوسط الطلب</small>
-            <strong>
-              {formatSyp(
-                reportPaidCount ? reportRevenue / reportPaidCount : 0,
-              )}
-            </strong>
-            <em>لكل طلب محتسب</em>
-          </div>
+        <article className="report-card">
+          <small>متوسط الطلب</small>
+          <strong>
+            {formatSyp(
+              reportPaidCount ? reportRevenue / reportPaidCount : 0,
+            )}
+          </strong>
+          <em>لكل طلب محتسب</em>
         </article>
-        <article>
-          <div>
-            <small>الطلبات الملغاة</small>
-            <strong>{reportCancelledCount}</strong>
-            <em>خلال الفترة المحددة</em>
-          </div>
+        <article className="report-card">
+          <small>الطلبات الملغاة</small>
+          <strong>{reportCancelledCount}</strong>
+          <em>خلال الفترة المحددة</em>
         </article>
       </div>
-      <div className="report-grid report-spreads">
-        <section className="channel-ledger">
-          <div className="panel-title">
+      <div className="admin-row">
+        <section className="panel">
+          <div className="panel__head">
             <div>
-              <span className="eyebrow">حسب القناة</span>
+              <span className="section-kicker">حسب القناة</span>
               <h2>أنواع الطلبات</h2>
             </div>
           </div>
-          <div className="breakdown-list">
+          <div className="admin-list">
             {reportByMode.map((entry) => (
-              <div key={entry.mode}>
-                <span>
-                  {modeLabels[entry.mode]} <small>{entry.count} طلب</small>
+              <div className="admin-list-item" key={entry.mode}>
+                <span style={{ flex: 1 }}>
+                  {modeLabels[entry.mode]}{" "}
+                  <small style={{ color: "var(--text-faint)" }}>
+                    {entry.count} طلب
+                  </small>
                 </span>
-                <strong>{formatSyp(entry.revenue)}</strong>
+                <strong style={{ color: "var(--gold-light)" }}>
+                  {formatSyp(entry.revenue)}
+                </strong>
               </div>
             ))}
           </div>
         </section>
-        <section className="best-sellers-ledger">
-          <div className="panel-title">
+        <section className="panel">
+          <div className="panel__head">
             <div>
-              <span className="eyebrow">الأداء</span>
+              <span className="section-kicker">الأداء</span>
               <h2>الأصناف الأكثر مبيعاً</h2>
             </div>
           </div>
-          <div className="breakdown-list">
+          <div className="admin-list">
             {topItems.map((item, index) => (
-              <div key={item.name}>
-                <span>
-                  <b>{index + 1}</b> {item.name} <small>{item.qty} وحدة</small>
+              <div className="admin-list-item" key={item.name}>
+                <span
+                  style={{
+                    width: "26px",
+                    height: "26px",
+                    borderRadius: "50%",
+                    display: "grid",
+                    placeItems: "center",
+                    background: "var(--gold-dim)",
+                    border: "1px solid var(--border)",
+                    color: "var(--gold)",
+                    fontWeight: 700,
+                    fontSize: "0.78rem",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  {index + 1}
                 </span>
-                <strong>{formatSyp(item.revenue)}</strong>
+                <span style={{ flex: 1 }}>
+                  {item.name}{" "}
+                  <small style={{ color: "var(--text-faint)" }}>
+                    {item.qty} وحدة
+                  </small>
+                </span>
+                <strong style={{ color: "var(--gold-light)" }}>
+                  {formatSyp(item.revenue)}
+                </strong>
               </div>
             ))}
             {!topItems.length && (
-              <div className="column-empty">لا توجد مبيعات ضمن الفترة</div>
+              <div style={{ color: "var(--text-faint)", fontSize: "0.86rem" }}>
+                لا توجد مبيعات ضمن الفترة
+              </div>
             )}
           </div>
         </section>
@@ -3077,14 +3885,180 @@ function AdminOverview({
   };
 
   return (
-    <div className="overview command-briefing">
-      <header className="overview-intro briefing-intro"><div><span className="eyebrow">مذكرة التشغيل / اليوم</span><h1>صورة المطعم الآن</h1><p>قراءة سريعة لما يتحرك في المطبخ، وما يحتاج قراراً منك.</p></div><button className="primary" onClick={onOpenOrders}>افتح مكتب الطلبات</button></header>
-      {orders.length === 0 ? <div className="empty-panel"><h2>ابدأ باستلام الطلبات</h2><p>ستظهر مقاييس اليوم ومخطط الحركة مع أول طلب مؤكد.</p><button className="primary" onClick={onOpenOrders}>فتح مكتب الطلبات</button></div> : <>
-        <section className="briefing-lead"><div className="lead-revenue"><span className="eyebrow">المبيعات المحققة اليوم</span><strong>{formatSyp(todaysRevenue)}</strong>{settings.currencyEstimate && <small>≈ {formatUsd(todaysRevenue, settings.rate)} USD</small>}<em className={trendClass(revenueTrend)}>{trendLabel(revenueTrend)}</em></div><div className="lead-reading"><span>قراءة اليوم</span><h2>{activeOrders ? `${activeOrders} طلبات تتحرك الآن` : "الإيقاع هادئ حالياً"}</h2><p>{pendingOrders ? `${pendingOrders} طلبات جديدة تنتظر التأكيد. افتح مكتب الطلبات حتى لا تتأخر الوصفات.` : "لا توجد طلبات جديدة معلقة، ويمكن للفريق متابعة التحضير."}</p><button className="secondary" onClick={onOpenOrders}>راجع خط الإنتاج</button></div></section>
-        <div className="briefing-stats"><article><span>طلبات اليوم</span><strong>{todaysOrders.length}</strong><em className={trendClass(orderTrend)}>{trendLabel(orderTrend)}</em></article><article><span>قيد المعالجة</span><strong>{activeOrders}</strong><em>{pendingOrders} جديدة</em></article><article><span>متوسط الطلب</span><strong>{formatSyp(avgOrder)}</strong><em>{todaysPaidCount} محتسبة اليوم</em></article></div>
-        <div className="overview-grid briefing-grid"><section className="activity-panel briefing-chart"><div className="panel-title"><div><span className="eyebrow">إيقاع اليوم</span><h2>المبيعات حسب الساعة</h2></div><span className="legend">الذروة {formatSyp(peakRevenue)}</span></div>{peakRevenue > 0 ? <div className="chart-bars">{operatingHours.map((hour) => { const value = hourBuckets[hour]; const height = value ? (value / maxHour) * 100 : 0; return <div key={hour}>{value ? <span style={{ height: `${height}%` }} title={`${formatSyp(value)} — ${hour}:00`} /> : null}<small>{hour}</small></div>; })}</div> : <div className="chart-empty">لا توجد بيانات مبيعات للساعات بعد.</div>}</section><section className="status-breakdown briefing-ledger"><div className="panel-title"><div><span className="eyebrow">سجل الحركة</span><h2>حالة كل طلب</h2></div><span className="legend">{activeOrders} نشط · {orders.length} إجمالي</span></div><div className="status-rows">{statusOrder.map((status) => { const count = orders.filter((o) => o.status === status).length; const revenue = orders.filter((o) => o.status === status && o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0); return <div className="status-row" key={status} style={{ opacity: count ? 1 : 0.5, background: count ? "rgba(0, 0, 0, 0.02)" : "transparent" }}><span className="status-dot" style={{ background: statusColor[status] }} /><span className="status-label">{statusLabels[status]}</span><b className="status-count">{count}</b>{revenue ? <small>{formatSyp(revenue)}</small> : null}</div>; })}</div></section></div>
-        <footer className="dashboard-cta briefing-footer"><span><strong>{activeOrders}</strong> طلبات تحتاج المتابعة · <strong>{pendingOrders}</strong> جديدة</span><button className="primary" onClick={onOpenOrders}>دخول مكتب الطلبات</button></footer>
-      </>}
+    <div>
+      <header className="panel__head">
+        <div>
+          <span className="section-kicker">مذكرة التشغيل / اليوم</span>
+          <h1 className="section-title">صورة المطعم الآن</h1>
+          <p className="section-sub">
+            قراءة سريعة لما يتحرك في المطبخ، وما يحتاج قراراً منك.
+          </p>
+        </div>
+        <button className="btn btn--gold" onClick={onOpenOrders}>
+          افتح مكتب الطلبات
+        </button>
+      </header>
+      {orders.length === 0 ? (
+        <div className="empty-state">
+          <h2 className="section-title">ابدأ باستلام الطلبات</h2>
+          <p>ستظهر مقاييس اليوم ومخطط الحركة مع أول طلب مؤكد.</p>
+          <button className="btn btn--outline" onClick={onOpenOrders}>
+            فتح مكتب الطلبات
+          </button>
+        </div>
+      ) : (
+        <>
+          <section className="panel" style={{ display: "grid", gridTemplateColumns: "0.8fr 1.2fr", gap: "24px" }}>
+            <div>
+              <span style={{ color: "var(--text-faint)", fontSize: "0.8rem", display: "block" }}>
+                المبيعات المحققة اليوم
+              </span>
+              <strong
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "2.1rem",
+                  color: "var(--gold-light)",
+                  display: "block",
+                  margin: "6px 0",
+                }}
+              >
+                {formatSyp(todaysRevenue)}
+              </strong>
+              {settings.currencyEstimate && (
+                <small style={{ color: "var(--text-faint)", display: "block" }}>
+                  ≈ {formatUsd(todaysRevenue, settings.rate)} USD
+                </small>
+              )}
+              <em style={{ color: "var(--success)", fontSize: "0.8rem", fontStyle: "normal" }}>
+                {trendLabel(revenueTrend)}
+              </em>
+            </div>
+            <div>
+              <span className="section-kicker">قراءة اليوم</span>
+              <h2 className="section-title" style={{ fontSize: "1.6rem" }}>
+                {activeOrders
+                  ? `${activeOrders} طلبات تتحرك الآن`
+                  : "الإيقاع هادئ حالياً"}
+              </h2>
+              <p className="section-sub" style={{ fontSize: "0.9rem" }}>
+                {pendingOrders
+                  ? `${pendingOrders} طلبات جديدة تنتظر التأكيد. افتح مكتب الطلبات حتى لا تتأخر الوصفات.`
+                  : "لا توجد طلبات جديدة معلقة، ويمكن للفريق متابعة التحضير."}
+              </p>
+              <button className="btn btn--outline" onClick={onOpenOrders}>
+                راجع خط الإنتاج
+              </button>
+            </div>
+          </section>
+          <div className="report-grid">
+            <article className="report-card">
+              <small>طلبات اليوم</small>
+              <strong>{todaysOrders.length}</strong>
+              <em>{trendLabel(orderTrend)}</em>
+            </article>
+            <article className="report-card">
+              <small>قيد المعالجة</small>
+              <strong>{activeOrders}</strong>
+              <em>{pendingOrders} جديدة</em>
+            </article>
+            <article className="report-card">
+              <small>متوسط الطلب</small>
+              <strong>{formatSyp(avgOrder)}</strong>
+              <em>{todaysPaidCount} محتسبة اليوم</em>
+            </article>
+          </div>
+          <div className="admin-row">
+            <section className="panel">
+              <div className="panel__head">
+                <div>
+                  <span className="section-kicker">إيقاع اليوم</span>
+                  <h2>المبيعات حسب الساعة</h2>
+                </div>
+                <span style={{ color: "var(--gold)", fontSize: "0.8rem" }}>
+                  الذروة {formatSyp(peakRevenue)}
+                </span>
+              </div>
+              {peakRevenue > 0 ? (
+                <div className="admin-chart">
+                  {operatingHours.map((hour) => {
+                    const value = hourBuckets[hour];
+                    const height = value ? (value / maxHour) * 100 : 0;
+                    return (
+                      <div key={hour}>
+                        {value ? (
+                          <span
+                            title={`${formatSyp(value)} — ${hour}:00`}
+                            style={{ height: `${Math.max(height, 6)}%` }}
+                          />
+                        ) : null}
+                        <small>{hour}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ color: "var(--text-faint)", fontSize: "0.86rem" }}>
+                  لا توجد بيانات مبيعات للساعات بعد.
+                </div>
+              )}
+            </section>
+            <section className="panel">
+              <div className="panel__head">
+                <div>
+                  <span className="section-kicker">سجل الحركة</span>
+                  <h2>حالة كل طلب</h2>
+                </div>
+                <span style={{ color: "var(--text-faint)", fontSize: "0.8rem" }}>
+                  {activeOrders} نشط · {orders.length} إجمالي
+                </span>
+              </div>
+              <div className="admin-list">
+                {statusOrder.map((status) => {
+                  const count = orders.filter((o) => o.status === status).length;
+                  const revenue = orders
+                    .filter((o) => o.status === status && o.status !== "cancelled")
+                    .reduce((sum, o) => sum + o.total, 0);
+                  return (
+                    <div className="admin-list-item" key={status}>
+                      <span
+                        style={{
+                          width: "9px",
+                          height: "9px",
+                          borderRadius: "50%",
+                          background: statusColor[status],
+                          boxShadow: `0 0 10px ${statusColor[status]}`,
+                          flex: "0 0 auto",
+                        }}
+                      />
+                      <span style={{ flex: 1 }}>{statusLabels[status]}</span>
+                      <b style={{ color: "var(--gold-light)" }}>{count}</b>
+                      {revenue ? (
+                        <small style={{ color: "var(--text-faint)" }}>
+                          {formatSyp(revenue)}
+                        </small>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+          <footer
+            className="panel"
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}
+          >
+            <span style={{ color: "var(--text-soft)" }}>
+              <strong style={{ color: "var(--gold-light)" }}>{activeOrders}</strong>{" "}
+              طلبات تحتاج المتابعة ·{" "}
+              <strong style={{ color: "var(--gold-light)" }}>{pendingOrders}</strong>{" "}
+              جديدة
+            </span>
+            <button className="btn btn--gold" onClick={onOpenOrders}>
+              دخول مكتب الطلبات
+            </button>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
@@ -3205,20 +4179,36 @@ function TablesManager({
   };
   const activeCount = tables.filter((table) => table.active).length;
   return (
-    <div className="tables-manager table-registry">
-      <header className="registry-header">
+    <div>
+      <header className="panel__head">
         <div>
-          <span className="eyebrow">سجل نقاط الخدمة</span>
+          <span className="section-kicker">سجل نقاط الخدمة</span>
           <h2>الطاولات ورموز الوصول</h2>
-          <p>كل رمز يفتح قائمة {restaurant.name} ضمن سياق طاولة موثوق.</p>
+          <p className="section-sub">
+            كل رمز يفتح قائمة {restaurant.name} ضمن سياق طاولة موثوق.
+          </p>
         </div>
-        <div className="registry-summary">
-          <span><small>إجمالي الطاولات</small><strong>{tables.length}</strong></span>
-          <span><small>النشطة الآن</small><strong>{activeCount}</strong></span>
-          <button className="primary" onClick={() => setEditing("new")}>إضافة طاولة</button>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+          <div className="report-card" style={{ padding: "14px 20px" }}>
+            <small>إجمالي الطاولات</small>
+            <strong style={{ fontSize: "1.2rem" }}>{tables.length}</strong>
+          </div>
+          <div className="report-card" style={{ padding: "14px 20px" }}>
+            <small>النشطة الآن</small>
+            <strong style={{ fontSize: "1.2rem" }}>{activeCount}</strong>
+          </div>
+          <button className="btn btn--gold" onClick={() => setEditing("new")}>
+            إضافة طاولة
+          </button>
         </div>
       </header>
-      <div className="table-grid registry-grid">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: "18px",
+        }}
+      >
         {tables.map((table) => (
           <TableCard
             key={table.id}
@@ -3252,23 +4242,25 @@ function TablesManager({
       </div>
       {editing && (
         <div className="modal-backdrop">
-          <div className="editor-modal table-editor">
-            <button className="close" onClick={() => setEditing(null)}>
-              ×
+          <div className="modal modal--narrow" style={{ padding: "30px" }}>
+            <button className="modal__close" onClick={() => setEditing(null)}>
+              <X />
             </button>
-            <span className="eyebrow">إدارة الطاولات</span>
-            <h2>
+            <span className="section-kicker">إدارة الطاولات</span>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", margin: "8px 0 18px" }}>
               {editing === "new" ? "إضافة طاولة" : `تعديل ${editing.name}`}
             </h2>
             <form
+              className="checkout-form"
+              style={{ padding: 0 }}
               onSubmit={(event) => {
                 event.preventDefault();
                 save(event.currentTarget);
               }}
             >
-              <div className="editor-grid">
-                <label>
-                  رقم / رمز الطاولة
+              <div className="form-grid form-grid--full">
+                <label className="form-field">
+                  <span>رقم / رمز الطاولة</span>
                   <input
                     name="id"
                     required
@@ -3276,16 +4268,16 @@ function TablesManager({
                     defaultValue={editing === "new" ? "" : editing.code}
                   />
                 </label>
-                <label>
-                  اسم العرض
+                <label className="form-field">
+                  <span>اسم العرض</span>
                   <input
                     name="name"
                     required
                     defaultValue={editing === "new" ? "" : editing.name}
                   />
                 </label>
-                <label className="full">
-                  المنطقة
+                <label className="form-field">
+                  <span>المنطقة</span>
                   <input
                     name="area"
                     required
@@ -3294,7 +4286,7 @@ function TablesManager({
                   />
                 </label>
               </div>
-              <button className="primary wide" type="submit">
+              <button className="btn btn--gold" type="submit">
                 حفظ الطاولة
               </button>
             </form>
@@ -3335,29 +4327,39 @@ function TableCard({
     QRCode.toString(url, { type: "svg", margin: 1, width: 220 }).then(setSvg);
   }, [url]);
   return (
-    <article className={`table-pass ${!table.active ? "table-inactive" : ""}`}>
-      <header className="table-pass-heading">
-        <span className={`table-state ${table.active ? "active" : "paused"}`}>{table.active ? "نشطة" : "متوقفة"}</span>
-        <span className="table-code">{table.code}</span>
+    <article className="table-card">
+      <header className="table-card__head">
+        <span className={table.active ? "" : "is-off"}>
+          {table.active ? "نشطة" : "متوقفة"}
+        </span>
+        <span>{table.code}</span>
       </header>
-      <div className="table-pass-body">
-        <div className="qr-plate">
-          <div className="real-qr" aria-label={`QR ${table.name}`} dangerouslySetInnerHTML={{ __html: svg }} />
-          <small>امسح لفتح القائمة</small>
+      <div className="table-card__body">
+        <div className="table-card__qr">
+          <div
+            aria-label={`QR ${table.name}`}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
         </div>
-        <div className="table-identity">
-          <span className="eyebrow">نقطة خدمة</span>
+        <div className="table-card__info">
+          <small>نقطة خدمة</small>
           <strong>{table.name}</strong>
-          <small>{table.area}</small>
-          <button className="copy-link" onClick={onCopy}>{copied ? "تم نسخ الرابط" : "نسخ رابط الوصول"}</button>
+          <span className="table-card__area">{table.area}</span>
+          <button
+            className="btn btn--outline"
+            style={{ padding: "8px 14px", fontSize: "0.78rem", marginTop: "8px" }}
+            onClick={onCopy}
+          >
+            {copied ? "تم نسخ الرابط" : "نسخ رابط الوصول"}
+          </button>
         </div>
       </div>
-      <footer className="table-pass-actions">
-        <button className="download" onClick={onDownload}>تنزيل الرمز</button>
-        <button className="download" onClick={onPrint}>طباعة</button>
+      <footer className="table-card__foot">
+        <button onClick={onDownload}>تنزيل الرمز</button>
+        <button onClick={onPrint}>طباعة</button>
         <button onClick={onEdit}>تعديل</button>
         <button onClick={onToggle}>{table.active ? "إيقاف" : "تفعيل"}</button>
-        <button className="danger-text" onClick={onDelete}>حذف</button>
+        <button onClick={onDelete}>حذف</button>
       </footer>
     </article>
   );
@@ -3397,48 +4399,56 @@ function SettingsPanel({
       ],
     }));
   return (
-    <div className="settings-panel settings-atlas">
-      <div className="manager-intro settings-masthead">
+    <div>
+      <div className="panel__head">
         <div>
-          <span className="eyebrow">إعداد المطعم</span>
+          <span className="section-kicker">إعداد المطعم</span>
           <h2>الهوية والتشغيل والدفع والتوصيل</h2>
-          <p>
+          <p className="section-sub">
             جميع التغييرات محفوظة محلياً وجاهزة للربط بقاعدة البيانات لاحقاً.
           </p>
         </div>
       </div>
-      <form className="settings-dossier"
+      <form
+        className="checkout-form"
+        style={{ padding: 0 }}
         onSubmit={(event) => {
           event.preventDefault();
           void save();
         }}
       >
-        <section className="settings-chapter identity-chapter">
-          <header><span className="section-marker">01</span><div><small>الواجهة العامة</small><h3>معلومات وهوية المطعم</h3></div></header>
-          <div className="settings-fields">
-            <label>
-              اسم المطعم
+        <section className="panel">
+          <div className="step__head">
+            <span className="step__num">01</span>
+            <div>
+              <small style={{ color: "var(--text-faint)" }}>الواجهة العامة</small>
+              <h3>معلومات وهوية المطعم</h3>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>اسم المطعم</span>
               <input
                 value={draft.name}
                 onChange={(event) => field("name", event.target.value)}
               />
             </label>
-            <label>
-              الوصف المختصر
+            <label className="form-field">
+              <span>الوصف المختصر</span>
               <input
                 value={draft.subtitle}
                 onChange={(event) => field("subtitle", event.target.value)}
               />
             </label>
-            <label>
-              رقم التواصل
+            <label className="form-field">
+              <span>رقم التواصل</span>
               <input
                 value={draft.phone}
                 onChange={(event) => field("phone", event.target.value)}
               />
             </label>
-            <label>
-              رقم واتساب
+            <label className="form-field">
+              <span>رقم واتساب</span>
               <input
                 value={draft.whatsapp}
                 onChange={(event) =>
@@ -3446,15 +4456,15 @@ function SettingsPanel({
                 }
               />
             </label>
-            <label>
-              المدينة
+            <label className="form-field">
+              <span>المدينة</span>
               <input
                 value={draft.city}
                 onChange={(event) => field("city", event.target.value)}
               />
             </label>
-            <label>
-              الحي
+            <label className="form-field">
+              <span>الحي</span>
               <input
                 value={draft.neighborhood}
                 onChange={(event) => field("neighborhood", event.target.value)}
@@ -3462,11 +4472,17 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section className="settings-chapter finance-chapter">
-          <header><span className="section-marker">02</span><div><small>الحسابات</small><h3>العملة والرسوم</h3></div></header>
-          <div className="settings-fields">
-            <label>
-              سعر الدولار (ألف ل.س)
+        <section className="panel">
+          <div className="step__head">
+            <span className="step__num">02</span>
+            <div>
+              <small style={{ color: "var(--text-faint)" }}>الحسابات</small>
+              <h3>العملة والرسوم</h3>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>سعر الدولار (ألف ل.س)</span>
               <input
                 type="number"
                 min="1"
@@ -3474,8 +4490,8 @@ function SettingsPanel({
                 onChange={(event) => field("rate", Number(event.target.value))}
               />
             </label>
-            <label>
-              الضريبة %
+            <label className="form-field">
+              <span>الضريبة %</span>
               <input
                 type="number"
                 min="0"
@@ -3485,8 +4501,8 @@ function SettingsPanel({
                 }
               />
             </label>
-            <label>
-              رسم الخدمة %
+            <label className="form-field">
+              <span>رسم الخدمة %</span>
               <input
                 type="number"
                 min="0"
@@ -3497,41 +4513,45 @@ function SettingsPanel({
               />
             </label>
           </div>
-          <div className="setting-toggles compact">
-            <label>
-              <span>
-                إظهار تقدير الدولار
-                <small>سعر تقريبي، والفوترة بالليرة السورية</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={draft.currencyEstimate}
-                onChange={(event) =>
-                  field("currencyEstimate", event.target.checked)
-                }
-              />
-            </label>
-          </div>
+          <label className="checkbox-pill" style={{ marginTop: "14px" }}>
+            <span>
+              إظهار تقدير الدولار
+              <small>سعر تقريبي، والفوترة بالليرة السورية</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={draft.currencyEstimate}
+              onChange={(event) =>
+                field("currencyEstimate", event.target.checked)
+              }
+            />
+          </label>
         </section>
-        <section className="settings-chapter payment-chapter">
-          <header><span className="section-marker">03</span><div><small>التحصيل</small><h3>المحافظ وطرق الدفع</h3></div></header>
-          <div className="settings-fields">
-            <label>
-              Syriatel Cash
+        <section className="panel">
+          <div className="step__head">
+            <span className="step__num">03</span>
+            <div>
+              <small style={{ color: "var(--text-faint)" }}>التحصيل</small>
+              <h3>المحافظ وطرق الدفع</h3>
+            </div>
+          </div>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>Syriatel Cash</span>
               <input
                 value={draft.syriatelCash}
                 onChange={(event) => field("syriatelCash", event.target.value)}
               />
             </label>
-            <label>
-              Sham Cash / BEMO
+            <label className="form-field">
+              <span>Sham Cash / BEMO</span>
               <input
                 value={draft.shamCash}
                 onChange={(event) => field("shamCash", event.target.value)}
               />
             </label>
-            <label>
-              MTN Cash
+            <label className="form-field">
+              <span>MTN Cash</span>
               <input
                 value={draft.mtnCash}
                 onChange={(event) => field("mtnCash", event.target.value)}
@@ -3539,12 +4559,19 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section className="settings-chapter channels-chapter">
-          <header><span className="section-marker">04</span><div><small>قنوات الخدمة</small><h3>طرق الطلب المتاحة</h3></div></header>
-          <div className="setting-toggles">
-            <label>
+        <section className="panel">
+          <div className="step__head">
+            <span className="step__num">04</span>
+            <div>
+              <small style={{ color: "var(--text-faint)" }}>قنوات الخدمة</small>
+              <h3>طرق الطلب المتاحة</h3>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: "12px" }}>
+            <label className="checkbox-pill">
               <span>
-                الطلب داخل المطعم<small>عبر رمز QR الخاص بالطاولة</small>
+                الطلب داخل المطعم
+                <small>عبر رمز QR الخاص بالطاولة</small>
               </span>
               <input
                 type="checkbox"
@@ -3552,9 +4579,10 @@ function SettingsPanel({
                 onChange={(event) => field("dineIn", event.target.checked)}
               />
             </label>
-            <label>
+            <label className="checkbox-pill">
               <span>
-                الطلبات الخارجية<small>استلام من المطعم</small>
+                الطلبات الخارجية
+                <small>استلام من المطعم</small>
               </span>
               <input
                 type="checkbox"
@@ -3562,9 +4590,10 @@ function SettingsPanel({
                 onChange={(event) => field("takeaway", event.target.checked)}
               />
             </label>
-            <label>
+            <label className="checkbox-pill">
               <span>
-                خدمة التوصيل<small>حسب المناطق والحد الأدنى</small>
+                خدمة التوصيل
+                <small>حسب المناطق والحد الأدنى</small>
               </span>
               <input
                 type="checkbox"
@@ -3574,14 +4603,21 @@ function SettingsPanel({
             </label>
           </div>
         </section>
-        <section className="settings-chapter hours-chapter">
-          <header><span className="section-marker">05</span><div><small>الجدول الأسبوعي</small><h3>ساعات العمل</h3></div></header>
-          <div className="hours-list">
+        <section className="panel">
+          <div className="step__head">
+            <span className="step__num">05</span>
+            <div>
+              <small style={{ color: "var(--text-faint)" }}>الجدول الأسبوعي</small>
+              <h3>ساعات العمل</h3>
+            </div>
+          </div>
+          <div className="admin-list">
             {draft.hours.map((hour, index) => (
-              <div className="hour-row" key={hour.day}>
-                <label>
+              <div className="admin-list-item" key={hour.day} style={{ flexWrap: "wrap" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", flex: "0 0 120px" }}>
                   <input
                     type="checkbox"
+                    style={{ accentColor: "var(--gold)", width: "16px", height: "16px" }}
                     checked={hour.enabled}
                     onChange={(event) =>
                       setDraft((current) => ({
@@ -3594,10 +4630,18 @@ function SettingsPanel({
                       }))
                     }
                   />{" "}
-                  {hour.day}
+                  <strong style={{ fontSize: "0.88rem" }}>{hour.day}</strong>
                 </label>
                 <input
                   type="time"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "10px",
+                    color: "var(--text)",
+                    padding: "7px 10px",
+                    outline: "none",
+                  }}
                   disabled={!hour.enabled}
                   value={hour.open}
                   onChange={(event) =>
@@ -3611,9 +4655,17 @@ function SettingsPanel({
                     }))
                   }
                 />
-                <span>حتى</span>
+                <span style={{ color: "var(--text-faint)", fontSize: "0.8rem" }}>حتى</span>
                 <input
                   type="time"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "10px",
+                    color: "var(--text)",
+                    padding: "7px 10px",
+                    outline: "none",
+                  }}
                   disabled={!hour.enabled}
                   value={hour.close}
                   onChange={(event) =>
@@ -3631,18 +4683,27 @@ function SettingsPanel({
             ))}
           </div>
         </section>
-        <section className="settings-chapter delivery-chapter">
-          <div className="settings-section-head">
+        <section className="panel">
+          <div className="panel__head">
             <h3>مناطق التوصيل</h3>
-            <button type="button" onClick={addZone}>
+            <button className="btn btn--outline" type="button" onClick={addZone}>
               + إضافة منطقة
             </button>
           </div>
-          <div className="zones-list">
+          <div className="admin-list">
             {draft.zones.map((zone, index) => (
-              <div className="zone-row" key={zone.id}>
+              <div className="admin-list-item" key={zone.id} style={{ flexWrap: "wrap" }}>
                 <input
                   aria-label="اسم المنطقة"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "10px",
+                    color: "var(--text)",
+                    padding: "9px 12px",
+                    outline: "none",
+                    flex: "1 1 140px",
+                  }}
                   value={zone.name}
                   onChange={(event) =>
                     setDraft((current) => ({
@@ -3655,8 +4716,8 @@ function SettingsPanel({
                     }))
                   }
                 />
-                <label>
-                  رسوم التوصيل
+                <label className="form-field" style={{ flex: "1 1 120px" }}>
+                  <span>رسوم التوصيل</span>
                   <input
                     type="number"
                     min="0"
@@ -3673,8 +4734,8 @@ function SettingsPanel({
                     }
                   />
                 </label>
-                <label>
-                  الحد الأدنى
+                <label className="form-field" style={{ flex: "1 1 120px" }}>
+                  <span>الحد الأدنى</span>
                   <input
                     type="number"
                     min="0"
@@ -3691,9 +4752,10 @@ function SettingsPanel({
                     }
                   />
                 </label>
-                <label className="zone-active">
+                <label style={{ display: "flex", alignItems: "center", gap: "7px", color: "var(--text-soft)", fontSize: "0.84rem" }}>
                   <input
                     type="checkbox"
+                    style={{ accentColor: "var(--gold)", width: "16px", height: "16px" }}
                     checked={zone.active}
                     onChange={(event) =>
                       setDraft((current) => ({
@@ -3709,8 +4771,9 @@ function SettingsPanel({
                   نشطة
                 </label>
                 <button
+                  className="btn btn--ghost"
+                  style={{ color: "var(--danger)", fontSize: "0.78rem", padding: "6px 10px" }}
                   type="button"
-                  className="danger-text"
                   onClick={() =>
                     setDraft((current) => ({
                       ...current,
@@ -3724,7 +4787,7 @@ function SettingsPanel({
             ))}
           </div>
         </section>
-        <button className="primary save-settings" type="submit">
+        <button className="btn btn--gold" type="submit" style={{ width: "100%" }}>
           {saved ? "تم حفظ التغييرات" : "حفظ جميع التغييرات"}
         </button>
       </form>
@@ -3750,12 +4813,67 @@ function OrderCard({
     ready: order.mode === "delivery" ? "out-for-delivery" : "completed",
   };
   return (
-    <article className="admin-order kitchen-ticket">
-      <header className="ticket-heading"><div><span className="ticket-number">{order.id}</span><strong>{modeLabels[order.mode]}</strong></div><span className={`status ${order.status}`}>{statusLabels[order.status]}</span></header>
-      <button className="ticket-customer" onClick={onOpen}><span className="ticket-avatar">{order.customer.slice(0, 1)}</span><span><strong>{order.customer}</strong><small>{order.table || order.address || "طلب مباشر"}</small></span><b>فتح الملف</b></button>
-      <div className="ticket-items">{order.lines.map((l) => <div className="ticket-item" key={l.key}><span><b>{l.qty}×</b>{l.item.name}</span><small>{l.options.map((o) => o.name).join("، ") || "التركيبة الأساسية"}</small><strong>{formatSyp((l.item.price + l.options.reduce((a, o) => a + o.price, 0)) * l.qty)}</strong></div>)}</div>
-      <div className="ticket-meta"><span>الدفع: {order.paymentStatus === "verified" ? "متحقق" : order.paymentStatus === "rejected" ? "مرفوض" : "بانتظار التحقق"}</span><strong>{formatSyp(order.total)}</strong></div>
-      <footer className="ticket-actions"><button className="mini-action" onClick={() => onWhatsApp(order)}>مراسلة العميل</button>{next[order.status] && <button className="advance" onClick={() => onStatus(order.id, next[order.status])}>{next[order.status] === "confirmed" ? "تأكيد واستلام" : next[order.status] === "preparing" ? "إرسال للمطبخ" : next[order.status] === "ready" ? "تحديد كجاهز" : "إتمام الطلب"}</button>}</footer>
+    <article className="order-card">
+      <header className="order-card__head">
+        <div>
+          <span>{order.id}</span>
+          <span style={{ marginInlineStart: "8px", color: "var(--text-faint)", fontSize: "0.72rem" }}>
+            {modeLabels[order.mode]}
+          </span>
+        </div>
+        <span>{statusLabels[order.status]}</span>
+      </header>
+      <button className="order-card__who" onClick={onOpen}>
+        <span className="order-card__avatar">{order.customer.slice(0, 1)}</span>
+        <span>
+          <strong>{order.customer}</strong>
+          <small>{order.table || order.address || "طلب مباشر"}</small>
+        </span>
+        <b>فتح الملف</b>
+      </button>
+      <div className="order-card__lines">
+        {order.lines.map((l) => (
+          <div className="order-card__line" key={l.key}>
+            <span>
+              <b>{l.qty}×</b> {l.item.name}
+              <small>
+                {l.options.map((o) => o.name).join("، ") || "التركيبة الأساسية"}
+              </small>
+            </span>
+            <strong>
+              {formatSyp(
+                (l.item.price + l.options.reduce((a, o) => a + o.price, 0)) *
+                l.qty,
+              )}
+            </strong>
+          </div>
+        ))}
+      </div>
+      <div className="order-card__pay">
+        <span>
+          الدفع:{" "}
+          {order.paymentStatus === "verified"
+            ? "متحقق"
+            : order.paymentStatus === "rejected"
+              ? "مرفوض"
+              : "بانتظار التحقق"}
+        </span>
+        <strong>{formatSyp(order.total)}</strong>
+      </div>
+      <footer className="order-card__foot">
+        <button onClick={() => onWhatsApp(order)}>مراسلة العميل</button>
+        {next[order.status] && (
+          <button onClick={() => onStatus(order.id, next[order.status])}>
+            {next[order.status] === "confirmed"
+              ? "تأكيد واستلام"
+              : next[order.status] === "preparing"
+                ? "إرسال للمطبخ"
+                : next[order.status] === "ready"
+                  ? "تحديد كجاهز"
+                  : "إتمام الطلب"}
+          </button>
+        )}
+      </footer>
     </article>
   );
 }
@@ -3783,134 +4901,244 @@ function OrderDetails({
     if (reason) onStatus(order.id, "cancelled", { cancellationReason: reason });
   };
   return (
-    <div className="modal-backdrop dossier-backdrop">
-      <section className="order-details-modal service-dossier" role="dialog" aria-modal="true" aria-label={`ملف الطلب ${order.id}`}>
-        <header className="dossier-masthead">
-          <div className="dossier-kicker">
-            <span className="eyebrow">ملف الخدمة / {modeLabels[order.mode]}</span>
-            <span className={`status dossier-status ${order.status}`}>
+    <div className="modal-backdrop">
+      <section
+        className="modal order-details"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`ملف الطلب ${order.id}`}
+      >
+        <header className="checkout-modal__head">
+          <div>
+            <span className="section-kicker">
+              ملف الخدمة / {modeLabels[order.mode]}
+            </span>
+            <span
+              style={{
+                display: "inline-block",
+                marginTop: "8px",
+                padding: "5px 14px",
+                borderRadius: "var(--radius-pill)",
+                border: "1px solid var(--gold)",
+                color: "var(--gold-light)",
+                fontSize: "0.78rem",
+                fontWeight: 700,
+              }}
+            >
               {statusLabels[order.status]}
             </span>
           </div>
-          <div className="dossier-title-row">
-            <div>
-              <span className="dossier-number">#{order.id}</span>
-              <h2>سجل الطلب والتسليم</h2>
-              <p>{new Date(order.createdAt).toLocaleString("ar-SY")}</p>
-            </div>
-            <button className="close dossier-close" onClick={onClose} aria-label="إغلاق الملف">
-              ×
-            </button>
+          <div>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "var(--gold)",
+                fontSize: "0.85rem",
+              }}
+            >
+              #{order.id}
+            </span>
+            <h2>سجل الطلب والتسليم</h2>
+            <p>{new Date(order.createdAt).toLocaleString("ar-SY")}</p>
           </div>
+          <button className="modal__close" onClick={onClose} aria-label="إغلاق الملف">
+            <X />
+          </button>
         </header>
 
-        <div className="dossier-body">
-          <main className="dossier-main">
-            <section className="dossier-section customer-brief">
-              <div className="dossier-section-heading">
-                <span className="section-marker">01</span>
+        <div className="checkout-body">
+          <main className="checkout-form" style={{ gap: "18px" }}>
+            <section className="step">
+              <div className="step__head">
+                <span className="step__num">01</span>
                 <div>
-                  <span className="eyebrow">الضيف</span>
+                  <span className="section-kicker">الضيف</span>
                   <h3>بيانات التسليم</h3>
                 </div>
               </div>
-              <div className="customer-brief-grid">
-                <div className="brief-person">
-                  <span className="dossier-avatar">{order.customer.slice(0, 1)}</span>
-                  <div>
-                    <small>اسم العميل</small>
-                    <strong>{order.customer}</strong>
-                    <span>{order.phone || "لا يوجد هاتف مسجل"}</span>
+              <div className="admin-row" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+                <div className="report-card" style={{ padding: "16px" }}>
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      display: "grid",
+                      placeItems: "center",
+                      background: "linear-gradient(135deg, var(--gold-2), var(--gold-deep))",
+                      color: "#16130a",
+                      fontWeight: 800,
+                      fontFamily: "var(--font-display)",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {order.customer.slice(0, 1)}
                   </div>
+                  <small>اسم العميل</small>
+                  <strong style={{ display: "block" }}>{order.customer}</strong>
+                  <em style={{ color: "var(--text-faint)", fontSize: "0.76rem", fontStyle: "normal" }}>
+                    {order.phone || "لا يوجد هاتف مسجل"}
+                  </em>
                 </div>
-                <div>
+                <div className="report-card" style={{ padding: "16px" }}>
                   <small>نقطة التسليم</small>
-                  <strong>{order.table || order.address || "طلب مباشر"}</strong>
-                  <span>{order.mode === "delivery" ? "عنوان توصيل" : modeLabels[order.mode]}</span>
+                  <strong style={{ display: "block" }}>{order.table || order.address || "طلب مباشر"}</strong>
+                  <em style={{ color: "var(--text-faint)", fontSize: "0.76rem", fontStyle: "normal" }}>
+                    {order.mode === "delivery" ? "عنوان توصيل" : modeLabels[order.mode]}
+                  </em>
                 </div>
-                <div>
+                <div className="report-card" style={{ padding: "16px" }}>
                   <small>قناة الطلب</small>
-                  <strong>{modeLabels[order.mode]}</strong>
-                  <span>{order.paymentReference || "لا يوجد مرجع دفع"}</span>
+                  <strong style={{ display: "block" }}>{modeLabels[order.mode]}</strong>
+                  <em style={{ color: "var(--text-faint)", fontSize: "0.76rem", fontStyle: "normal" }}>
+                    {order.paymentReference || "لا يوجد مرجع دفع"}
+                  </em>
                 </div>
               </div>
             </section>
 
-            <section className="dossier-section dish-manifest">
-              <div className="dossier-section-heading">
-                <span className="section-marker">02</span>
+            <section className="step">
+              <div className="step__head">
+                <span className="step__num">02</span>
                 <div>
-                  <span className="eyebrow">المحتوى</span>
+                  <span className="section-kicker">المحتوى</span>
                   <h3>بيان الأطباق</h3>
                 </div>
-                <span className="manifest-count">{order.lines.length} أصناف</span>
+                <span style={{ marginInlineStart: "auto", color: "var(--gold)", fontSize: "0.8rem" }}>
+                  {order.lines.length} أصناف
+                </span>
               </div>
-              <div className="dossier-lines">
+              <div className="admin-list">
                 {order.lines.map((line, index) => (
-                  <article className="dossier-dish" key={line.key}>
-                    <span className="dish-index">{String(index + 1).padStart(2, "0")}</span>
-                    <div className="dish-copy">
+                  <div className="admin-list-item" key={line.key}>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        color: "var(--gold)",
+                        fontSize: "0.8rem",
+                        flex: "0 0 auto",
+                      }}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div style={{ flex: 1 }}>
                       <strong>{line.qty}× {line.item.name}</strong>
-                      <small>
+                      <small style={{ color: "var(--text-faint)", display: "block" }}>
                         {line.options.map((option) => option.name).join("، ") || "التركيبة الأساسية"}
                         {line.note ? ` · ${line.note}` : ""}
                       </small>
                     </div>
-                    <b>{formatSyp((line.item.price + line.options.reduce((sum, option) => sum + option.price, 0)) * line.qty)}</b>
-                  </article>
+                    <strong style={{ color: "var(--gold-light)", fontFamily: "var(--font-display)" }}>
+                      {formatSyp((line.item.price + line.options.reduce((sum, option) => sum + option.price, 0)) * line.qty)}
+                    </strong>
+                  </div>
                 ))}
               </div>
-              <div className="dossier-total">
+              <div className="checkout-total" style={{ marginTop: "14px" }}>
                 <span>القيمة النهائية</span>
                 <strong>{formatSyp(order.total)}</strong>
               </div>
             </section>
 
-            <section className="dossier-section payment-review dossier-payment">
-              <div className="dossier-section-heading">
-                <span className="section-marker">03</span>
+            <section className="step">
+              <div className="step__head">
+                <span className="step__num">03</span>
                 <div>
-                  <span className="eyebrow">المراجعة</span>
+                  <span className="section-kicker">المراجعة</span>
                   <h3>حالة التحصيل</h3>
                 </div>
-                <span className={`payment-stamp ${order.paymentStatus}`}>{order.payment}</span>
+                <span style={{ marginInlineStart: "auto", color: "var(--gold)", fontSize: "0.8rem" }}>
+                  {order.payment}
+                </span>
               </div>
-              <div className="payment-actions">
-                <button className={order.paymentStatus === "pending" ? "active" : ""} onClick={() => onChange(order.id, { paymentStatus: "pending" })}>بانتظار التحقق</button>
-                <button className={order.paymentStatus === "verified" ? "verified active" : "verified"} onClick={() => onChange(order.id, { paymentStatus: "verified" })}>تم التحقق</button>
-                <button className={order.paymentStatus === "rejected" ? "rejected active" : "rejected"} onClick={() => onChange(order.id, { paymentStatus: "rejected" })}>مرفوض</button>
-                <button className={order.paymentStatus === "refunded" ? "rejected active" : "rejected"} onClick={() => onChange(order.id, { paymentStatus: "refunded" })}>مسترد</button>
+              <div className="mode-select">
+                <button onClick={() => onChange(order.id, { paymentStatus: "pending" })}>
+                  بانتظار التحقق
+                </button>
+                <button onClick={() => onChange(order.id, { paymentStatus: "verified" })}>
+                  تم التحقق
+                </button>
+                <button onClick={() => onChange(order.id, { paymentStatus: "rejected" })}>
+                  مرفوض
+                </button>
+                <button onClick={() => onChange(order.id, { paymentStatus: "refunded" })}>
+                  مسترد
+                </button>
               </div>
             </section>
           </main>
 
-          <aside className="dossier-aside">
-            <section className="dossier-action-board">
-              <span className="eyebrow">الخطوة التالية</span>
+          <aside className="checkout-aside">
+            <section>
+              <span className="section-kicker">الخطوة التالية</span>
               <h3>حرّك الطلب في مساره</h3>
-              <div className="dossier-status-actions">
+              <div className="admin-list" style={{ marginTop: "12px" }}>
                 {(["received", "confirmed", "preparing", "ready", "out-for-delivery", "completed"] as Order["status"][])
                   .filter((status) => status !== "out-for-delivery" || order.mode === "delivery")
                   .map((status) => (
-                    <button key={status} className={order.status === status ? "active" : ""} onClick={() => onStatus(order.id, status)}>
-                      <span>{statusLabels[status]}</span>
-                      <small>{order.status === status ? "الحالة الحالية" : "تعيين الحالة"}</small>
+                    <button
+                      className="admin-list-item"
+                      key={status}
+                      style={{
+                        textAlign: "start",
+                        border:
+                          order.status === status
+                            ? "1px solid var(--gold)"
+                            : "1px solid var(--border-soft)",
+                        background:
+                          order.status === status
+                            ? "var(--gold-dim)"
+                            : "rgba(255,255,255,0.02)",
+                        color: "inherit",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => onStatus(order.id, status)}
+                    >
+                      <span style={{ flex: 1 }}>{statusLabels[status]}</span>
+                      <small style={{ color: "var(--text-faint)" }}>
+                        {order.status === status ? "الحالة الحالية" : "تعيين الحالة"}
+                      </small>
                     </button>
                   ))}
               </div>
             </section>
 
-            <label className="internal-note dossier-note">
-              <span className="eyebrow">غرفة الفريق</span>
-              <strong>ملاحظة داخلية</strong>
-              <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="ملاحظة للمطبخ أو فريق الخدمة..." />
-              <button onClick={() => onChange(order.id, { internalNote: note })}>حفظ الملاحظة</button>
+            <label className="note-field">
+              <span>
+                غرفة الفريق <strong style={{ display: "block" }}>ملاحظة داخلية</strong>
+              </span>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="ملاحظة للمطبخ أو فريق الخدمة..."
+              />
+              <button
+                className="btn btn--outline"
+                style={{ padding: "9px 16px", fontSize: "0.82rem" }}
+                onClick={() => onChange(order.id, { internalNote: note })}
+              >
+                حفظ الملاحظة
+              </button>
             </label>
 
-            <footer className="dossier-footer">
-              <button className="secondary" onClick={() => onWhatsApp(order)}>مراسلة العميل</button>
-              {order.status !== "cancelled" && order.status !== "completed" && <button className="danger-button" onClick={cancel}>إلغاء الطلب</button>}
-              {order.cancellationReason && <p className="cancel-reason">سبب الإلغاء: {order.cancellationReason}</p>}
+            <footer className="cart-drawer__foot" style={{ borderTop: "none", padding: 0 }}>
+              <button className="btn btn--gold" onClick={() => onWhatsApp(order)}>
+                مراسلة العميل
+              </button>
+              {order.status !== "cancelled" && order.status !== "completed" && (
+                <button
+                  className="btn btn--outline"
+                  style={{ marginTop: "10px", color: "var(--danger)", borderColor: "rgba(194,86,74,0.4)" }}
+                  onClick={cancel}
+                >
+                  إلغاء الطلب
+                </button>
+              )}
+              {order.cancellationReason && (
+                <p style={{ color: "var(--text-faint)", fontSize: "0.8rem", margin: "10px 0 0" }}>
+                  سبب الإلغاء: {order.cancellationReason}
+                </p>
+              )}
             </footer>
           </aside>
         </div>
@@ -4067,24 +5295,27 @@ function MenuManager({
       ? restaurant.items
       : restaurant.items.filter((item) => item.category === categoryFilter);
   return (
-    <div className="menu-manager menu-studio">
-      <div className="manager-intro studio-masthead">
+    <div>
+      <div className="panel__head">
         <div>
-          <span className="eyebrow">محتوى المطعم</span>
+          <span className="section-kicker">محتوى المطعم</span>
           <h2>عناصر القائمة</h2>
-          <p>أضف الأصناف وعدّل الأسعار والتصنيفات والإضافات والتوفر.</p>
+          <p className="section-sub">
+            أضف الأصناف وعدّل الأسعار والتصنيفات والإضافات والتوفر.
+          </p>
         </div>
-        <button className="primary" onClick={() => setEditing("new")}>
+        <button className="btn btn--gold" onClick={() => setEditing("new")}>
           + إضافة صنف جديد
         </button>
       </div>
-      <div className="menu-admin-tools catalogue-index">
-        <div className="filter-pills">
+
+      <div className="panel" style={{ display: "flex", gap: "14px", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="pills" style={{ marginTop: 0 }}>
           {["الكل", ...activeCategories.map((category) => category.name)].map(
             (entry) => (
               <button
                 key={entry}
-                className={categoryFilter === entry ? "active" : ""}
+                className={`pill${categoryFilter === entry ? " pill--active" : ""}`}
                 onClick={() => setCategoryFilter(entry)}
               >
                 {entry}
@@ -4092,88 +5323,166 @@ function MenuManager({
             ),
           )}
         </div>
-        <span>{filtered.length} أصناف</span>
+        <span style={{ color: "var(--text-faint)", fontSize: "0.82rem" }}>
+          {filtered.length} أصناف
+        </span>
       </div>
+
       <CategoryManager
         categories={categories}
         onAdd={addCategory}
         onUpdate={updateCategory}
         onArchive={archiveCategory}
       />
-      <div className="inventory-list dish-inventory">
+
+      <div className="admin-list">
         {filtered.map((item) => (
-          <article className="inventory-row inventory-dish" key={item.id}>
-            <img src={item.image} alt="" />
-            <div className="inventory-name">
+          <article
+            className="admin-list-item"
+            key={item.id}
+            style={{ alignItems: "center" }}
+          >
+            <img
+              src={item.image}
+              alt=""
+              style={{
+                width: "56px",
+                height: "48px",
+                borderRadius: "10px",
+                objectFit: "cover",
+                border: "1px solid var(--border-soft)",
+                flex: "0 0 auto",
+              }}
+            />
+            <div style={{ flex: 1 }}>
               <strong>{item.name}</strong>
-              <span>
+              <span style={{ display: "block", color: "var(--text-faint)", fontSize: "0.78rem" }}>
                 {item.category} · {formatSyp(item.price)} ·{" "}
                 {item.options?.length ?? 0} مجموعات خيارات
               </span>
             </div>
-            <span className={item.available ? "available" : "unavailable"}>
+            <span
+              style={{
+                padding: "5px 12px",
+                borderRadius: "var(--radius-pill)",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                background: item.available
+                  ? "rgba(93,156,111,0.12)"
+                  : "rgba(194,86,74,0.12)",
+                color: item.available ? "var(--success)" : "var(--danger)",
+                border: `1px solid ${item.available
+                  ? "rgba(93,156,111,0.3)"
+                  : "rgba(194,86,74,0.3)"
+                  }`,
+              }}
+            >
               {item.available ? "متوفر" : "نفد المخزون"}
             </span>
             <button
-              className={`stock-toggle ${item.available ? "on" : ""}`}
+              className="checkbox-pill"
+              style={{ padding: "8px 14px", minWidth: "52px", justifyContent: "center" }}
               onClick={() => toggle(item.id)}
+              aria-label={item.available ? "إيقاف الصنف" : "تفعيل الصنف"}
             >
-              <i />
+              <i
+                style={{
+                  width: "38px",
+                  height: "20px",
+                  borderRadius: "var(--radius-pill)",
+                  background: item.available ? "var(--gold)" : "rgba(255,255,255,0.12)",
+                  position: "relative",
+                  display: "inline-block",
+                  transition: "background 0.3s ease",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "3px",
+                    insetInlineStart: item.available ? "18px" : "3px",
+                    width: "14px",
+                    height: "14px",
+                    borderRadius: "50%",
+                    background: "#16130a",
+                    transition: "inset-inline-start 0.3s ease",
+                  }}
+                />
+              </i>
             </button>
-            <div className="row-actions">
-              <button onClick={() => setEditing(item)}>تعديل</button>
-              <button className="danger-text" onClick={() => remove(item.id)}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                className="btn btn--outline"
+                style={{ padding: "8px 14px", fontSize: "0.76rem" }}
+                onClick={() => setEditing(item)}
+              >
+                تعديل
+              </button>
+              <button
+                className="btn btn--ghost"
+                style={{ padding: "8px 12px", fontSize: "0.76rem", color: "var(--danger)" }}
+                onClick={() => remove(item.id)}
+              >
                 حذف
               </button>
             </div>
           </article>
         ))}
       </div>
+
       {editing && (
         <div className="modal-backdrop">
-          <div className="editor-modal">
-            <button className="close" onClick={() => setEditing(null)}>
-              ×
+          <div className="modal" style={{ padding: "30px" }}>
+            <button className="modal__close" onClick={() => setEditing(null)}>
+              <X />
             </button>
-            <span className="eyebrow">
+            <span className="section-kicker">
               {editing === "new" ? "صنف جديد" : "تعديل الصنف"}
             </span>
-            <h2>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.5rem",
+                margin: "8px 0 18px",
+              }}
+            >
               {editing === "new" ? "إضافة صنف إلى القائمة" : editing.name}
             </h2>
             <form
+              className="checkout-form"
+              style={{ padding: 0 }}
               onSubmit={(event) => {
                 event.preventDefault();
                 save(event.currentTarget);
               }}
             >
-              <div className="editor-grid">
-                <label>
-                  الاسم بالعربية
+              <div className="form-grid">
+                <label className="form-field">
+                  <span>الاسم بالعربية</span>
                   <input
                     name="name"
                     required
                     defaultValue={editing === "new" ? "" : editing.name}
                   />
                 </label>
-                <label>
-                  الاسم بالإنجليزية
+                <label className="form-field">
+                  <span>الاسم بالإنجليزية</span>
                   <input
                     name="en"
                     required
                     defaultValue={editing === "new" ? "" : editing.en}
                   />
                 </label>
-                <label className="full">
-                  الوصف
+                <label className="form-field form-grid--full">
+                  <span>الوصف</span>
                   <textarea
                     name="desc"
                     required
                     defaultValue={editing === "new" ? "" : editing.desc}
                   />
                 </label>
-                <label>
-                  السعر بالليرة
+                <label className="form-field">
+                  <span>السعر بالليرة</span>
                   <input
                     name="price"
                     type="number"
@@ -4182,8 +5491,8 @@ function MenuManager({
                     defaultValue={editing === "new" ? 0 : editing.price}
                   />
                 </label>
-                <label>
-                  التصنيف
+                <label className="form-field">
+                  <span>التصنيف</span>
                   <select
                     name="category"
                     defaultValue={
@@ -4196,8 +5505,8 @@ function MenuManager({
                     <option>حلويات</option>
                   </select>
                 </label>
-                <label className="full">
-                  رابط الصورة
+                <label className="form-field form-grid--full">
+                  <span>رابط الصورة</span>
                   <input
                     name="image"
                     defaultValue={editing === "new" ? "" : editing.image}
@@ -4205,8 +5514,19 @@ function MenuManager({
                   />
                 </label>
               </div>
-              <div className="editor-checks">
-                <label>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  padding: "14px 16px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border-soft)",
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <label className="checkbox-pill" style={{ flex: "1 1 130px", padding: "10px 14px" }}>
+                  <span style={{ fontSize: "0.82rem" }}>نباتي</span>
                   <input
                     type="checkbox"
                     name="tags"
@@ -4214,10 +5534,10 @@ function MenuManager({
                     defaultChecked={
                       editing !== "new" && editing.tags.includes("vegetarian")
                     }
-                  />{" "}
-                  نباتي
+                  />
                 </label>
-                <label>
+                <label className="checkbox-pill" style={{ flex: "1 1 130px", padding: "10px 14px" }}>
+                  <span style={{ fontSize: "0.82rem" }}>حار</span>
                   <input
                     type="checkbox"
                     name="tags"
@@ -4225,10 +5545,10 @@ function MenuManager({
                     defaultChecked={
                       editing !== "new" && editing.tags.includes("spicy")
                     }
-                  />{" "}
-                  حار
+                  />
                 </label>
-                <label>
+                <label className="checkbox-pill" style={{ flex: "1 1 150px", padding: "10px 14px" }}>
+                  <span style={{ fontSize: "0.82rem" }}>اختيار الشيف</span>
                   <input
                     type="checkbox"
                     name="tags"
@@ -4236,16 +5556,15 @@ function MenuManager({
                     defaultChecked={
                       editing !== "new" && editing.tags.includes("chef")
                     }
-                  />{" "}
-                  اختيار الشيف
+                  />
                 </label>
-                <label>
+                <label className="checkbox-pill" style={{ flex: "1 1 140px", padding: "10px 14px" }}>
+                  <span style={{ fontSize: "0.82rem" }}>الأكثر طلباً</span>
                   <input
                     type="checkbox"
                     name="popular"
                     defaultChecked={editing !== "new" && editing.popular}
-                  />{" "}
-                  الأكثر طلباً
+                  />
                 </label>
               </div>
               {editing !== "new" && (
@@ -4254,7 +5573,7 @@ function MenuManager({
                   onUpdate={(options) => setEditing({ ...editing, options })}
                 />
               )}
-              <button className="primary wide" type="submit">
+              <button className="btn btn--gold" type="submit">
                 حفظ الصنف
               </button>
             </form>
@@ -4278,22 +5597,35 @@ function CategoryManager({
 }) {
   const active = categories.filter((entry) => !entry.archived);
   return (
-    <section className="category-manager category-index-card">
-      <div className="option-editor-title">
+    <section className="panel">
+      <div className="panel__head">
         <div>
-          <strong>تصنيفات القائمة</strong>
-          <small>رتّب التصنيفات وعدّل ظهورها للزبائن.</small>
+          <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem" }}>
+            تصنيفات القائمة
+          </strong>
+          <small style={{ color: "var(--text-faint)", display: "block" }}>
+            رتّب التصنيفات وعدّل ظهورها للزبائن.
+          </small>
         </div>
-        <button type="button" onClick={onAdd}>
+        <button className="btn btn--outline" type="button" onClick={onAdd}>
           إضافة تصنيف
         </button>
       </div>
-      <div className="category-admin-list">
+      <div className="admin-list">
         {active.map((entry, index) => (
-          <div className="category-admin-row" key={entry.id}>
-            <div>
+          <div className="admin-list-item" key={entry.id} style={{ flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "10px", flex: "1 1 240px" }}>
               <input
                 aria-label="اسم التصنيف بالعربية"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: "10px",
+                  color: "var(--text)",
+                  padding: "9px 12px",
+                  outline: "none",
+                  flex: 1,
+                }}
                 value={entry.name}
                 onChange={(event) =>
                   onUpdate(entry.id, { name: event.target.value })
@@ -4301,15 +5633,39 @@ function CategoryManager({
               />
               <input
                 aria-label="اسم التصنيف بالإنجليزية"
+                dir="ltr"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: "10px",
+                  color: "var(--text)",
+                  padding: "9px 12px",
+                  outline: "none",
+                  flex: 1,
+                }}
                 value={entry.en}
                 onChange={(event) =>
                   onUpdate(entry.id, { en: event.target.value })
                 }
               />
             </div>
-            <label>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                color: "var(--text-soft)",
+                fontSize: "0.84rem",
+                padding: "8px 12px",
+                border: "1px solid var(--border-soft)",
+                borderRadius: "var(--radius-pill)",
+                background: "rgba(255,255,255,0.02)",
+                cursor: "pointer",
+              }}
+            >
               <input
                 type="checkbox"
+                style={{ accentColor: "var(--gold)", width: "16px", height: "16px" }}
                 checked={entry.visible}
                 onChange={(event) =>
                   onUpdate(entry.id, { visible: event.target.checked })
@@ -4317,8 +5673,10 @@ function CategoryManager({
               />{" "}
               ظاهر
             </label>
-            <div className="category-actions">
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
+                className="btn btn--ghost"
+                style={{ padding: "8px 12px", fontSize: "0.76rem" }}
                 type="button"
                 disabled={index === 0}
                 onClick={() => {
@@ -4335,6 +5693,8 @@ function CategoryManager({
                 تقديم
               </button>
               <button
+                className="btn btn--ghost"
+                style={{ padding: "8px 12px", fontSize: "0.76rem" }}
                 type="button"
                 disabled={index === active.length - 1}
                 onClick={() => {
@@ -4351,8 +5711,9 @@ function CategoryManager({
                 تأخير
               </button>
               <button
+                className="btn btn--ghost"
+                style={{ padding: "8px 12px", fontSize: "0.76rem", color: "var(--gold)" }}
                 type="button"
-                className="danger-text"
                 onClick={() => onArchive(entry)}
               >
                 أرشفة
@@ -4384,142 +5745,209 @@ function OptionEditor({
       },
     ]);
   return (
-    <div className="option-editor modifier-workshop">
-      <div className="option-editor-title">
-        <strong>مجموعات الخيارات والإضافات</strong>
-        <button type="button" onClick={addGroup}>
+    <div>
+      <div className="panel__head">
+        <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem" }}>
+          مجموعات الخيارات والإضافات
+        </strong>
+        <button className="btn btn--outline" type="button" onClick={addGroup}>
           + مجموعة خيارات
         </button>
       </div>
-      {groups.map((group, groupIndex) => (
-        <section key={group.id}>
-          <div className="group-head">
-            <input
-              value={group.name}
-              onChange={(e) =>
+      <div style={{ display: "grid", gap: "14px" }}>
+        {groups.map((group, groupIndex) => (
+          <section
+            key={group.id}
+            style={{
+              border: "1px solid var(--border-soft)",
+              borderRadius: "var(--radius)",
+              padding: "16px",
+              background: "rgba(255,255,255,0.02)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginBottom: "12px",
+              }}
+            >
+              <input
+                aria-label="اسم المجموعة"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: "10px",
+                  color: "var(--text)",
+                  padding: "9px 12px",
+                  outline: "none",
+                  flex: "1 1 160px",
+                }}
+                value={group.name}
+                onChange={(e) =>
+                  onUpdate(
+                    groups.map((entry, i) =>
+                      i === groupIndex
+                        ? { ...entry, name: e.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  color: "var(--text-soft)",
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  style={{ accentColor: "var(--gold)", width: "16px", height: "16px" }}
+                  checked={group.required}
+                  onChange={(e) =>
+                    onUpdate(
+                      groups.map((entry, i) =>
+                        i === groupIndex
+                          ? { ...entry, required: e.target.checked }
+                          : entry,
+                      ),
+                    )
+                  }
+                />{" "}
+                مطلوب
+              </label>
+              <button
+                className="btn btn--ghost"
+                style={{ color: "var(--danger)", fontSize: "0.76rem", padding: "6px 10px" }}
+                type="button"
+                onClick={() =>
+                  onUpdate(groups.filter((_, i) => i !== groupIndex))
+                }
+              >
+                حذف المجموعة
+              </button>
+            </div>
+            <div className="admin-list">
+              {group.options.map((option, optionIndex) => (
+                <div className="admin-list-item" key={option.id} style={{ flexWrap: "wrap" }}>
+                  <input
+                    aria-label="اسم الخيار"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--border-soft)",
+                      borderRadius: "10px",
+                      color: "var(--text)",
+                      padding: "8px 11px",
+                      outline: "none",
+                      flex: "1 1 160px",
+                    }}
+                    value={option.name}
+                    onChange={(e) =>
+                      onUpdate(
+                        groups.map((entry, i) =>
+                          i === groupIndex
+                            ? {
+                              ...entry,
+                              options: entry.options.map((choice, j) =>
+                                j === optionIndex
+                                  ? { ...choice, name: e.target.value }
+                                  : choice,
+                              ),
+                            }
+                            : entry,
+                        ),
+                      )
+                    }
+                  />
+                  <input
+                    aria-label="سعر الخيار"
+                    type="number"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid var(--border-soft)",
+                      borderRadius: "10px",
+                      color: "var(--text)",
+                      padding: "8px 11px",
+                      outline: "none",
+                      flex: "0 0 110px",
+                    }}
+                    value={option.price}
+                    onChange={(e) =>
+                      onUpdate(
+                        groups.map((entry, i) =>
+                          i === groupIndex
+                            ? {
+                              ...entry,
+                              options: entry.options.map((choice, j) =>
+                                j === optionIndex
+                                  ? { ...choice, price: Number(e.target.value) }
+                                  : choice,
+                              ),
+                            }
+                            : entry,
+                        ),
+                      )
+                    }
+                  />
+                  <button
+                    className="btn btn--ghost"
+                    style={{ color: "var(--danger)", fontSize: "0.8rem", padding: "6px 10px" }}
+                    type="button"
+                    onClick={() =>
+                      onUpdate(
+                        groups.map((entry, i) =>
+                          i === groupIndex
+                            ? {
+                              ...entry,
+                              options: entry.options.filter(
+                                (_, j) => j !== optionIndex,
+                              ),
+                            }
+                            : entry,
+                        ),
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              className="btn btn--ghost"
+              style={{ color: "var(--gold)", fontSize: "0.8rem", padding: "8px 12px", marginTop: "10px" }}
+              type="button"
+              onClick={() =>
                 onUpdate(
                   groups.map((entry, i) =>
                     i === groupIndex
-                      ? { ...entry, name: e.target.value }
+                      ? {
+                        ...entry,
+                        options: [
+                          ...entry.options,
+                          {
+                            id: `option-${Date.now()}`,
+                            name: "خيار جديد",
+                            price: 0,
+                          },
+                        ],
+                      }
                       : entry,
                   ),
                 )
               }
-            />
-            <label>
-              <input
-                type="checkbox"
-                checked={group.required}
-                onChange={(e) =>
-                  onUpdate(
-                    groups.map((entry, i) =>
-                      i === groupIndex
-                        ? { ...entry, required: e.target.checked }
-                        : entry,
-                    ),
-                  )
-                }
-              />{" "}
-              مطلوب
-            </label>
-            <button
-              type="button"
-              onClick={() =>
-                onUpdate(groups.filter((_, i) => i !== groupIndex))
-              }
             >
-              حذف
+              + إضافة خيار
             </button>
-          </div>
-          {group.options.map((option, optionIndex) => (
-            <div className="editable-option" key={option.id}>
-              <input
-                value={option.name}
-                onChange={(e) =>
-                  onUpdate(
-                    groups.map((entry, i) =>
-                      i === groupIndex
-                        ? {
-                          ...entry,
-                          options: entry.options.map((choice, j) =>
-                            j === optionIndex
-                              ? { ...choice, name: e.target.value }
-                              : choice,
-                          ),
-                        }
-                        : entry,
-                    ),
-                  )
-                }
-              />
-              <input
-                type="number"
-                value={option.price}
-                onChange={(e) =>
-                  onUpdate(
-                    groups.map((entry, i) =>
-                      i === groupIndex
-                        ? {
-                          ...entry,
-                          options: entry.options.map((choice, j) =>
-                            j === optionIndex
-                              ? { ...choice, price: Number(e.target.value) }
-                              : choice,
-                          ),
-                        }
-                        : entry,
-                    ),
-                  )
-                }
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  onUpdate(
-                    groups.map((entry, i) =>
-                      i === groupIndex
-                        ? {
-                          ...entry,
-                          options: entry.options.filter(
-                            (_, j) => j !== optionIndex,
-                          ),
-                        }
-                        : entry,
-                    ),
-                  )
-                }
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <button
-            className="add-option"
-            type="button"
-            onClick={() =>
-              onUpdate(
-                groups.map((entry, i) =>
-                  i === groupIndex
-                    ? {
-                      ...entry,
-                      options: [
-                        ...entry.options,
-                        {
-                          id: `option-${Date.now()}`,
-                          name: "خيار جديد",
-                          price: 0,
-                        },
-                      ],
-                    }
-                    : entry,
-                ),
-              )
-            }
-          >
-            + إضافة خيار
-          </button>
-        </section>
-      ))}
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
