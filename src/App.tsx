@@ -1298,7 +1298,9 @@ function App() {
             aria-label="تغيير اللغة"
           >
             <Globe2 />
-            {language === "ar" ? "EN" : "عربي"}
+            <span className="navbar__btn-text">
+              {language === "ar" ? "EN" : "عربي"}
+            </span>
           </button>
           <button className="navbar__btn navbar__cart" onClick={() => setCartOpen(true)}>
             <ShoppingBasket />
@@ -1535,32 +1537,43 @@ function App() {
       )}
       <nav className="mobile-nav" aria-label="التنقل السريع">
         <button
-          className={view === "menu" ? "active" : ""}
+          className={`mobile-nav__item${view === "menu" ? " active" : ""}`}
           onClick={() => {
             setView("menu");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
-          <Utensils />
+          <span className="mobile-nav__icon">
+            <Utensils />
+          </span>
           <span>القائمة</span>
         </button>
-        <button className={view === "orders" ? "active" : ""} onClick={() => setView("orders")}>
-          <ClipboardList />
+        <button
+          className={`mobile-nav__item${view === "orders" ? " active" : ""}`}
+          onClick={() => setView("orders")}
+        >
+          <span className="mobile-nav__icon">
+            <ClipboardList />
+          </span>
           <span>طلباتي</span>
         </button>
-        <button onClick={() => setCartOpen(true)}>
-          <ShoppingBasket />
+        <button className="mobile-nav__item" onClick={() => setCartOpen(true)}>
+          <span className="mobile-nav__icon">
+            <ShoppingBasket />
+            {cartCount > 0 && <b>{cartCount}</b>}
+          </span>
           <span>السلة</span>
-          <b>{cartCount}</b>
         </button>
         {staffEmail && memberships.length > 0 && (
           <button
-            className={view === "manage" ? "active" : ""}
+            className={`mobile-nav__item${view === "manage" ? " active" : ""}`}
             onClick={() => {
               setView("manage");
             }}
           >
-            <LayoutDashboard />
+            <span className="mobile-nav__icon">
+              <LayoutDashboard />
+            </span>
             <span>الإدارة</span>
           </button>
         )}
