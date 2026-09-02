@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="SYRIAN QR — منصة القوائم الرقمية للمطاعم والمقاهي">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c98b2c"/>
+      <stop offset="1" stop-color="#7a4c0d"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="#0e1f18"/>
+  <circle cx="48" cy="48" r="34" fill="#c98b2c" opacity="0.12"/>
+  <g stroke="url(#gold)" stroke-width="4.5" fill="none">
+    <rect x="13" y="13" width="16" height="16" rx="3.5"/>
+    <rect x="67" y="13" width="16" height="16" rx="3.5"/>
+    <rect x="13" y="67" width="16" height="16" rx="3.5"/>
+  </g>
+  <g fill="url(#gold)">
+    <rect x="18.5" y="18.5" width="5" height="5" rx="1"/>
+    <rect x="72.5" y="18.5" width="5" height="5" rx="1"/>
+    <rect x="18.5" y="72.5" width="5" height="5" rx="1"/>
+  </g>
+  <g fill="url(#gold)">
+    <rect x="44" y="44" width="6" height="6" rx="1.5"/>
+    <rect x="58" y="44" width="6" height="6" rx="1.5"/>
+    <rect x="44" y="58" width="6" height="6" rx="1.5"/>
+    <rect x="72" y="58" width="6" height="6" rx="1.5"/>
+    <rect x="58" y="72" width="6" height="6" rx="1.5"/>
+    <rect x="72" y="72" width="6" height="6" rx="1.5"/>
+  </g>
+</svg>

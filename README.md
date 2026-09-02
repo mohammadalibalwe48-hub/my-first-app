@@ -30,3 +30,10 @@ npm run preview
 ```
 
 The current prototype stores carts and orders in browser local storage. Production deployment still requires the multi-tenant backend, authentication, database, real-time events, media storage, and approved WhatsApp Business integration described in the functional specification.
+
+## Site structure & routing
+
+- `/` — Product showcase (marketing) for the platform **SYRIAN QR**: digital menus, dine-in ordering from the table via QR, local payments, and an orders dashboard.
+- `/c/<slug>` — Per-cafe storefronts. Currently `sufra` (سُفرة الشام) and `cozy` (Cozy Corner), each with its own accent palette (see `src/cafeTheme.ts`). Legacy `?restaurant=<slug>` links still resolve to the same storefront.
+- `/admin` — Staff dashboard entry (legacy `?admin=1` also works).
+- Adding a new cafe requires **no routing code change**: create a row for the new slug in the Supabase `restaurants` table and, optionally, add an accent palette entry in `src/cafeTheme.ts`. The storefront is served from `index.html` via the SPA catch-all rewrite in `vercel.json`.
