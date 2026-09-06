@@ -6,11 +6,20 @@ import {
   useParams,
   Link,
 } from "react-router-dom";
-import { ArrowUp, ClipboardList, Globe2, LayoutDashboard, ShoppingBasket, Utensils } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUp,
+  ClipboardList,
+  Globe2,
+  LayoutDashboard,
+  ShoppingBasket,
+  Utensils,
+} from "lucide-react";
 import { useUI } from "../context/UI";
 import { useAuth } from "../context/Auth";
 import { CafeProvider, useCafe } from "../context/Cafe";
 import { cafeThemeVars } from "../cafeTheme";
+import { formatSyp, formatUsd } from "../domain";
 import {
   CartDrawer,
   CheckoutModal,
@@ -41,7 +50,7 @@ function CafeShell() {
 
   useEffect(() => {
     const onScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 10);
       setShowTop(window.scrollY > 560);
     };
     onScroll();
@@ -53,16 +62,16 @@ function CafeShell() {
   const onMenu = location.pathname === base;
   const onOrders = location.pathname === `${base}/orders`;
   const memberOfThisCafe = memberships.some((m) => m.restaurantSlug === slug);
-
-  const openAdmin = () => navigate(memberOfThisCafe ? `/admin/${slug}` : "/admin");
+  const canAdmin = Boolean(staffEmail && memberOfThisCafe);
+  const showDock =
+    onMenu && cafe.cartCount > 0 && !cafe.cartOpen && !cafe.checkoutOpen;
+  const dockTotal =
+    cafe.currency === "usd"
+      ? formatUsd(cafe.total, restaurant.rate)
+      : formatSyp(cafe.total);
 
   const overlays: ReactNode = (
     <>
-      {cafe.notice && (
-        <div className="toast" role="status">
-          {cafe.notice}
-        </div>
-      )}
       {cafe.selectedItem && (
         <ItemModal
           item={cafe.selectedItem}
@@ -93,6 +102,9 @@ function CafeShell() {
           settings={cafe.settings}
           tableContext={cafe.tableContext}
           backendReady={cafe.ready && cafe.isOnline}
+          currency={cafe.currency}
+          rate={restaurant.rate}
+          lines={cafe.cart}
         />
       )}
       {cafe.trackingOrder && (
@@ -107,94 +119,118 @@ function CafeShell() {
 
   return (
     <div
-      className="app-root"
+      className="cx"
       dir={dir}
       style={cafeThemeVars(slug) as CSSProperties}
     >
-      <header className={`navbar${scrolled ? " navbar--scrolled" : ""}`}>
-        <button
-          className="navbar__brand"
-          onClick={() => {
-            navigate(base);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          aria-label="العودة إلى القائمة"
-        >
-          <span className="navbar__logo">{restaurant.logo || "س"}</span>
-          <span>
-            <strong className="navbar__brand-name">{restaurant.name}</strong>
-            <small className="navbar__brand-sub">{restaurant.subtitle}</small>
-            <span className="navbar__brand-loc">
-              {restaurant.neighborhood}، {restaurant.city}
+      {/* Top app bar */}
+      <header className={`cx-topbar${scrolled ? " is-scrolled" : ""}`}>
+        <div className="cx-topbar__in">
+          <button
+            type="button"
+            className="cx-topbar__brand"
+            onClick={() => {
+              navigate(base);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            aria-label="العودة إلى القائمة"
+          >
+            <span className="cx-topbar__logo">{restaurant.logo || "س"}</span>
+            <span>
+              <b>{restaurant.name}</b>
+              <small>{restaurant.subtitle}</small>
             </span>
-          </span>
-        </button>
+          </button>
 
-        <nav className="navbar__nav" aria-label="التنقل الرئيسي">
-          <button
-            className={`navbar__link${onMenu ? " navbar__link--active" : ""}`}
-            onClick={() => navigate(base)}
-          >
-            <Utensils />
-            <span className="navbar__btn-text">القائمة</span>
-          </button>
-          <button
-            className={`navbar__link${onOrders ? " navbar__link--active" : ""}`}
-            onClick={() => navigate(`${base}/orders`)}
-          >
-            <ClipboardList />
-            <span className="navbar__btn-text">طلباتي</span>
-          </button>
-          {staffEmail && memberOfThisCafe && (
+          <nav className="cx-topbar__nav" aria-label="التنقل الرئيسي">
             <button
-              className={`navbar__link${location.pathname.startsWith("/admin") ? " navbar__link--active" : ""}`}
-              onClick={openAdmin}
+              type="button"
+              className={`cx-topbar__link${onMenu ? " is-active" : ""}`}
+              onClick={() => navigate(base)}
             >
-              <LayoutDashboard />
-              <span className="navbar__btn-text">الإدارة</span>
+              <Utensils />
+              <span className="cx-topbar__link-txt">القائمة</span>
             </button>
-          )}
-        </nav>
+            <button
+              type="button"
+              className={`cx-topbar__link${onOrders ? " is-active" : ""}`}
+              onClick={() => navigate(`${base}/orders`)}
+            >
+              <ClipboardList />
+              <span className="cx-topbar__link-txt">طلباتي</span>
+            </button>
+            {canAdmin && (
+              <button
+                type="button"
+                className="cx-topbar__link"
+                onClick={() => navigate(`/admin/${slug}`)}
+              >
+                <LayoutDashboard />
+                <span className="cx-topbar__link-txt">الإدارة</span>
+              </button>
+            )}
+          </nav>
 
-        <div className="navbar__actions">
-          <div className="navbar__status">
-            <i className={cafe.isOnline ? "" : "is-off"} />
-            <span>{cafe.isOnline ? "متصل" : "دون اتصال"}</span>
-            {cafe.tableContext && <b>· {cafe.tableContext.labelAr}</b>}
-          </div>
-          <button
-            className="navbar__btn"
-            onClick={toggleLanguage}
-            aria-label="تغيير اللغة"
-          >
-            <Globe2 />
-            <span className="navbar__btn-text">
-              {language === "ar" ? "EN" : "عربي"}
+          <span className="cx-topbar__spacer" />
+
+          <div className="cx-topbar__actions">
+            <span className={`cx-live${cafe.isOnline ? "" : " is-off"}`}>
+              <i />
+              {cafe.isOnline ? "متصل" : "دون اتصال"}
+              {cafe.tableContext ? ` · ${cafe.tableContext.labelAr}` : ""}
             </span>
-          </button>
-          <button
-            className="navbar__btn navbar__cart"
-            onClick={cafe.openCart}
-          >
-            <ShoppingBasket />
-            <span className="navbar__btn-text">كشف الطلب</span>
-            <b>{cafe.cartCount}</b>
-          </button>
+            <button
+              type="button"
+              className="cx-pillbtn"
+              onClick={toggleLanguage}
+              aria-label="تغيير اللغة"
+            >
+              <Globe2 />
+              <span>{language === "ar" ? "EN" : "عربي"}</span>
+            </button>
+            <button
+              type="button"
+              className="cx-pillbtn cx-topbar__cartbtn"
+              onClick={cafe.openCart}
+              aria-label="فتح سلة الطلب"
+            >
+              <ShoppingBasket />
+              {cafe.cartCount > 0 && <b className="cx-count">{cafe.cartCount}</b>}
+            </button>
+          </div>
         </div>
       </header>
 
-      <div>
-        <main>
-          <Outlet />
-        </main>
-        <div className="cafe-bottom-spacer" aria-hidden="true" />
-      </div>
+      <main>
+        <Outlet />
+        <div className="cx-bottompad" aria-hidden="true" />
+      </main>
 
       {overlays}
 
+      {showDock && (
+        <div className="cx-dock-wrap">
+          <button type="button" className="cx-dock" onClick={cafe.openCart}>
+            <span className="cx-dock__bag">
+              <ShoppingBasket />
+              <b>{cafe.cartCount}</b>
+            </span>
+            <span className="cx-dock__mid">
+              <strong>عرض طلبك</strong>
+              <small>اضغط للمتابعة إلى تفاصيل الطلب</small>
+            </span>
+            <span className="cx-dock__total">{dockTotal}</span>
+            <span className="cx-dock__go">
+              <ArrowRight className="cx-arrow" />
+            </span>
+          </button>
+        </div>
+      )}
+
       {showTop && (
         <button
-          className="scroll-top"
+          type="button"
+          className="cx-topbtn"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="العودة إلى الأعلى"
           title="العودة إلى الأعلى"
@@ -203,42 +239,47 @@ function CafeShell() {
         </button>
       )}
 
-      <nav className="mobile-nav" aria-label="التنقل السريع">
-        <Link
-          className={`mobile-nav__item${onMenu ? " active" : ""}`}
-          to={base}
-        >
-          <span className="mobile-nav__icon">
+      {cafe.notice && (
+        <div className="cx-toast" role="status">
+          {cafe.notice}
+        </div>
+      )}
+
+      {/* Mobile bottom tabs */}
+      <nav className="cx-tabs" aria-label="التنقل السريع">
+        <Link className={`cx-tabs__item${onMenu ? " is-active" : ""}`} to={base}>
+          <span className="cx-tabs__ico">
             <Utensils />
           </span>
-          <span>القائمة</span>
+          القائمة
         </Link>
         <Link
-          className={`mobile-nav__item${onOrders ? " active" : ""}`}
+          className={`cx-tabs__item${onOrders ? " is-active" : ""}`}
           to={`${base}/orders`}
         >
-          <span className="mobile-nav__icon">
+          <span className="cx-tabs__ico">
             <ClipboardList />
           </span>
-          <span>طلباتي</span>
+          طلباتي
         </Link>
-        <button className="mobile-nav__item" onClick={cafe.openCart}>
-          <span className="mobile-nav__icon">
-            <ShoppingBasket />
-            {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
-          </span>
-          <span>السلة</span>
-        </button>
-        {staffEmail && memberOfThisCafe && (
+        {canAdmin ? (
           <Link
-            className={`mobile-nav__item${location.pathname.startsWith("/admin") ? " active" : ""}`}
+            className="cx-tabs__item"
             to={`/admin/${slug}`}
           >
-            <span className="mobile-nav__icon">
+            <span className="cx-tabs__ico">
               <LayoutDashboard />
             </span>
-            <span>الإدارة</span>
+            الإدارة
           </Link>
+        ) : (
+          <button type="button" className="cx-tabs__item" onClick={cafe.openCart}>
+            <span className="cx-tabs__ico">
+              <ShoppingBasket />
+              {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
+            </span>
+            السلة
+          </button>
         )}
       </nav>
     </div>
