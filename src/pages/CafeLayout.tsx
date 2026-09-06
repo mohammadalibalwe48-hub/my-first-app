@@ -262,25 +262,21 @@ function CafeShell() {
           </span>
           طلباتي
         </Link>
-        {canAdmin ? (
-          <Link
-            className="cx-tabs__item"
-            to={`/admin/${slug}`}
-          >
+        {canAdmin && (
+          <Link className="cx-tabs__item" to={`/admin/${slug}`}>
             <span className="cx-tabs__ico">
               <LayoutDashboard />
             </span>
             الإدارة
           </Link>
-        ) : (
-          <button type="button" className="cx-tabs__item" onClick={cafe.openCart}>
-            <span className="cx-tabs__ico">
-              <ShoppingBasket />
-              {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
-            </span>
-            السلة
-          </button>
         )}
+        <button type="button" className="cx-tabs__item" onClick={cafe.openCart}>
+          <span className="cx-tabs__ico">
+            <ShoppingBasket />
+            {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
+          </span>
+          السلة
+        </button>
       </nav>
     </div>
   );

@@ -26,6 +26,14 @@ import {
   type Tag,
 } from "../domain";
 
+/** Cross-browser unique id — crypto.randomUUID needs a secure context (HTTPS/localhost). */
+const newId = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+
 type CafeContextValue = {
   slug: string;
   restaurant: ReturnType<typeof useRestaurant>["restaurant"];
@@ -105,6 +113,7 @@ export function CafeProvider({
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [notice, setNotice] = useState("");
   const noticeTimer = useRef<number | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
@@ -220,73 +229,88 @@ export function CafeProvider({
       showNotice("المطعم متوقف عن استقبال الطلبات حالياً", 2600);
       return;
     }
-    const dataForm = new FormData(form);
-    const selectedZone = settings.zones.find(
-      (zone) => zone.id === dataForm.get("zone"),
-    );
-    if (mode === "delivery" && selectedZone && total < selectedZone.minimum) {
-      showNotice(
-        `الحد الأدنى للطلب في ${selectedZone.name} هو ${formatSyp(selectedZone.minimum)}`,
-        3200,
+    if (submittingRef.current) {
+      showNotice("جارٍ إرسال طلبك… لحظة واحدة", 2400);
+      return;
+    }
+    submittingRef.current = true;
+    try {
+      const dataForm = new FormData(form);
+      const selectedZone = settings.zones.find(
+        (zone) => zone.id === dataForm.get("zone"),
       );
-      return;
-    }
-    type OrderReceipt = { orderNumber: string; publicToken: string; total: number };
-    const { data: submitted, error } = await supabase.rpc(
-      "submit_public_order",
-      {
-        p_payload: {
-          restaurantSlug: slug,
-          idempotencyKey: crypto.randomUUID(),
-          mode,
-          tableToken,
-          deliveryZoneId: selectedZone?.id ?? null,
-          customerName: String(dataForm.get("customer") || "زبون المطعم"),
-          phone: String(dataForm.get("phone") || ""),
-          address: String(dataForm.get("address") || ""),
-          pickupTime: String(dataForm.get("pickup") || ""),
-          paymentMethod: String(dataForm.get("payment") || "الدفع نقداً"),
-          paymentReference: String(dataForm.get("paymentReference") || ""),
-          lines: cart.map((line) => ({
-            itemId: line.item.id,
-            quantity: line.qty,
-            note: line.note,
-            optionIds: line.options.map((option) => option.id),
-          })),
+      if (mode === "delivery" && selectedZone && total < selectedZone.minimum) {
+        showNotice(
+          `الحد الأدنى للطلب في ${selectedZone.name} هو ${formatSyp(selectedZone.minimum)}`,
+          3200,
+        );
+        return;
+      }
+      type OrderReceipt = { orderNumber: string; publicToken: string; total: number };
+      const { data: submitted, error } = await supabase.rpc(
+        "submit_public_order",
+        {
+          p_payload: {
+            restaurantSlug: slug,
+            idempotencyKey: newId(),
+            mode,
+            tableToken,
+            deliveryZoneId: selectedZone?.id ?? null,
+            customerName: String(dataForm.get("customer") || "زبون المطعم"),
+            phone: String(dataForm.get("phone") || ""),
+            address: String(dataForm.get("address") || ""),
+            pickupTime: String(dataForm.get("pickup") || ""),
+            paymentMethod: String(dataForm.get("payment") || "الدفع نقداً"),
+            paymentReference: String(dataForm.get("paymentReference") || ""),
+            lines: cart.map((line) => ({
+              itemId: line.item.id,
+              quantity: line.qty,
+              note: line.note,
+              optionIds: line.options.map((option) => option.id),
+            })),
+          },
         },
-      },
-    );
-    if (error || !submitted) {
-      showNotice(`تعذر إرسال الطلب: ${error?.message ?? "خطأ غير معروف"}`, 4200);
-      return;
+      );
+      if (error || !submitted) {
+        showNotice(`تعذر إرسال الطلب: ${error?.message ?? "خطأ غير معروف"}`, 5000);
+        return;
+      }
+      const receipt = submitted as unknown as OrderReceipt;
+      const order: Order = {
+        id: receipt.orderNumber,
+        restaurantId: slug,
+        publicToken: receipt.publicToken,
+        mode,
+        status: "received",
+        lines: cart,
+        customer: String(dataForm.get("customer") || "زبون المطعم"),
+        phone: String(dataForm.get("phone") || ""),
+        address: String(dataForm.get("address") || ""),
+        table: tableContext?.labelAr ?? tableContext?.code ?? "",
+        total: receipt.total,
+        payment: String(dataForm.get("payment") || "الدفع نقداً"),
+        paymentStatus: "pending",
+        paymentReference: String(dataForm.get("paymentReference") || ""),
+        internalNote: "",
+        cancellationReason: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setOrders((current) => [order, ...current]);
+      setCart([]);
+      setCheckoutOpen(false);
+      setCartOpen(false);
+      setTrackingOrder(order);
+      navigate(`/c/${slug}/orders`);
+    } catch (err) {
+      console.error("Order submission failed", err);
+      showNotice(
+        "تعذر إرسال الطلب — تحقق من اتصالك وحاول مجدداً. إذا استمرت المشكلة أعد تحميل الصفحة.",
+        5200,
+      );
+    } finally {
+      submittingRef.current = false;
     }
-    const receipt = submitted as unknown as OrderReceipt;
-    const order: Order = {
-      id: receipt.orderNumber,
-      restaurantId: slug,
-      publicToken: receipt.publicToken,
-      mode,
-      status: "received",
-      lines: cart,
-      customer: String(dataForm.get("customer") || "زبون المطعم"),
-      phone: String(dataForm.get("phone") || ""),
-      address: String(dataForm.get("address") || ""),
-      table: tableContext?.labelAr ?? tableContext?.code ?? "",
-      total: receipt.total,
-      payment: String(dataForm.get("payment") || "الدفع نقداً"),
-      paymentStatus: "pending",
-      paymentReference: String(dataForm.get("paymentReference") || ""),
-      internalNote: "",
-      cancellationReason: "",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setOrders((current) => [order, ...current]);
-    setCart([]);
-    setCheckoutOpen(false);
-    setCartOpen(false);
-    setTrackingOrder(order);
-    navigate(`/c/${slug}/orders`);
   };
 
   const openWhatsApp = async (order: Order) => {

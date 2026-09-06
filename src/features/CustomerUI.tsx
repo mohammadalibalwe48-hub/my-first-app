@@ -141,21 +141,16 @@ function MenuView({
   return (
     <div className="cx-storefront">
       {/* Cover */}
-      <section className="cx-cover" aria-hidden="true">
-        <img className="cx-cover__bg" src={heroImage} alt="" />
-        <div className="cx-cover__shade" />
-      </section>
-
-      {/* Identity card */}
-      <section className="cx-iden" aria-label="معلومات المطعم">
-        <span className="cx-iden__logo">{restaurant.logo || "س"}</span>
-        <div className="cx-iden__main">
-          <span className="cx-iden__kicker">من الطاولة إلى المطبخ</span>
+      <section className="cx-cover">
+        <img className="cx-cover__bg" src={heroImage} alt="" aria-hidden="true" />
+        <div className="cx-cover__shade" aria-hidden="true" />
+        <div className="cx-cover__content">
+          <span className="cx-cover__tag">
+            <i />
+            {restaurant.neighborhood} · {restaurant.city}
+          </span>
           <h1>{restaurant.name}</h1>
           <p>{restaurant.subtitle}</p>
-          <div className="cx-iden__meta">
-            <span>مقبلات · أطباق رئيسية · مشروبات · حلويات</span>
-          </div>
         </div>
       </section>
 
@@ -647,12 +642,12 @@ function CartDrawer({
               })}
             </div>
 
-            <footer
-              className="cx-sheet__foot"
-              style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}
-            >
-              <div className="cx-drawer__totalrow">
-                <span>الإجمالي (قبل رسوم التوصيل)</span>
+            <footer className="cx-drawer__foot">
+              <div className="cx-drawer__totals">
+                <span className="cx-drawer__label">
+                  الإجمالي
+                  <small>غير شامل رسوم التوصيل</small>
+                </span>
                 <strong>{money(total, currency, rate)}</strong>
               </div>
               {currency === "usd" && (
