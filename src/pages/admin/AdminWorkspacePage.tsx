@@ -5,7 +5,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { ArrowRight, Home, Store } from "lucide-react";
+import { ArrowRight, Home, LayoutDashboard, Store } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
@@ -47,7 +47,7 @@ const DAYS = [
 
 export default function AdminWorkspacePage() {
   const { slug = "" } = useParams<{ slug: string }>();
-  const { authReady, staffEmail, memberships, signOut } = useAuth();
+  const { authReady, staffEmail, memberships, platformAdmin, signOut } = useAuth();
   const { dir } = useUI();
   const navigate = useNavigate();
   const location = useLocation();
@@ -337,6 +337,17 @@ export default function AdminWorkspacePage() {
           <Home /> <span>SYRIAN QR</span>
         </button>
         <span className="admin-bar__sep">·</span>
+        {platformAdmin && (
+          <>
+            <button
+              className="admin-bar__link"
+              onClick={() => navigate("/platform")}
+            >
+              <LayoutDashboard /> <span>لوحة المنصة</span>
+            </button>
+            <span className="admin-bar__sep">·</span>
+          </>
+        )}
         <button className="admin-bar__link" onClick={() => navigate(`/c/${slug}`)}>
           <Store /> <span>المتجر</span>
           <ArrowRight />

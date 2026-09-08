@@ -1,21 +1,21 @@
 /* ============================================================
    SYRIAN QR — Customer storefront experience (.cx)
-   A calm, modern, food-app-grade design. Warm neutrals, the
-   cafe's own accent ramp, disciplined type, gentle elevation.
+   Premium restaurant identity: white & warm-grey surfaces, red
+   accents on deep red, yellow highlights, condensed display type.
    All rules are scoped under .cx so the admin app is untouched.
    ============================================================ */
 
 .cx {
   /* Local design tokens ------------------------------------ */
-  --cx-bg: #f6f2ea;
-  --cx-bg-2: #efe9da;
+  --cx-bg: #f4f3f1;
+  --cx-bg-2: #ebe9e5;
   --cx-surface: #ffffff;
-  --cx-surface-2: #fbf8f1;
-  --cx-ink: #221a11;
-  --cx-ink-2: rgba(34, 26, 17, 0.64);
-  --cx-ink-3: rgba(34, 26, 17, 0.42);
-  --cx-line: rgba(34, 26, 17, 0.1);
-  --cx-line-soft: rgba(34, 26, 17, 0.055);
+  --cx-surface-2: #faf9f7;
+  --cx-ink: #080711;
+  --cx-ink-2: rgba(8, 7, 17, 0.64);
+  --cx-ink-3: rgba(8, 7, 17, 0.42);
+  --cx-line: rgba(8, 7, 17, 0.1);
+  --cx-line-soft: rgba(8, 7, 17, 0.055);
 
   --cx-accent: var(--gold-2);
   --cx-accent-2: var(--gold);
@@ -28,16 +28,16 @@
   --cx-ok-dim: rgba(31, 122, 77, 0.12);
   --cx-warn: #b45309;
   --cx-warn-dim: rgba(180, 83, 9, 0.12);
-  --cx-bad: #b3402f;
-  --cx-bad-dim: rgba(179, 64, 47, 0.12);
-  --cx-info: #3465a4;
-  --cx-info-dim: rgba(52, 101, 164, 0.12);
+  --cx-bad: #9e0015;
+  --cx-bad-dim: rgba(158, 0, 21, 0.12);
+  --cx-info: #0b4a54;
+  --cx-info-dim: rgba(11, 74, 84, 0.12);
 
   --cx-r-sm: 14px;
   --cx-r: 18px;
   --cx-r-lg: 26px;
-  --cx-topbar-h: 62px;
-  --cx-wrap: 1120px;
+  --cx-topbar-h: 64px;
+  --cx-wrap: 1200px;
 
   min-height: 100vh;
   background:
@@ -125,7 +125,7 @@
 
 .cx-topbar.is-scrolled {
   border-bottom-color: var(--cx-line);
-  box-shadow: 0 12px 30px rgba(34, 26, 17, 0.06);
+  box-shadow: 0 12px 30px rgba(8, 7, 17, 0.06);
 }
 
 .cx-topbar__in {
@@ -333,8 +333,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(24, 16, 8, 0.08) 0%, rgba(24, 16, 8, 0) 40%),
-    linear-gradient(0deg, rgba(20, 14, 7, 0.9), rgba(20, 14, 7, 0) 68%);
+    linear-gradient(180deg, rgba(4, 20, 24, 0.08) 0%, rgba(4, 20, 24, 0) 40%),
+    linear-gradient(0deg, rgba(4, 20, 24, 0.9), rgba(4, 20, 24, 0) 68%);
 }
 
 .cx-cover__content {
@@ -356,7 +356,7 @@
   font-size: 0.74rem;
   font-weight: 700;
   color: #fff;
-  background: rgba(24, 16, 8, 0.44);
+  background: rgba(4, 20, 24, 0.44);
   border: 1px solid rgba(255, 255, 255, 0.22);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -428,10 +428,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--cx-accent-2);
+  color: var(--cx-accent-deep);
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.08em;
 }
 
 .cx-iden h1 {
@@ -591,7 +591,7 @@
 .cx-seg button.is-on {
   background: var(--cx-surface);
   color: var(--cx-accent-deep);
-  box-shadow: 0 3px 10px rgba(34, 26, 17, 0.12);
+  box-shadow: 0 3px 10px rgba(8, 7, 17, 0.12);
 }
 
 .cx-tagchips {
@@ -708,7 +708,7 @@
   font-weight: 800;
   padding: 1px 8px;
   border-radius: 999px;
-  background: rgba(34, 26, 17, 0.08);
+  background: rgba(8, 7, 17, 0.08);
   color: var(--cx-ink-3);
   transition: all 0.25s ease;
 }
@@ -805,7 +805,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(24, 16, 8, 0) 58%, rgba(24, 16, 8, 0.22));
+  background: linear-gradient(180deg, rgba(4, 20, 24, 0) 58%, rgba(4, 20, 24, 0.22));
 }
 
 .cx-card__badge {
@@ -823,7 +823,7 @@
   font-weight: 800;
   color: #fff;
   background: color-mix(in srgb, var(--cx-accent-deep) 88%, #000);
-  box-shadow: 0 6px 14px rgba(24, 16, 8, 0.24);
+  box-shadow: 0 6px 14px rgba(4, 20, 24, 0.24);
 }
 
 .cx-card__plus {
@@ -978,7 +978,7 @@
 .cx-addbtn.is-ghost {
   background: color-mix(in srgb, var(--cx-accent) 13%, var(--cx-surface));
   color: var(--cx-accent-deep);
-  box-shadow: 0 2px 10px rgba(34, 26, 17, 0.04);
+  box-shadow: 0 2px 10px rgba(8, 7, 17, 0.04);
   border: 1.5px solid color-mix(in srgb, var(--cx-accent) 38%, transparent);
 }
 
@@ -1218,7 +1218,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(150deg, #262014, #16110a);
   color: #fff;
-  box-shadow: 0 22px 50px rgba(24, 16, 8, 0.42), 0 0 0 1px rgba(24, 16, 8, 0.4);
+  box-shadow: 0 22px 50px rgba(4, 20, 24, 0.42), 0 0 0 1px rgba(4, 20, 24, 0.4);
   animation: cxDockIn 0.4s var(--ease);
 }
 
@@ -1360,7 +1360,7 @@
   color: #fff;
   font-size: 0.9rem;
   font-weight: 700;
-  box-shadow: 0 18px 40px rgba(24, 16, 8, 0.35);
+  box-shadow: 0 18px 40px rgba(4, 20, 24, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
   animation: cxToastIn 0.4s var(--ease) forwards;
   pointer-events: none;
@@ -1518,7 +1518,7 @@
   display: grid;
   place-items: end center;
   padding: 0;
-  background: rgba(24, 16, 8, 0.5);
+  background: rgba(4, 20, 24, 0.5);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   animation: cxFade 0.25s ease;
@@ -1543,7 +1543,7 @@
   background: var(--cx-surface);
   border-radius: 28px 28px 0 0;
   overflow: hidden;
-  box-shadow: 0 40px 90px rgba(24, 16, 8, 0.4);
+  box-shadow: 0 40px 90px rgba(4, 20, 24, 0.4);
   animation: cxSheetUp 0.42s var(--ease);
 }
 
@@ -1588,7 +1588,7 @@
   padding: 12px clamp(18px, 4vw, 28px) calc(16px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--cx-line);
   background: #ffffff;
-  box-shadow: 0 -6px 18px rgba(24, 16, 8, 0.06);
+  box-shadow: 0 -6px 18px rgba(4, 20, 24, 0.06);
 }
 
 .cx-sheet__total {
@@ -1698,7 +1698,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(24, 16, 8, 0.14), rgba(24, 16, 8, 0) 40%, rgba(24, 16, 8, 0.46));
+  background: linear-gradient(180deg, rgba(4, 20, 24, 0.14), rgba(4, 20, 24, 0) 40%, rgba(4, 20, 24, 0.46));
 }
 
 .cx-item__cat {
@@ -1714,7 +1714,7 @@
   font-size: 0.78rem;
   font-weight: 800;
   color: #fff;
-  background: rgba(24, 16, 8, 0.55);
+  background: rgba(4, 20, 24, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.24);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -1731,7 +1731,7 @@
   display: grid;
   place-items: center;
   color: #fff;
-  background: rgba(24, 16, 8, 0.4);
+  background: rgba(4, 20, 24, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -1745,7 +1745,7 @@
 
 .cx-close:hover {
   transform: rotate(90deg);
-  background: rgba(24, 16, 8, 0.62);
+  background: rgba(4, 20, 24, 0.62);
 }
 
 .cx-close.is-surface {
@@ -2170,7 +2170,7 @@
   padding: 14px clamp(20px, 4vw, 26px) calc(18px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--cx-line);
   background: #ffffff;
-  box-shadow: 0 -6px 18px rgba(24, 16, 8, 0.06);
+  box-shadow: 0 -6px 18px rgba(4, 20, 24, 0.06);
 }
 
 .cx-drawer__totals {
@@ -3135,5 +3135,706 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Brand refresh - premium restaurant identity polish (.cx)
+   Applies the SYRIAN QR red / teal / yellow system and an
+   editorial, food-first rhythm on top of the base storefront.
+   ============================================================ */
+
+/* White, roomy app bar with a deep-teal cart */
+.cx .cx-topbar {
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.cx .cx-topbar__in {
+  gap: 14px;
+}
+
+.cx .cx-topbar__logo {
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--cx-accent-deep) 42%, transparent);
+}
+
+.cx .cx-topbar__brand b {
+  font-weight: 800;
+  letter-spacing: 0.005em;
+}
+
+.cx .cx-topbar__link {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 12px;
+}
+
+.cx .cx-topbar__link.is-active {
+  background: var(--cx-accent-dim);
+  color: var(--cx-accent-deep);
+  box-shadow: inset 0 -2px 0 var(--cx-accent-2);
+}
+
+.cx .cx-topbar__cartbtn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(6, 50, 57, 0.32);
+}
+
+.cx .cx-topbar__cartbtn:hover {
+  background: var(--teal-2);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.cx .cx-topbar__cartbtn .cx-count {
+  background: var(--red);
+  box-shadow: 0 0 0 2px #ffffff, 0 6px 14px rgba(240, 0, 47, 0.4);
+}
+
+@media (min-width: 1024px) {
+  .cx {
+    --cx-topbar-h: 92px;
+  }
+
+  .cx .cx-topbar__brand b {
+    font-size: 1.18rem;
+  }
+
+  .cx .cx-pillbtn {
+    height: 44px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 700px) {
+  .cx .cx-topbar__in {
+    min-height: 62px;
+  }
+}
+
+/* Dramatic, editorial cover */
+.cx .cx-cover {
+  height: clamp(240px, 44vw, 420px);
+  border-radius: var(--cx-r-lg);
+}
+
+.cx .cx-cover__shade {
+  background:
+    linear-gradient(180deg, rgba(6, 50, 57, 0.28) 0%, rgba(6, 50, 57, 0) 46%),
+    linear-gradient(0deg, rgba(4, 20, 24, 0.94) 4%, rgba(4, 20, 24, 0) 72%);
+}
+
+.cx .cx-cover__tag {
+  background: rgba(240, 0, 47, 0.92);
+  border: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.cx .cx-cover__tag i {
+  background: var(--yellow);
+  box-shadow: 0 0 10px var(--yellow);
+}
+
+.cx .cx-cover__content h1 {
+  font-weight: 800;
+  font-size: clamp(1.7rem, 5.6vw, 3.2rem);
+  line-height: 1.08;
+  letter-spacing: 0.005em;
+}
+
+.cx .cx-cover__content p {
+  max-width: 44ch;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+@media (min-width: 1024px) {
+  .cx .cx-cover {
+    height: clamp(360px, 40vw, 500px);
+  }
+
+  .cx .cx-cover__content {
+    inset-inline: clamp(28px, 5vw, 56px);
+    bottom: clamp(30px, 4vw, 48px);
+  }
+}
+
+/* Section headers - red divider + condensed titles */
+.cx .cx-section-head {
+  position: relative;
+  padding-bottom: 14px;
+  margin-bottom: clamp(20px, 2.6vw, 28px);
+}
+
+.cx .cx-section-head::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  width: 52px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--red), transparent);
+}
+
+.cx .cx-section-head h2 {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.cx .cx-search__count {
+  background: rgba(240, 0, 47, 0.1);
+  color: var(--red-deep);
+}
+
+/* Product cards - crisp, food-first, red price */
+.cx .cx-card {
+  background: var(--cx-surface);
+  border: 1px solid var(--cx-line);
+  border-radius: 20px;
+}
+
+.cx .cx-card__img {
+  aspect-ratio: 4 / 3;
+}
+
+.cx .cx-card__img::after {
+  background: linear-gradient(180deg, rgba(4, 20, 24, 0) 62%, rgba(4, 20, 24, 0.28));
+}
+
+.cx .cx-card__badge {
+  background: var(--red);
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(240, 0, 47, 0.4);
+}
+
+.cx .cx-card__name {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+}
+
+.cx .cx-price b {
+  color: var(--red);
+  font-weight: 800;
+}
+
+.cx .cx-tagmini {
+  border-radius: 8px;
+}
+
+/* Buttons - stronger, condensed, restaurant-style */
+.cx .cx-addbtn,
+.cx .cx-cta {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 14px;
+}
+
+.cx .cx-addbtn {
+  text-transform: uppercase;
+}
+
+.cx .cx-addbtn:hover,
+.cx .cx-cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-2px);
+}
+
+.cx .cx-cta {
+  background: var(--red);
+  box-shadow: 0 10px 24px var(--red-glow);
+}
+
+.cx .cx-cta:hover {
+  background: var(--red-deep);
+}
+
+/* Category rail sits on a clean surface */
+.cx .cx-catbar {
+  background: linear-gradient(180deg, var(--cx-bg) 86%, transparent);
+}
+
+.cx .cx-catbar::before {
+  background: linear-gradient(90deg, var(--cx-bg), transparent);
+}
+
+.cx .cx-catbar::after {
+  background: linear-gradient(270deg, var(--cx-bg), transparent);
+}
+
+.cx .cx-cat {
+  border-radius: 13px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Identity card under the cover */
+.cx .cx-iden__logo {
+  border-radius: 50%;
+  font-weight: 800;
+  box-shadow: 0 12px 26px var(--red-glow);
+}
+
+.cx .cx-iden h1 {
+  font-weight: 800;
+}
+
+.cx .cx-iden__kicker {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Empty states - circular brand medallion */
+.cx .cx-empty__icon,
+.cx .cx-emptybag__icon {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+/* Toast on the brand */
+.cx .cx-toast {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(6, 50, 57, 0.4);
+}
+
+/* Overlays keep a near-black veil */
+.cx .cx-overlay {
+  background: rgba(4, 20, 24, 0.6);
+}
+
+/* Item sheet media - food-first with a red category chip */
+.cx .cx-item__media {
+  background: var(--cx-bg-2);
+}
+
+.cx .cx-item__cat {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--red);
+}
+
+.cx .cx-item__head h2,
+.cx .cx-checkout__head h2,
+.cx .cx-drawer__head h2,
+.cx .cx-tracking__head h2,
+.cx .cx-orders__head h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.cx .cx-item__price strong {
+  color: var(--red);
+}
+
+/* Checkout steps - red current step */
+.cx .cx-stepdot.is-on i {
+  background: var(--red);
+}
+
+.cx .cx-stepdot.is-on {
+  color: var(--red-deep);
+}
+
+/* Live order dock - deep teal */
+.cx .cx-dock {
+  background: var(--teal);
+  color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 54px rgba(6, 50, 57, 0.45);
+}
+
+.cx .cx-dock__bag {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.cx .cx-dock__total {
+  color: var(--yellow);
+}
+
+/* ============================================================
+   CX Menu v2 - fresh editorial restaurant menu
+   Editorial teal hero with dish "plate", red + yellow brand
+   accents, refined search rail and food-first cards.
+   ============================================================ */
+
+/* ---------- Hero ---------- */
+.cx .cx-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 28px;
+  color: #fff;
+  background:
+    radial-gradient(120% 140% at 90% -20%, rgba(240, 0, 47, 0.28), transparent 54%),
+    radial-gradient(90% 120% at -10% 110%, rgba(255, 196, 0, 0.14), transparent 56%),
+    linear-gradient(118deg, #0d4c56 0%, #063239 52%, #03242b 100%);
+  box-shadow: 0 34px 80px rgba(4, 32, 39, 0.4);
+}
+
+.cx .cx-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.4;
+  background-image: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.05) 0deg 12deg,
+    transparent 12deg 24deg
+  );
+  -webkit-mask-image: radial-gradient(circle at 84% 12%, #000 0%, transparent 50%);
+  mask-image: radial-gradient(circle at 84% 12%, #000 0%, transparent 50%);
+}
+
+.cx .cx-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.cx .cx-hero__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% 30%;
+  opacity: 0.18;
+}
+
+.cx .cx-hero__sun {
+  position: absolute;
+  width: min(56vw, 460px);
+  aspect-ratio: 1;
+  inset-inline-end: -130px;
+  top: -170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 196, 0, 0.4) 0 6%, transparent 7% 30%, rgba(255, 196, 0, 0.22) 31% 34%, transparent 35%);
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.cx .cx-hero__dots {
+  position: absolute;
+  inset-inline-start: -40px;
+  bottom: -40px;
+  width: 220px;
+  height: 220px;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(255, 196, 0, 0.9) 3px, transparent 3.5px),
+    radial-gradient(rgba(240, 0, 47, 0.7) 2px, transparent 2.5px);
+  background-size: 44px 44px, 30px 30px;
+  background-position: 0 0, 18px 26px;
+}
+
+.cx .cx-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(16px, 3vw, 40px);
+  align-items: center;
+  padding: clamp(24px, 4.4vw, 52px);
+}
+
+.cx .cx-hero__copy {
+  min-width: 0;
+}
+
+.cx .cx-hero__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(240, 0, 47, 0.95);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(240, 0, 47, 0.4);
+}
+
+.cx .cx-hero__tag i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 0 4px rgba(255, 196, 0, 0.28);
+}
+
+.cx .cx-hero__copy h1 {
+  margin: 18px 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.1rem, 6vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+}
+
+.cx .cx-hero__copy > p {
+  margin: 0 0 20px;
+  max-width: 44ch;
+  font-size: clamp(0.98rem, 1.6vw, 1.15rem);
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.cx .cx-hero__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cx .cx-hero__pills .cx-pill {
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  font-size: 0.84rem;
+  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease;
+}
+
+.cx .cx-hero__pills .cx-pill:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+
+.cx .cx-hero__pills .cx-pill.is-on {
+  background: var(--yellow);
+  border-color: transparent;
+  color: var(--ink);
+  box-shadow: 0 8px 20px rgba(255, 196, 0, 0.3);
+}
+
+.cx .cx-hero__actions {
+  margin-top: 24px;
+}
+
+.cx .cx-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 26px;
+  border-radius: 15px;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 16px 36px rgba(240, 0, 47, 0.42);
+  transition: transform 0.25s var(--ease), background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.cx .cx-hero__cta:hover {
+  background: var(--red-deep);
+  transform: translateY(-3px);
+}
+
+.cx .cx-hero__cta svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.cx .cx-hero__cta svg:last-child {
+  opacity: 0.8;
+}
+
+.cx .cx-hero__plate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+}
+
+.cx .cx-hero__plateimg {
+  position: relative;
+  display: block;
+  width: min(66%, 300px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 10px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 44px 90px rgba(0, 0, 0, 0.5);
+  transform: rotate(4deg);
+}
+
+.cx .cx-hero__plateimg::after {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 196, 0, 0.7);
+}
+
+.cx .cx-hero__plateimg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cx .cx-hero__seal {
+  position: absolute;
+  inset-inline-end: 6%;
+  bottom: 6px;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--red);
+  border: 4px solid rgba(255, 255, 255, 0.92);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  box-shadow: 0 16px 38px rgba(240, 0, 47, 0.5);
+  transform: rotate(-10deg);
+}
+
+/* ---------- Eyebrow / section head ---------- */
+.cx .cx-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--red);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cx .cx-section-head h2 {
+  margin-top: 7px;
+}
+
+/* ---------- Tools ---------- */
+.cx .cx-tools {
+  margin-top: clamp(16px, 2.6vw, 24px);
+}
+
+.cx .cx-search {
+  height: 54px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line-gray);
+  box-shadow: 0 10px 30px rgba(8, 7, 17, 0.06);
+}
+
+.cx .cx-search > svg {
+  color: var(--red);
+}
+
+.cx .cx-search__count {
+  background: var(--red-dim);
+  color: var(--red-deep);
+}
+
+.cx .cx-cat {
+  border-radius: 13px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: #fff;
+}
+
+/* ---------- Section eyebrow padding fix on paper cards ---------- */
+@media (max-width: 700px) {
+  .cx .cx-hero {
+    border-radius: 22px;
+  }
+
+  .cx .cx-hero__inner {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: clamp(20px, 6vw, 28px);
+  }
+
+  .cx .cx-hero__copy {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cx .cx-hero__copy h1 {
+    font-size: clamp(1.9rem, 9vw, 2.8rem);
+  }
+
+  .cx .cx-hero__copy > p {
+    max-width: 40ch;
+  }
+
+  .cx .cx-hero__pills {
+    justify-content: center;
+  }
+
+  .cx .cx-hero__plate {
+    min-height: 210px;
+    order: -1;
+  }
+
+  .cx .cx-hero__plateimg {
+    width: min(180px, 46vw);
+    border-width: 6px;
+  }
+
+  .cx .cx-hero__plateimg::after {
+    inset: -16px;
+  }
+
+  .cx .cx-hero__seal {
+    width: 58px;
+    height: 58px;
+    font-size: 1.4rem;
+    inset-inline-end: 12%;
+  }
+
+  .cx .cx-hero__dots {
+    display: none;
   }
 }

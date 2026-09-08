@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   ClipboardList,
+  Flame,
   Minus,
   Plus,
   Search,
@@ -138,19 +140,67 @@ function MenuView({
     onSelect(item);
   };
 
+  const scrollToMenu = () => {
+    document
+      .getElementById("menu-catalogue")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const quickCats = categories.slice(0, 4);
+
   return (
     <div className="cx-storefront">
-      {/* Cover */}
-      <section className="cx-cover">
-        <img className="cx-cover__bg" src={heroImage} alt="" aria-hidden="true" />
-        <div className="cx-cover__shade" aria-hidden="true" />
-        <div className="cx-cover__content">
-          <span className="cx-cover__tag">
-            <i />
-            {restaurant.neighborhood} · {restaurant.city}
-          </span>
-          <h1>{restaurant.name}</h1>
-          <p>{restaurant.subtitle}</p>
+      {/* Editorial hero */}
+      <section className="cx-hero">
+        <div className="cx-hero__bg" aria-hidden="true">
+          <img src={heroImage} alt="" />
+        </div>
+        <span className="cx-hero__sun" aria-hidden="true" />
+        <span className="cx-hero__dots" aria-hidden="true" />
+        <div className="cx-hero__inner">
+          <div className="cx-hero__copy">
+            <span className="cx-hero__tag">
+              <i />
+              {restaurant.neighborhood} · {restaurant.city}
+            </span>
+            <h1>{restaurant.name}</h1>
+            <p>{restaurant.subtitle}</p>
+            {quickCats.length > 0 && (
+              <div className="cx-hero__pills" role="group" aria-label="أقسام القائمة">
+                {quickCats.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className={`cx-pill${category === entry.name ? " is-on" : ""}`}
+                    onClick={() => {
+                      setCategory(entry.name);
+                      scrollToMenu();
+                    }}
+                  >
+                    {entry.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="cx-hero__actions">
+              <button
+                type="button"
+                className="cx-hero__cta"
+                onClick={scrollToMenu}
+              >
+                <ShoppingBasket />
+                {items.length > 0 ? `اطلب · ${items.length} صنفاً` : "تصفح القائمة"}
+                <ChevronDown />
+              </button>
+            </div>
+          </div>
+
+          <div className="cx-hero__plate" aria-hidden="true">
+            <span className="cx-hero__plateimg">
+              <img src={heroImage} alt="" />
+            </span>
+            <span className="cx-hero__seal">{restaurant.logo || "س"}</span>
+          </div>
         </div>
       </section>
 
@@ -237,6 +287,10 @@ function MenuView({
         <div id="cx-grid-top" />
         <header className="cx-section-head">
           <div>
+            <span className="cx-eyebrow">
+              <Flame size={13} />
+              {restaurant.name}
+            </span>
             <h2>{heading}</h2>
             <p>اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.</p>
           </div>

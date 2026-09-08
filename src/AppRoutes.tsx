@@ -7,6 +7,7 @@ import StorefrontPage from "./pages/StorefrontPage";
 import OrdersPage from "./pages/OrdersPage";
 import AdminEntryPage from "./pages/admin/AdminEntryPage";
 import AdminWorkspacePage from "./pages/admin/AdminWorkspacePage";
+import PlatformPage from "./pages/platform/PlatformPage";
 
 export default function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ export default function AppRoutes() {
             </Route>
             <Route path="/admin" element={<AdminEntryPage />} />
             <Route path="/admin/:slug/*" element={<AdminWorkspacePage />} />
+            <Route path="/platform" element={<PlatformPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
