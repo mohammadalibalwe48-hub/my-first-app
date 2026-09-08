@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  Banknote,
   Check,
   ChevronDown,
   ClipboardList,
-  Flame,
+  MapPin,
+  MessageCircle,
   Minus,
   Plus,
   Search,
   ShieldCheck,
   ShoppingBasket,
+  Smartphone,
   Store,
   Truck,
   Utensils,
+  Wallet,
   X,
 } from "lucide-react";
 import { supabase } from "../supabase";
@@ -83,8 +87,51 @@ const needsChoices = (item: Item) =>
 const modeIcon = (mode: Mode) =>
   mode === "dine-in" ? Store : mode === "takeaway" ? ShoppingBasket : Truck;
 
+const modeIconBig = (mode: Mode) =>
+  mode === "dine-in"
+    ? "على الطاولة"
+    : mode === "takeaway"
+      ? "سفري"
+      : "توصيل";
+
+function Stepper({
+  qty,
+  onDec,
+  onInc,
+  labels,
+}: {
+  qty: number;
+  onDec: () => void;
+  onInc: () => void;
+  labels?: { dec: string; inc: string };
+}) {
+  return (
+    <div className="cx-stepper">
+      <button
+        type="button"
+        className="cx-stepper__btn"
+        onClick={onDec}
+        aria-label={labels?.dec ?? "إنقاص الكمية"}
+      >
+        <Minus size={17} aria-hidden="true" />
+      </button>
+      <b className="cx-stepper__num mono-num" aria-live="polite">
+        {qty}
+      </b>
+      <button
+        type="button"
+        className="cx-stepper__btn cx-stepper__btn--plus"
+        onClick={onInc}
+        aria-label={labels?.inc ?? "زيادة الكمية"}
+      >
+        <Plus size={17} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
 /* ============================================================
-   MenuView — cover, search, filters, sticky categories, grid
+   MenuView — editorial restaurant menu
    ============================================================ */
 function MenuView({
   restaurant,
@@ -118,15 +165,25 @@ function MenuView({
   onQuickAdd: (i: Item) => void;
 }) {
   const rate = restaurant.rate;
-  const featured = items[0] ?? restaurant.items[0];
-  const heroImage = featured?.image ?? items[0]?.image ?? images.mezze;
-  const suggestions = items.slice(0, 3);
+  const heroImage =
+    items.find((i) => i.image)?.image ??
+    restaurant.items.find((i) => i.image)?.image ??
+    images.mezze;
+  const itemCount = items.length;
 
   const catEntries = [
     "كل الأصناف",
     "الأكثر طلباً",
     ...categories.map((entry) => entry.name),
   ];
+
+  const countFor = (entry: string) =>
+    entry === "كل الأصناف"
+      ? items.length
+      : entry === "الأكثر طلباً"
+        ? items.filter((i) => i.popular).length
+        : items.filter((i) => i.category === entry).length;
+
   const heading =
     category === "كل الأصناف"
       ? "كل الأطباق"
@@ -135,237 +192,308 @@ function MenuView({
         : category;
 
   const go = (item: Item) => {
-    const el = document.getElementById("cx-grid-top");
+    const el = document.getElementById("cx-catalogue");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     onSelect(item);
   };
 
   const scrollToMenu = () => {
     document
-      .getElementById("menu-catalogue")
+      .getElementById("cx-catalogue")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const jumpToCategory = (entry: string) => {
+    setCategory(entry);
+    scrollToMenu();
+  };
+
   const quickCats = categories.slice(0, 4);
+  const digits = new Intl.NumberFormat("ar-SY");
 
   return (
-    <div className="cx-storefront">
-      {/* Editorial hero */}
+    <div className="cx-store">
+      {/* ---- Editorial campaign hero ---- */}
       <section className="cx-hero">
-        <div className="cx-hero__bg" aria-hidden="true">
-          <img src={heroImage} alt="" />
-        </div>
-        <span className="cx-hero__sun" aria-hidden="true" />
-        <span className="cx-hero__dots" aria-hidden="true" />
+        <span className="cx-hero__grain" aria-hidden="true" />
+        <span className="cx-hero__ring" aria-hidden="true" />
+        <span className="cx-hero__ring cx-hero__ring--b" aria-hidden="true" />
         <div className="cx-hero__inner">
           <div className="cx-hero__copy">
-            <span className="cx-hero__tag">
-              <i />
-              {restaurant.neighborhood} · {restaurant.city}
-            </span>
-            <h1>{restaurant.name}</h1>
-            <p>{restaurant.subtitle}</p>
-            {quickCats.length > 0 && (
-              <div className="cx-hero__pills" role="group" aria-label="أقسام القائمة">
-                {quickCats.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    className={`cx-pill${category === entry.name ? " is-on" : ""}`}
-                    onClick={() => {
-                      setCategory(entry.name);
-                      scrollToMenu();
-                    }}
-                  >
-                    {entry.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="cx-hero__actions">
+            <div className="cx-hero__topline">
+              <span className="cx-eyebrow cx-eyebrow--light">
+                <i aria-hidden="true" />
+                {restaurant.neighborhood ? restaurant.neighborhood : "المطعم"}
+                {restaurant.city ? ` · ${restaurant.city}` : ""}
+              </span>
+            </div>
+            <h1 className="cx-hero__name">{restaurant.name}</h1>
+            <p className="cx-hero__sub">{restaurant.subtitle}</p>
+
+            <div className="cx-hero__facts">
+              <span className="cx-hero__fact">
+                <b className="mono-num">{digits.format(itemCount || restaurant.items.length)}</b>
+                <small>صنفاً في القائمة</small>
+              </span>
+              <span className="cx-hero__fact">
+                <b>طازج</b>
+                <small>يحضَّر عند الطلب</small>
+              </span>
+            </div>
+
+            <div className="cx-hero__ctas">
               <button
                 type="button"
-                className="cx-hero__cta"
+                className="cx-btn cx-btn--red cx-btn--lg"
                 onClick={scrollToMenu}
               >
-                <ShoppingBasket />
-                {items.length > 0 ? `اطلب · ${items.length} صنفاً` : "تصفح القائمة"}
-                <ChevronDown />
+                <ShoppingBasket size={19} aria-hidden="true" />
+                تصفح الأطباق
+                <ChevronDown size={18} className="cx-motiondown" aria-hidden="true" />
               </button>
+              {quickCats.length > 0 && (
+                <nav className="cx-hero__cats" aria-label="اختصارات الأقسام">
+                  {quickCats.map((entry, index) => (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => jumpToCategory(entry.name)}
+                    >
+                      <i className="mono-num">
+                        {String(index + 1).padStart(2, "0")}
+                      </i>
+                      {entry.name}
+                    </button>
+                  ))}
+                </nav>
+              )}
             </div>
           </div>
 
-          <div className="cx-hero__plate" aria-hidden="true">
-            <span className="cx-hero__plateimg">
-              <img src={heroImage} alt="" />
+          <div className="cx-hero__art">
+            <figure className="cx-hero__plate">
+              <img src={heroImage} alt={`من قائمة ${restaurant.name}`} />
+              <span className="cx-hero__plate-tag" aria-hidden="true">
+                <i />
+                أطباق تحضَّر بشغف
+              </span>
+            </figure>
+            <span className="cx-hero__seal" aria-hidden="true">
+              {restaurant.logo || "م"}
             </span>
-            <span className="cx-hero__seal">{restaurant.logo || "س"}</span>
           </div>
         </div>
       </section>
 
-      {/* Search / filters */}
-      <section className="cx-tools" aria-label="البحث والتصفية">
-        <label className="cx-search">
-          <Search />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث عن طبق أو مكوّن…"
-            aria-label="ابحث في القائمة"
-          />
-          {query && (
-            <button
-              type="button"
-              className="cx-search__clear"
-              onClick={() => setQuery("")}
-              aria-label="مسح البحث"
-            >
-              <X />
-            </button>
-          )}
-          <span className="cx-search__count">{items.length} صنفاً</span>
-        </label>
+      {/* ---- Sticky search / filters / category rail ---- */}
+      <div className="cx-stick">
+        <section className="cx-tools" aria-label="البحث والتصفية">
+          <label className="cx-search">
+            <Search size={19} aria-hidden="true" />
+            <span className="cx-search__bar">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ابحث عن طبق أو مكوّن…"
+                aria-label="ابحث في القائمة"
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="cx-search__clear"
+                  onClick={() => setQuery("")}
+                  aria-label="مسح البحث"
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
+            </span>
+            <span className="cx-search__count mono-num">
+              {digits.format(itemCount)}
+            </span>
+          </label>
 
-        <div className="cx-filterbar">
-          <div className="cx-tagchips">
-            <button
-              type="button"
-              className={`cx-tagchip${tag === "all" ? " is-on" : ""}`}
-              onClick={() => setTag("all")}
-            >
-              الكل
-            </button>
-            {(["vegetarian", "chef"] as Tag[]).map((entry) => (
+          <div className="cx-tools__row">
+            <div className="cx-tagchips" role="group" aria-label="تصفية الأطباق">
               <button
                 type="button"
-                key={entry}
-                className={`cx-tagchip${tag === entry ? " is-on" : ""}`}
-                onClick={() => setTag(tag === entry ? "all" : entry)}
+                className={`cx-chip${tag === "all" ? " is-on" : ""}`}
+                onClick={() => setTag("all")}
               >
-                {tagLabels[entry]}
+                الكل
               </button>
-            ))}
-          </div>
-          <div className="cx-seg" role="group" aria-label="العملة">
-            <button
-              type="button"
-              className={currency === "syp" ? "is-on" : ""}
-              onClick={() => setCurrency("syp")}
+              {(["vegetarian", "chef"] as Tag[]).map((entry) => (
+                <button
+                  type="button"
+                  key={entry}
+                  className={`cx-chip${tag === entry ? " is-on" : ""}`}
+                  onClick={() => setTag(tag === entry ? "all" : entry)}
+                >
+                  {tag === entry ? (
+                    <Check size={13} aria-hidden="true" />
+                  ) : null}
+                  {tagLabels[entry]}
+                </button>
+              ))}
+            </div>
+            <div
+              className="cx-cur"
+              role="group"
+              aria-label="العملة"
             >
-              ل.س
-            </button>
-            <button
-              type="button"
-              className={currency === "usd" ? "is-on" : ""}
-              onClick={() => setCurrency("usd")}
-            >
-              $
-            </button>
+              <button
+                type="button"
+                className={currency === "syp" ? "is-on" : ""}
+                onClick={() => setCurrency("syp")}
+              >
+                ل.س
+              </button>
+              <button
+                type="button"
+                className={currency === "usd" ? "is-on" : ""}
+                onClick={() => setCurrency("usd")}
+              >
+                $
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Sticky category rail */}
-      <div className="cx-catbar">
-        <nav className="cx-cats" aria-label="تصفح الأقسام">
-          {catEntries.map((entry) => (
-            <button
-              key={entry}
-              type="button"
-              className={`cx-cat${category === entry ? " is-on" : ""}`}
-              onClick={() => setCategory(entry)}
-            >
-              {entry}
-            </button>
-          ))}
+        <nav className="cx-cats" aria-label="تصفح أقسام القائمة">
+          {catEntries.map((entry, index) => {
+            const on = category === entry;
+            const n = countFor(entry);
+            return (
+              <button
+                key={entry}
+                type="button"
+                className={`cx-cat${on ? " is-on" : ""}`}
+                onClick={() => setCategory(entry)}
+                aria-pressed={on}
+              >
+                <i className="mono-num" aria-hidden="true">
+                  {on ? "" : String(index + 1).padStart(2, "0")}
+                </i>
+                <span>{entry}</span>
+                <b className="mono-num">{digits.format(n)}</b>
+              </button>
+            );
+          })}
         </nav>
       </div>
 
-      {/* Catalogue */}
-      <section className="cx-catalogue" id="menu-catalogue">
-        <div id="cx-grid-top" />
-        <header className="cx-section-head">
+      {/* ---- Catalogue ---- */}
+      <section className="cx-catalogue" id="cx-catalogue">
+        <header className="cx-catalog__head">
           <div>
             <span className="cx-eyebrow">
-              <Flame size={13} />
+              <i aria-hidden="true" />
               {restaurant.name}
             </span>
-            <h2>{heading}</h2>
-            <p>اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.</p>
+            <h2 className="cx-catalog__title">
+              {heading}
+              <em className="mono-num">
+                /{String(catEntries.indexOf(category) + 1).padStart(2, "0")}
+              </em>
+            </h2>
+            <p className="cx-catalog__lead">
+              اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.
+            </p>
           </div>
-          {items.length > 0 && (
-            <span className="cx-search__count">{items.length} صنفاً</span>
+          {itemCount > 0 && (
+            <span className="cx-catalog__stamp">
+              <b className="mono-num">{digits.format(itemCount)}</b>
+              صنفاً متاحاً
+            </span>
           )}
         </header>
 
         <div className="cx-grid">
           {loading
             ? Array.from({ length: 6 }).map((_, index) => (
-                <div className="cx-card sk" key={index} aria-hidden="true">
-                  <span className="cx-card__img" />
-                  <div className="cx-card__body">
-                    <span className="cx-body__line" />
-                    <span className="cx-body__line" />
+                <div className="cx-dish cx-dish--sk" key={index} aria-hidden="true">
+                  <span className="cx-dish__media sk" />
+                  <div className="cx-dish__body">
+                    <span className="cx-skline sk" style={{ width: "38%" }} />
+                    <span className="cx-skline sk" style={{ width: "72%" }} />
+                    <span className="cx-skline sk" style={{ width: "55%" }} />
                   </div>
                 </div>
               ))
             : items.map((item) => {
                 const price = money(item.price, currency, rate);
-                const secondary = currency === "usd" ? formatSyp(item.price) : "";
+                const secondary =
+                  currency === "usd" ? formatSyp(item.price) : "";
+                const customisable = Boolean(item.options?.length);
+                const configurable = needsChoices(item);
                 return (
-                  <article className="cx-card" key={item.id}>
+                  <article className="cx-dish" key={item.id}>
                     <button
                       type="button"
-                      className="cx-card__img"
+                      className="cx-dish__media"
                       onClick={() => go(item)}
                       aria-label={`تفاصيل ${item.name}`}
                     >
-                      <img src={item.image} alt={item.name} loading="lazy" />
+                      <span className="cx-dish__imgwrap">
+                        <img src={item.image} alt={item.name} loading="lazy" />
+                      </span>
                       {item.popular && (
-                        <span className="cx-card__badge">الأكثر طلباً</span>
+                        <span className="cx-dish__flag">
+                          <b>الأكثر طلباً</b>
+                        </span>
+                      )}
+                      {customisable && (
+                        <span className="cx-dish__gear" aria-hidden="true">
+                          <i />
+                          <i />
+                          <i />
+                        </span>
                       )}
                     </button>
-                    <div className="cx-card__body">
+                    <div className="cx-dish__body">
+                      <div className="cx-dish__topline">
+                        <span className="cx-dish__cat">{item.category}</span>
+                        {item.tags.length > 0 && (
+                          <span className="cx-dish__tags">
+                            {item.tags.map((t) => (
+                              <span key={t}>{tagLabels[t]}</span>
+                            ))}
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
-                        className="cx-card__name"
+                        className="cx-dish__name"
                         onClick={() => go(item)}
                       >
                         {item.name}
-                        {item.en && <small>{item.en}</small>}
+                        {item.en && <i lang="en">{item.en}</i>}
                       </button>
-                      {item.desc && <p className="cx-card__desc">{item.desc}</p>}
-                      {item.tags.length > 0 && (
-                        <div className="cx-tags">
-                          {item.tags.map((t) => (
-                            <span className="cx-tagmini" key={t}>
-                              {tagLabels[t]}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="cx-card__foot">
+                      {item.desc && <p className="cx-dish__desc">{item.desc}</p>}
+
+                      <div className="cx-dish__foot">
                         <div className="cx-price">
                           <b>{price}</b>
                           {secondary && <small>{secondary}</small>}
                         </div>
-                        {!needsChoices(item) ? (
+                        {!configurable ? (
                           <button
                             type="button"
-                            className="cx-addbtn"
+                            className="cx-add"
                             onClick={() => onQuickAdd(item)}
+                            aria-label={`أضف ${item.name} إلى الطلب`}
                           >
-                            <Plus />
-                            أضف
+                            <Plus size={20} aria-hidden="true" />
+                            <span>أضف</span>
                           </button>
                         ) : (
                           <button
                             type="button"
-                            className="cx-addbtn is-ghost"
+                            className="cx-add cx-add--ghost"
                             onClick={() => go(item)}
                           >
-                            اختر الخيارات
+                            <span>تخصيص</span>
+                            <ChevronDown size={16} aria-hidden="true" />
                           </button>
                         )}
                       </div>
@@ -375,23 +503,16 @@ function MenuView({
               })}
         </div>
 
-        {!loading && items.length > 0 && (
-          <aside className="cx-suggest">
-            <b>من نفس المائدة ✦</b>
-            <span>{suggestions.map((item) => item.name).join(" · ")}</span>
-          </aside>
-        )}
-
         {!loading && items.length === 0 && (
           <div className="cx-empty">
-            <span className="cx-empty__icon">
-              <Utensils />
+            <span className="cx-empty__art" aria-hidden="true">
+              <Search size={26} />
             </span>
             <h3>لم نجد صنفاً مطابقاً</h3>
             <p>جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً من القائمة.</p>
             <button
               type="button"
-              className="cx-cta"
+              className="cx-btn cx-btn--red"
               onClick={() => {
                 setQuery("");
                 setTag("all");
@@ -402,13 +523,20 @@ function MenuView({
             </button>
           </div>
         )}
+
+        {!loading && items.length > 0 && (
+          <p className="cx-catalog__foot">
+            <span aria-hidden="true">✦</span>
+            كل أطباق {restaurant.name} تحضَّر طازجة عند الطلب — بالهناء والشفاء.
+          </p>
+        )}
       </section>
     </div>
   );
 }
 
 /* ============================================================
-   ItemModal — bottom sheet with customisation
+   ItemModal — immersive product detail
    ============================================================ */
 function ItemModal({
   item,
@@ -421,16 +549,21 @@ function ItemModal({
   currency: "syp" | "usd";
   rate: number;
   onClose: () => void;
-  onAdd: (i: Item, o: Option[], n: string) => void;
+  onAdd: (i: Item, o: Option[], n: string, qty: number) => void;
 }) {
   useOverlay(onClose);
   const [selected, setSelected] = useState<Record<string, Option[]>>({});
   const [note, setNote] = useState("");
+  const [qty, setQty] = useState(1);
 
-  const missingRequired = !item.options?.some(
-    (group) => group.required && !selected[group.id]?.length,
-  );
-  const valid = Boolean(item.options?.length ? missingRequired : true);
+  const hasRequired =
+    item.options?.some((group) => group.required) ?? false;
+  const missingRequired = hasRequired
+    ? item.options!.some(
+        (group) => group.required && !selected[group.id]?.length,
+      )
+    : false;
+  const valid = !missingRequired;
   const extra = Object.values(selected)
     .flat()
     .reduce((sum, option) => sum + option.price, 0);
@@ -448,6 +581,13 @@ function ItemModal({
     });
   };
 
+  const confirm = () => {
+    if (!valid) return;
+    onAdd(item, Object.values(selected).flat(), note.trim(), qty);
+  };
+
+  const groups = item.options ?? [];
+
   return (
     <div
       className="cx-overlay"
@@ -459,137 +599,165 @@ function ItemModal({
         aria-modal="true"
         aria-label={item.name}
       >
-        <div className="cx-sheet__grab" aria-hidden="true">
-          <i />
-        </div>
-        <div className="cx-item__media">
-          <img src={item.image} alt={item.name} />
-          <span className="cx-item__cat">{item.category}</span>
-          <button className="cx-close" onClick={onClose} aria-label="إغلاق">
-            <X />
-          </button>
-        </div>
+        <div className="cx-item">
+          <div className="cx-item__media">
+            <img src={item.image} alt={item.name} />
+            <span className="cx-item__cat">{item.category}</span>
+            {item.popular && <span className="cx-item__flag">الأكثر طلباً</span>}
+          </div>
 
-        <div className="cx-sheet__body">
-          <header className="cx-item__head">
-            <span className="cx-iden__kicker">{item.en}</span>
-            <h2>{item.name}</h2>
-            {item.desc && <p>{item.desc}</p>}
-            <div className="cx-item__price">
-              <strong>{money(price, currency, rate)}</strong>
-              {currency === "usd" ? (
-                <small>{formatSyp(price)}</small>
-              ) : (
-                <small>{moneySecondary(price, currency, rate)}</small>
-              )}
-            </div>
-          </header>
+          <div className="cx-item__panel">
+            <button
+              className="cx-close"
+              onClick={onClose}
+              aria-label="إغلاق"
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
 
-          {(item.options ?? []).length > 0 && (
-            <div className="cx-block">
-              <div className="cx-block__title">
-                <strong>ابنِ طبقك</strong>
-                <small>اختر الإضافات المفضلة</small>
-              </div>
-              <div style={{ display: "grid", gap: "16px" }}>
-                {(item.options ?? []).map((group) => {
-                  const single = Boolean(group.required);
-                  const selectedInGroup = selected[group.id] ?? [];
-                  return (
-                    <fieldset
-                      key={group.id}
-                      className="cx-block"
-                      style={{ border: "none", margin: 0, padding: 0 }}
-                    >
-                      <div className="cx-block__title">
-                        <strong>{group.name}</strong>
-                        <small>
-                          {group.required
-                            ? "اختيار مطلوب"
-                            : selectedInGroup.length
-                              ? `اخترت ${selectedInGroup.length}`
-                              : "اختياري"}
-                        </small>
-                      </div>
-                      <div className="cx-opts">
-                        {group.options.map((option) => {
-                          const checked = selectedInGroup.some(
-                            (entry) => entry.id === option.id,
-                          );
-                          return (
-                            <label
-                              key={option.id}
-                              className={`cx-opt${checked ? " is-checked" : ""}${
-                                single ? " is-radio" : ""
-                              }`}
-                            >
-                              <input
-                                type={single ? "radio" : "checkbox"}
-                                name={group.id}
-                                checked={checked}
-                                onChange={() =>
-                                  toggle(group.id, option, single)
-                                }
-                                style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
-                              />
-                              <span className="cx-opt__dot">
-                                <Check />
-                              </span>
-                              <span>{option.name}</span>
-                              <b>
-                                {option.price
-                                  ? `+${money(option.price, currency, rate)}`
-                                  : "أساسي"}
+            <div className="cx-item__scroll">
+              <header className="cx-item__head">
+                {item.en && (
+                  <span className="cx-item__en" lang="en">
+                    {item.en}
+                  </span>
+                )}
+                <h2>{item.name}</h2>
+                {item.desc && <p className="cx-item__desc">{item.desc}</p>}
+                <div className="cx-item__price">
+                  <strong>{money(price, currency, rate)}</strong>
+                  {currency === "usd" ? (
+                    <small>{formatSyp(price)}</small>
+                  ) : (
+                    <small>{moneySecondary(price, currency, rate)}</small>
+                  )}
+                </div>
+              </header>
+
+              {groups.length > 0 && (
+                <div className="cx-groups">
+                  {groups.map((group) => {
+                    const single = Boolean(group.required);
+                    const chosen = selected[group.id] ?? [];
+                    const isMissing = group.required && chosen.length === 0;
+                    return (
+                      <fieldset
+                        key={group.id}
+                        className="cx-group"
+                      >
+                        <legend className="cx-group__head">
+                          <span className="cx-group__title">
+                            {group.name}
+                            {isMissing && (
+                              <b className="cx-req">
+                                <i aria-hidden="true" /> اختيار مطلوب
                               </b>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </fieldset>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                            )}
+                          </span>
+                          <span
+                            className={`cx-group__meta${
+                              group.required ? " is-req" : ""
+                            }`}
+                          >
+                            {group.required
+                              ? "مطلوب · اختر واحداً"
+                              : chosen.length
+                                ? `اخترت ${chosen.length}`
+                                : "اختياري · يمكنك اختيار أكثر من واحد"}
+                          </span>
+                        </legend>
+                        <div className="cx-opts">
+                          {group.options.map((option) => {
+                            const checked = chosen.some(
+                              (entry) => entry.id === option.id,
+                            );
+                            return (
+                              <label
+                                key={option.id}
+                                className={`cx-pick${checked ? " is-checked" : ""}${
+                                  single ? " is-single" : ""
+                                }`}
+                              >
+                                <input
+                                  type={single ? "radio" : "checkbox"}
+                                  name={`opt-${group.id}`}
+                                  checked={checked}
+                                  onChange={() =>
+                                    toggle(group.id, option, single)
+                                  }
+                                />
+                                <span className="cx-pick__dot" aria-hidden="true">
+                                  <Check size={13} />
+                                </span>
+                                <span className="cx-pick__name">
+                                  {option.name}
+                                  {single && checked && (
+                                    <small>الاختيار الحالي</small>
+                                  )}
+                                </span>
+                                <span className="cx-pick__price">
+                                  {option.price
+                                    ? `+${money(option.price, currency, rate)}`
+                                    : "بلا رسوم"}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+                    );
+                  })}
+                </div>
+              )}
 
-          <div className="cx-block">
-            <label className="cx-field">
-              <span>
-                ملاحظة للمطبخ
-                <small>{note.length}/200</small>
-              </span>
-              <textarea
-                value={note}
-                maxLength={200}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="مثلاً: بدون بصل، الصوص جانباً…"
-              />
-            </label>
+              <label className="cx-field">
+                <span className="cx-field__label">
+                  ملاحظة للمطبخ
+                  <small className="mono-num">{note.length}/200</small>
+                </span>
+                <textarea
+                  value={note}
+                  maxLength={200}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="مثلاً: بدون بصل، الصوص جانباً…"
+                />
+              </label>
+            </div>
+
+            <footer className="cx-item__foot">
+              <div className="cx-item__qty">
+                <small>الكمية</small>
+                <Stepper
+                  qty={qty}
+                  onDec={() => setQty((q) => Math.max(1, q - 1))}
+                  onInc={() => setQty((q) => Math.min(20, q + 1))}
+                />
+              </div>
+              <div className="cx-item__total">
+                <small>الإجمالي</small>
+                <strong>{money(price * qty, currency, rate)}</strong>
+              </div>
+              <button
+                type="button"
+                className="cx-btn cx-btn--red cx-btn--lg cx-item__add"
+                disabled={!valid}
+                onClick={confirm}
+              >
+                <Plus size={20} aria-hidden="true" />
+                {valid
+                  ? `أضف إلى الطلب · ${qty}`
+                  : "أكمل الاختيارات المطلوبة"}
+              </button>
+            </footer>
           </div>
         </div>
-
-        <footer className="cx-sheet__foot">
-          <div className="cx-sheet__total">
-            <small>الإجمالي</small>
-            <strong>{money(price, currency, rate)}</strong>
-          </div>
-          <button
-            type="button"
-            className="cx-cta cx-cta--block"
-            disabled={!valid}
-            onClick={() => onAdd(item, Object.values(selected).flat(), note.trim())}
-          >
-            <Plus />
-            {valid ? "أضف إلى الطلب" : "أكمل الاختيارات المطلوبة"}
-          </button>
-        </footer>
       </section>
     </div>
   );
 }
 
 /* ============================================================
-   CartDrawer — side sheet with quantity controls
+   CartDrawer — premium order bag
    ============================================================ */
 function CartDrawer({
   cart,
@@ -618,51 +786,61 @@ function CartDrawer({
 
   return (
     <div
-      className="cx-overlay cx-drawer-overlay"
+      className="cx-overlay cx-overlay--cart"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <aside
-        className="cx-sheet cx-drawer"
+        className="cx-cart"
         role="dialog"
         aria-modal="true"
         aria-label="سلة الطلب"
       >
-        <header className="cx-drawer__head">
+        <header className="cx-cart__head">
           <div>
+            <span className="cx-eyebrow">
+              <i aria-hidden="true" />
+              طلبك
+            </span>
             <h2>سلة طلبك</h2>
-            <p>{itemCount} صنفاً بانتظار التأكيد</p>
+            <p>
+              {itemCount > 0 ? (
+                <>
+                  <b className="mono-num">{itemCount}</b> صنفاً بانتظار التأكيد
+                </>
+              ) : (
+                "لا شيء فيها بعد"
+              )}
+            </p>
           </div>
-          <button className="cx-close is-surface" onClick={onClose} aria-label="إغلاق">
-            <X />
+          <button className="cx-close" onClick={onClose} aria-label="إغلاق السلة">
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
 
         {cart.length === 0 ? (
-          <div className="cx-emptybag">
-            <span className="cx-emptybag__icon">
-              <ShoppingBasket />
+          <div className="cx-empty cx-empty--bag">
+            <span className="cx-empty__art" aria-hidden="true">
+              <ShoppingBasket size={26} />
             </span>
             <h3>سلتك ما زالت فارغة</h3>
-            <p>اختر أطباقاً من القائمة وستجدها هنا.</p>
-            <button type="button" className="cx-cta" onClick={onClose}>
+            <p>اختر أطباقاً من القائمة وستجدها هنا بانتظار التأكيد.</p>
+            <button type="button" className="cx-btn cx-btn--red" onClick={onClose}>
               تصفح القائمة
             </button>
           </div>
         ) : (
           <>
-            <div className="cx-drawer__lines">
+            <div className="cx-cart__lines">
               {cart.map((line) => {
                 const unit =
                   line.item.price +
                   line.options.reduce((a, o) => a + o.price, 0);
                 return (
-                  <article className="cx-cartline" key={line.key}>
-                    <img
-                      className="cx-cartline__img"
-                      src={line.item.image}
-                      alt=""
-                    />
-                    <div className="cx-cartline__main">
+                  <article className="cx-cline" key={line.key}>
+                    <span className="cx-cline__thumb">
+                      <img src={line.item.image} alt="" loading="lazy" />
+                    </span>
+                    <div className="cx-cline__main">
                       <strong>{line.item.name}</strong>
                       <small>
                         {line.options.length
@@ -670,48 +848,48 @@ function CartDrawer({
                           : "بدون إضافات"}
                         {line.note ? ` — ${line.note}` : ""}
                       </small>
-                      <b className="cx-cartline__price">
+                      <b className="cx-cline__price">
                         {money(unit * line.qty, currency, rate)}
                       </b>
                     </div>
-                    <div className="cx-cartline__end">
-                      <div className="cx-stepper">
-                        <button
-                          onClick={() => onQty(line.key, -1)}
-                          aria-label="تقليل الكمية"
-                        >
-                          <Minus />
-                        </button>
-                        <b>{line.qty}</b>
-                        <button
-                          onClick={() => onQty(line.key, 1)}
-                          aria-label="زيادة الكمية"
-                        >
-                          <Plus />
-                        </button>
-                      </div>
+                    <div className="cx-cline__end">
+                      <Stepper
+                        qty={line.qty}
+                        onDec={() => onQty(line.key, -1)}
+                        onInc={() => onQty(line.key, 1)}
+                        labels={{
+                          dec: `إنقاص ${line.item.name}`,
+                          inc: `زيادة ${line.item.name}`,
+                        }}
+                      />
                     </div>
                   </article>
                 );
               })}
             </div>
 
-            <footer className="cx-drawer__foot">
-              <div className="cx-drawer__totals">
-                <span className="cx-drawer__label">
-                  الإجمالي
-                  <small>غير شامل رسوم التوصيل</small>
-                </span>
-                <strong>{money(total, currency, rate)}</strong>
-              </div>
-              {currency === "usd" && (
-                <small className="cx-drawer__usd">
-                  {moneySecondary(total, currency, rate)} · سعر صرف تقديري
+            <footer className="cx-cart__foot">
+              <div className="cx-cart__totals">
+                <div className="cx-cart__row">
+                  <span>الإجمالي</span>
+                  <strong>{money(total, currency, rate)}</strong>
+                </div>
+                <small className="cx-cart__note">
+                  غير شامل رسوم التوصيل — يُحتسب النهائي من المطعم عند التأكيد.
                 </small>
-              )}
-              <button type="button" className="cx-cta cx-cta--block" onClick={proceed}>
+                {currency === "usd" && (
+                  <small className="cx-cart__usd">
+                    {moneySecondary(total, currency, rate)} · سعر صرف تقديري
+                  </small>
+                )}
+              </div>
+              <button
+                type="button"
+                className="cx-btn cx-btn--red cx-btn--lg cx-btn--block"
+                onClick={proceed}
+              >
                 متابعة تفاصيل الطلب
-                <ArrowRight className="cx-arrow" />
+                <ArrowRight className="cx-arrow" size={19} aria-hidden="true" />
               </button>
             </footer>
           </>
@@ -722,8 +900,12 @@ function CartDrawer({
 }
 
 /* ============================================================
-   CheckoutModal — step-by-step checkout
+   CheckoutModal — stepped premium checkout
    ============================================================ */
+const PAY_CASH_DINE = "الدفع نقداً";
+const PAY_CASH_DELIVERY = "الدفع نقداً عند الاستلام";
+const PAY_WALLETS = ["Syriatel Cash", "Sham Cash / BEMO", "MTN Cash"] as const;
+
 function CheckoutModal({
   total,
   mode,
@@ -750,6 +932,10 @@ function CheckoutModal({
   lines?: CartLine[];
 }) {
   useOverlay(onClose);
+  const cashValue = mode === "delivery" ? PAY_CASH_DELIVERY : PAY_CASH_DINE;
+  const [pay, setPay] = useState<string>(cashValue);
+  const [orderBusy, setOrderBusy] = useState(false);
+
   const missingDineInContext = mode === "dine-in" && !tableContext;
   const modeKey =
     mode === "dine-in"
@@ -758,266 +944,385 @@ function CheckoutModal({
         ? ("takeaway" as const)
         : ("delivery" as const);
   const disabledBySettings = Boolean(settings && !settings[modeKey]);
+  const submitDisabled =
+    !backendReady || missingDineInContext || disabledBySettings || orderBusy;
 
-  const submitDisabled = !backendReady || missingDineInContext || disabledBySettings;
+  const cashLabel = mode === "delivery" ? "نقداً عند الاستلام" : "نقداً";
+  const itemCount = (lines ?? []).reduce((a, l) => a + l.qty, 0);
+
+  // Keep the cash option in sync when switching between dine / delivery.
+  useEffect(() => {
+    setPay((prev) =>
+      prev === PAY_CASH_DINE || prev === PAY_CASH_DELIVERY ? cashValue : prev,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const handleSubmit = async (form: HTMLFormElement) => {
+    if (submitDisabled || orderBusy) return;
+    setOrderBusy(true);
+    try {
+      await onSubmit(form);
+    } finally {
+      setOrderBusy(false);
+    }
+  };
+
+  const summaryLines = lines ?? [];
+  const isUsd = currency === "usd";
+  const payOptions = [cashValue, ...PAY_WALLETS] as string[];
 
   return (
     <div
-      className="cx-overlay"
+      className="cx-overlay cx-overlay--checkout"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <section
-        className="cx-sheet cx-checkout"
+        className="cx-checkout"
         role="dialog"
         aria-modal="true"
         aria-label="إتمام الطلب"
       >
-        <div
-          className="cx-sheet__grab"
-          aria-hidden="true"
-          style={{ position: "relative", zIndex: 3 }}
-        >
-          <i />
-        </div>
-
-        <header className="cx-checkout__head" style={{ position: "relative" }}>
+        <header className="cx-checkout__top">
           <button
-            className="cx-close is-surface"
+            className="cx-close"
             onClick={onClose}
             aria-label="إغلاق"
-            style={{ top: 12 }}
           >
-            <X />
+            <X size={20} aria-hidden="true" />
           </button>
-          <span className="cx-iden__kicker">إتمام الطلب</span>
-          <h2>لنضع اللمسات الأخيرة</h2>
-          <p>أكمل البيانات ثم أرسل — يصل طلبك مباشرة إلى المطبخ.</p>
+          <div className="cx-checkout__kicker">
+            <span className="cx-eyebrow">
+              <i aria-hidden="true" />
+              إتمام الطلب
+            </span>
+            <h2>لنضع اللمسات الأخيرة</h2>
+            <p>أكمل البيانات ثم أرسل — يصل طلبك مباشرة إلى المطبخ.</p>
+          </div>
+          <div className="cx-progress" aria-hidden="true">
+            <span className="is-on">
+              <i>1</i>
+              طريقة الطلب
+            </span>
+            <span>
+              <i>2</i>
+              البيانات
+            </span>
+            <span>
+              <i>3</i>
+              الدفع
+            </span>
+          </div>
         </header>
 
-        <div
-          className="cx-checkout__grid"
-          style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        <form
+          id="cx-checkout-form"
+          className="cx-checkout__body"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSubmit(e.currentTarget);
+          }}
         >
           <div className="cx-checkout__main">
-            <div className="cx-checkout__steps" aria-hidden="true">
-              {["طريقة الطلب", "بياناتك", "الدفع"].map((label, index) => (
-                <span
-                  className={`cx-stepdot${index === 0 ? " is-on" : ""}`}
-                  key={label}
-                >
-                  <i>{index + 1}</i>
-                  {label}
-                </span>
-              ))}
-            </div>
+            {/* Step 1 — mode */}
+            <section className="cx-step">
+              <div className="cx-step__label">
+                <em className="mono-num">01</em>
+                <div>
+                  <strong>كيف تريد طلبك؟</strong>
+                  <small>اختر طريقة الاستلام المناسبة لك</small>
+                </div>
+              </div>
+              <div className="cx-modes">
+                {(["dine-in", "takeaway", "delivery"] as Mode[]).map((m) => {
+                  const Icon = modeIcon(m);
+                  const on = mode === m;
+                  const unavailable = Boolean(
+                    settings && !settings[m === "dine-in" ? "dineIn" : m === "takeaway" ? "takeaway" : "delivery"],
+                  );
+                  return (
+                    <button
+                      type="button"
+                      key={m}
+                      className={`cx-mode${on ? " is-on" : ""}${
+                        unavailable ? " is-off" : ""
+                      }`}
+                      onClick={() => setMode(m)}
+                      aria-pressed={on}
+                      disabled={unavailable}
+                    >
+                      <span className="cx-mode__ico">
+                        <Icon size={22} aria-hidden="true" />
+                      </span>
+                      <span className="cx-mode__txt">
+                        <b>{modeLabels[m]}</b>
+                        <small>{modeIconBig(m)}</small>
+                      </span>
+                      <span className="cx-mode__tick" aria-hidden="true">
+                        <Check size={13} />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {disabledBySettings && (
+                <p className="cx-note cx-note--warn">
+                  هذا النوع من الطلبات غير متاح حالياً في هذا المطعم.
+                </p>
+              )}
+            </section>
 
-            <form
-              id="cx-checkout-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void onSubmit(e.currentTarget);
-              }}
-            >
-              <section className="cx-step">
-                <div className="cx-step__label">
-                  <em>1</em>
-                  <div>
-                    <strong>كيف تريد طلبك؟</strong>
-                    <small>اختر طريقة الاستلام المناسبة لك</small>
-                  </div>
+            {/* Step 2 — details */}
+            <section className="cx-step">
+              <div className="cx-step__label">
+                <em className="mono-num">02</em>
+                <div>
+                  <strong>إلى من نجهّزها؟</strong>
+                  <small>نستخدم البيانات لتسليم طلبك فقط</small>
                 </div>
-                <div className="cx-modes">
-                  {(["dine-in", "takeaway", "delivery"] as Mode[]).map((m) => {
-                    const Icon = modeIcon(m);
-                    return (
-                      <button
-                        type="button"
-                        key={m}
-                        className={`cx-mode${mode === m ? " is-on" : ""}`}
-                        onClick={() => setMode(m)}
-                      >
-                        <Icon />
-                        {modeLabels[m]}
-                      </button>
-                    );
-                  })}
-                </div>
-                {disabledBySettings && (
-                  <div className="cx-hintbar">هذا النوع من الطلبات غير متاح حالياً.</div>
-                )}
-                {mode === "dine-in" && !tableContext && !settings?.dineIn && null}
-              </section>
+              </div>
+              <div className="cx-fields">
+                <label className="cx-field">
+                  <span className="cx-field__label">
+                    الاسم <i aria-hidden="true">*</i>
+                  </span>
+                  <input name="customer" required placeholder="اسمك الكريم" />
+                </label>
+                <label className="cx-field">
+                  <span className="cx-field__label">
+                    رقم الهاتف {mode !== "dine-in" && <i aria-hidden="true">*</i>}
+                  </span>
+                  <input
+                    name="phone"
+                    required={mode !== "dine-in"}
+                    placeholder="09XXXXXXXX"
+                    inputMode="tel"
+                  />
+                </label>
 
-              <section className="cx-step">
-                <div className="cx-step__label">
-                  <em>2</em>
-                  <div>
-                    <strong>إلى من نجهّزها؟</strong>
-                    <small>نستخدم البيانات لتسليم طلبك فقط</small>
-                  </div>
-                </div>
-                <div className="cx-fields">
-                  <label className="cx-field">
-                    <span>الاسم</span>
-                    <input name="customer" required placeholder="اسمك الكريم" />
-                  </label>
-                  <label className="cx-field">
-                    <span>رقم الهاتف</span>
-                    <input
-                      name="phone"
-                      required={mode !== "dine-in"}
-                      placeholder="09XXXXXXXX"
-                      inputMode="tel"
-                    />
-                  </label>
-                  {mode === "dine-in" &&
-                    (tableContext ? (
-                      <div className="cx-tablechip cx-field--full">
-                        <Store />
-                        <span>
-                          الطاولة: <strong>{tableContext.labelAr}</strong>
-                          {tableContext.area ? ` — ${tableContext.area}` : ""}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="cx-hintbar is-danger cx-field--full">
-                        امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل المطعم.
-                      </div>
-                    ))}
-                  {mode === "delivery" && (
+                {mode === "dine-in" &&
+                  (tableContext ? (
+                    <div className="cx-tablechip cx-field--full">
+                      <span className="cx-tablechip__ico" aria-hidden="true">
+                        <Store size={18} />
+                      </span>
+                      <span>
+                        الطاولة: <strong>{tableContext.labelAr}</strong>
+                        {tableContext.area ? ` — ${tableContext.area}` : ""}
+                      </span>
+                      <b aria-hidden="true">✓</b>
+                    </div>
+                  ) : (
+                    <p className="cx-note cx-note--danger cx-field--full">
+                      امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل
+                      المطعم.
+                    </p>
+                  ))}
+
+                {mode === "delivery" && (
+                  <>
                     <label className="cx-field cx-field--full">
-                      <span>العنوان بالتفصيل</span>
+                      <span className="cx-field__label">
+                        العنوان بالتفصيل <i aria-hidden="true">*</i>
+                      </span>
                       <textarea
                         name="address"
                         required
                         placeholder="الحي، الشارع، البناء، أقرب نقطة دالة…"
                       />
                     </label>
-                  )}
-                  {mode === "takeaway" && (
-                    <label className="cx-field">
-                      <span>وقت الاستلام</span>
+                    {settings && settings.zones.length > 0 && (
+                      <label className="cx-field cx-field--full">
+                        <span className="cx-field__label">
+                          منطقة التوصيل <i aria-hidden="true">*</i>
+                        </span>
+                        <span className="cx-select">
+                          <select name="zone">
+                            {settings.zones
+                              .filter((zone) => zone.active)
+                              .map((zone) => (
+                                <option key={zone.id} value={zone.id}>
+                                  {zone.name} — رسوم {formatSyp(zone.fee)} · حد
+                                  أدنى {formatSyp(zone.minimum)}
+                                </option>
+                              ))}
+                          </select>
+                          <ChevronDown size={17} aria-hidden="true" />
+                        </span>
+                      </label>
+                    )}
+                  </>
+                )}
+
+                {mode === "takeaway" && (
+                  <label className="cx-field">
+                    <span className="cx-field__label">وقت الاستلام</span>
+                    <span className="cx-select">
                       <select name="pickup">
                         <option>الآن (٢٥ - ٣٥ دقيقة)</option>
                         <option>بعد ساعة</option>
                         <option>بعد ساعتين</option>
                       </select>
-                    </label>
-                  )}
-                </div>
-              </section>
-
-              <section className="cx-step">
-                <div className="cx-step__label">
-                  <em>3</em>
-                  <div>
-                    <strong>طريقة الدفع</strong>
-                    <small>اختر وسيلة الدفع المفضلة لديك</small>
-                  </div>
-                </div>
-                <div className="cx-fields">
-                  <label className="cx-field">
-                    <span>طريقة الدفع</span>
-                    <select name="payment">
-                      <option>
-                        {mode === "delivery"
-                          ? "الدفع نقداً عند الاستلام"
-                          : "الدفع نقداً"}
-                      </option>
-                      <option>Syriatel Cash</option>
-                      <option>Sham Cash / BEMO</option>
-                      <option>MTN Cash</option>
-                    </select>
-                  </label>
-                  <label className="cx-field">
-                    <span>
-                      مرجع الحوالة
-                      <small>اختياري للمحافظ</small>
+                      <ChevronDown size={17} aria-hidden="true" />
                     </span>
-                    <input name="paymentReference" placeholder="رقم العملية" />
                   </label>
-                  {mode === "delivery" && settings?.zones.length ? (
-                    <label className="cx-field cx-field--full">
-                      <span>منطقة التوصيل</span>
-                      <select name="zone">
-                        {settings.zones
-                          .filter((zone) => zone.active)
-                          .map((zone) => (
-                            <option key={zone.id} value={zone.id}>
-                              {zone.name} — {formatSyp(zone.fee)} · حد أدنى{" "}
-                              {formatSyp(zone.minimum)}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                  ) : null}
+                )}
+              </div>
+            </section>
+
+            {/* Step 3 — payment */}
+            <section className="cx-step">
+              <div className="cx-step__label">
+                <em className="mono-num">03</em>
+                <div>
+                  <strong>طريقة الدفع</strong>
+                  <small>اختر وسيلة الدفع المفضلة لديك</small>
                 </div>
-              </section>
-            </form>
+              </div>
+              <div className="cx-pays" role="radiogroup" aria-label="طريقة الدفع">
+                {payOptions.map((option) => {
+                  const Icon =
+                    option === cashValue
+                      ? Banknote
+                      : option === "Syriatel Cash"
+                        ? Wallet
+                        : option === "MTN Cash"
+                          ? Smartphone
+                          : Wallet;
+                  const checked = pay === option;
+                  return (
+                    <label
+                      key={option}
+                      className={`cx-pay${checked ? " is-checked" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={option}
+                        checked={checked}
+                        onChange={() => setPay(option)}
+                      />
+                      <span className="cx-pay__ico" aria-hidden="true">
+                        <Icon size={19} />
+                      </span>
+                      <span className="cx-pay__txt">
+                        <b>{option}</b>
+                        {option === cashValue && (
+                          <small>
+                            {mode === "delivery"
+                              ? "ادفع للطيّار عند الاستلام"
+                              : "ادفع نقداً عند الاستلام أو في المطعم"}
+                          </small>
+                        )}
+                      </span>
+                      <span className="cx-pay__radio" aria-hidden="true">
+                        {checked && <Check size={12} />}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <label className="cx-field">
+                <span className="cx-field__label">
+                  مرجع الحوالة
+                  <small>اختياري للمحافظ</small>
+                </span>
+                <input name="paymentReference" placeholder="رقم العملية" />
+              </label>
+            </section>
           </div>
 
-          <aside className="cx-checkout__aside">
-            <div className="cx-aside__summary">
-              <h3 className="cx-aside__title">ملخص طلبك</h3>
-              <p className="cx-aside__note">
-                السعر النهائي يُحتسب من المطعم عند التأكيد.
-              </p>
-              <div className="cx-aside__items">
-                {lines?.map((line) => (
-                  <div className="cx-aside__item" key={line.key}>
-                    <img src={line.item.image} alt="" />
-                    <div>
-                      <strong>
-                        {line.qty} × {line.item.name}
-                      </strong>
+          {/* ---- Order slip (summary) ---- */}
+          <aside className="cx-slip">
+            <div className="cx-slip__stamp" aria-hidden="true">
+              <span>طلب</span>
+              <b>جديد</b>
+            </div>
+            <h3 className="cx-slip__title">ملخص طلبك</h3>
+            <p className="cx-slip__note">
+              السعر النهائي يُحتسب من المطعم عند تأكيد الطلب.
+            </p>
+
+            <div className="cx-slip__items">
+              {summaryLines.length === 0 && (
+                <p className="cx-slip__empty">سلتك فارغة — عد وأضف أطباقاً.</p>
+              )}
+              {summaryLines.map((line) => {
+                const unit =
+                  line.item.price +
+                  line.options.reduce((a, o) => a + o.price, 0);
+                return (
+                  <div className="cx-slip__item" key={line.key}>
+                    <span className="cx-slip__thumb">
+                      <img src={line.item.image} alt="" loading="lazy" />
+                      <b className="mono-num">{line.qty}</b>
+                    </span>
+                    <span className="cx-slip__mid">
+                      <strong>{line.item.name}</strong>
                       <small>
                         {line.options.length
                           ? line.options.map((o) => o.name).join(" · ")
                           : ""}
                       </small>
-                    </div>
-                    <b>
-                      {money(
-                        (line.item.price +
-                          line.options.reduce((a, o) => a + o.price, 0)) *
-                          line.qty,
-                        currency,
-                        rate,
-                      )}
+                    </span>
+                    <b className="cx-slip__price">
+                      {money(unit * line.qty, currency, rate)}
                     </b>
                   </div>
-                ))}
-              </div>
-              <div className="cx-aside__total">
-                <span>الإجمالي</span>
+                );
+              })}
+            </div>
+
+            <div className="cx-slip__totals">
+              <div className="cx-slip__row">
+                <span>
+                  الإجمالي · <b className="mono-num">{itemCount}</b> صنفاً
+                </span>
                 <strong>{money(total, currency, rate)}</strong>
               </div>
-              <div className="cx-trust">
-                <ShieldCheck />
-                <span>تأكيد آمن قبل الإرسال</span>
-              </div>
+              {isUsd && (
+                <small className="cx-slip__usd">
+                  {moneySecondary(total, currency, rate)} · سعر صرف تقديري
+                </small>
+              )}
+            </div>
+
+            <div className="cx-slip__trust">
+              <span className="cx-slip__trust-ico" aria-hidden="true">
+                <ShieldCheck size={19} />
+              </span>
+              <span>
+                <b>إرسال آمن وموثوق</b>
+                <small>تأكيد نهائي قبل الإرسال مباشرة إلى المطبخ</small>
+              </span>
             </div>
           </aside>
-        </div>
+        </form>
 
-        <footer className="cx-sheet__foot">
-          <div className="cx-sheet__total">
+        <footer className="cx-checkout__foot">
+          <div className="cx-checkout__sum">
             <small>الإجمالي النهائي</small>
             <strong>{money(total, currency, rate)}</strong>
+            {isUsd && <em>{moneySecondary(total, currency, rate)}</em>}
           </div>
           {!backendReady ? (
-            <div className="cx-hintbar" style={{ flex: 1 }}>
+            <p className="cx-note cx-note--danger">
               أنت دون اتصال — تحقق من الشبكة ثم أعد المحاولة.
-            </div>
+            </p>
           ) : (
             <button
               type="submit"
               form="cx-checkout-form"
-              className="cx-cta cx-cta--block"
+              className="cx-btn cx-btn--red cx-btn--lg"
               disabled={submitDisabled}
             >
-              {missingDineInContext ? "امسح رمز الطاولة أولاً" : "تأكيد الطلب"}
-              <ArrowRight className="cx-arrow" />
+              {missingDineInContext
+                ? "امسح رمز الطاولة أولاً"
+                : orderBusy
+                  ? "جارٍ إرسال طلبك…"
+                  : "تأكيد الطلب وإرساله"}
+              <ArrowRight className="cx-arrow" size={19} aria-hidden="true" />
             </button>
           )}
         </footer>
@@ -1027,7 +1332,7 @@ function CheckoutModal({
 }
 
 /* ============================================================
-   OrdersView — order history page
+   OrdersView — order history
    ============================================================ */
 function OrdersView({
   orders,
@@ -1044,41 +1349,105 @@ function OrdersView({
   const archiveOrders = orders.filter((order) =>
     ["completed", "cancelled"].includes(order.status),
   );
+  const digits = new Intl.NumberFormat("ar-SY");
 
-  const renderOrder = (order: Order) => {
-    const Icon = modeIcon(order.mode);
-    const qty = order.lines.reduce((a, l) => a + l.qty, 0);
-    const when = new Date(order.createdAt).toLocaleDateString("ar-SY", {
+  const when = (order: Order) =>
+    new Date(order.createdAt).toLocaleDateString("ar-SY", {
       day: "numeric",
       month: "long",
       hour: "2-digit",
       minute: "2-digit",
     });
+
+  const totalQty = (order: Order) =>
+    order.lines.reduce((a, l) => a + l.qty, 0);
+
+  const renderLive = (order: Order) => {
+    const Icon = modeIcon(order.mode);
+    const snaps = order.lines.slice(0, 4);
+    const overs = order.lines.length - snaps.length;
     return (
       <button
         type="button"
-        className={`cx-ordercard${activeOrders.includes(order) ? " is-active" : ""}`}
+        className="cx-livecard"
         key={order.id}
         onClick={() => onTrack(order)}
       >
-        <span className="cx-ordercard__ico">
-          <Icon />
+        <span className="cx-livecard__top">
+          <span className="cx-livecard__id">
+            <i className="mono-num">#{order.id}</i>
+            <small>{when(order)}</small>
+          </span>
+          <span
+            className={`cx-status cx-status--${statusTone(order.status)}`}
+          >
+            {statusLabels[order.status]}
+          </span>
+        </span>
+        <span className="cx-livecard__mid">
+          <b>{order.customer}</b>
+          <small>
+            <Icon size={14} aria-hidden="true" />
+            {modeLabels[order.mode]}
+            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)} أصناف
+          </small>
+        </span>
+        <span className="cx-livecard__bottom">
+          <span className="cx-livecard__snaps" aria-hidden="true">
+            {snaps.map((line, index) => (
+              <span
+                key={line.key}
+                className="cx-livecard__snap"
+                style={{ zIndex: snaps.length - index }}
+              >
+                <img src={line.item.image} alt="" />
+              </span>
+            ))}
+            {overs > 0 && <b className="mono-num">+{overs}</b>}
+          </span>
+          <span className="cx-livecard__right">
+            <b className="cx-livecard__total">{formatSyp(order.total)}</b>
+            <span className="cx-livecard__go">
+              تتبع الطلب
+              <ArrowRight className="cx-arrow" size={16} aria-hidden="true" />
+            </span>
+          </span>
+        </span>
+      </button>
+    );
+  };
+
+  const renderRow = (order: Order) => {
+    const Icon = modeIcon(order.mode);
+    const cancelled = order.status === "cancelled";
+    return (
+      <button
+        type="button"
+        className={`cx-ordercard${cancelled ? " is-cancelled" : ""}`}
+        key={order.id}
+        onClick={() => onTrack(order)}
+      >
+        <span className="cx-ordercard__seal" aria-hidden="true">
+          {cancelled ? <X size={16} /> : <Icon size={17} />}
         </span>
         <span className="cx-ordercard__mid">
-          <strong>{order.id}</strong>
+          <strong className="mono-num">#{order.id}</strong>
           <span>
             {modeLabels[order.mode]}
-            {order.table ? ` · ${order.table}` : ""} · {qty} أصناف
+            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)} أصناف
           </span>
-          <small>{when}</small>
+          <small>{when(order)}</small>
         </span>
         <span className="cx-ordercard__end">
-          <strong style={{ fontFamily: "var(--font-display)" }}>
+          <strong className="cx-ordercard__total">
             {formatSyp(order.total)}
           </strong>
           <span className={`cx-status cx-status--${statusTone(order.status)}`}>
             {statusLabels[order.status]}
           </span>
+        </span>
+        <span className="cx-ordercard__go" aria-hidden="true">
+          <ArrowRight className="cx-arrow" size={16} />
         </span>
       </button>
     );
@@ -1086,67 +1455,75 @@ function OrdersView({
 
   return (
     <div className="cx-wrap cx-orders">
-      <header className="cx-orders__head">
-        <div>
-          <span className="cx-iden__kicker">دفتر طلباتك</span>
-          <h1>حكاية طلباتك</h1>
+      <header className="cx-orders__mast">
+        <div className="cx-orders__mast-txt">
+          <span className="cx-eyebrow">
+            <i aria-hidden="true" />
+            دفتر طلباتك
+          </span>
+          <h1>
+            حكاية طلباتك
+            <em className="mono-num">
+              /{String(orders.length).padStart(2, "0")}
+            </em>
+          </h1>
           <p>كل طلب يحتفظ بوقته وتفاصيله وحالته حتى يصل إليك.</p>
         </div>
-        <button type="button" className="cx-cta" onClick={onMenu}>
-          <Plus />
+        <button type="button" className="cx-btn cx-btn--red" onClick={onMenu}>
+          <Plus size={18} aria-hidden="true" />
           طلب جديد
         </button>
       </header>
 
       {orders.length === 0 ? (
-        <div className="cx-empty">
-          <span className="cx-empty__icon">
-            <ClipboardList />
+        <div className="cx-empty cx-empty--orders">
+          <span className="cx-empty__art" aria-hidden="true">
+            <ClipboardList size={27} />
           </span>
           <h3>لم تُكتب أول حكاية بعد</h3>
           <p>ابدأ بتصفح القائمة واختر ما ترغب أن يصل إلى مائدتك.</p>
-          <button type="button" className="cx-cta" onClick={onMenu}>
+          <button
+            type="button"
+            className="cx-btn cx-btn--red"
+            onClick={onMenu}
+          >
             افتح القائمة
-            <ArrowRight className="cx-arrow" />
+            <ArrowRight className="cx-arrow" size={18} aria-hidden="true" />
           </button>
         </div>
       ) : (
-        <div className="cx-orders__layout">
-          <section className="cx-orders__list">
-            {activeOrders.length > 0 && (
-              <>
-                <div className="cx-orders__sub">
-                  <b>قيد التنفيذ الآن</b>
-                  <span>{activeOrders.length} طلب</span>
-                </div>
-                {activeOrders.map(renderOrder)}
-              </>
-            )}
-            {archiveOrders.length > 0 && (
-              <>
-                <div className="cx-orders__sub">
-                  <b>الطلبات السابقة</b>
-                  <span>{archiveOrders.length} طلب</span>
-                </div>
-                {archiveOrders.map(renderOrder)}
-              </>
-            )}
-          </section>
+        <div className="cx-orders__stack">
+          {activeOrders.length > 0 && (
+            <section className="cx-orders__block">
+              <header className="cx-orders__group">
+                <h2>
+                  قيد التنفيذ الآن
+                  <span className="cx-orders__count mono-num">
+                    {digits.format(activeOrders.length)}
+                  </span>
+                </h2>
+                <p>تحديثات المطبخ تظهر هنا لحظة بلحظة.</p>
+              </header>
+              <div className="cx-orders__live">
+                {activeOrders.map(renderLive)}
+              </div>
+            </section>
+          )}
 
-          <aside className="cx-orders__side">
-            <span className="cx-iden__kicker">مفتوح الآن</span>
-            <h3>
-              {activeOrders.length ? "هناك طلب يتحرك" : "المطبخ بانتظارك"}
-            </h3>
-            <p>
-              {activeOrders.length
-                ? "افتح أي طلب قيد التنفيذ لمشاهدة آخر تحديث من المطعم لحظة بلحظة."
-                : "عد إلى القائمة وابدأ تركيبة جديدة من أطباق اليوم."}
-            </p>
-            <button type="button" className="cx-cta" onClick={onMenu}>
-              {activeOrders.length ? "استكشف القائمة أيضاً" : "اكتب طلبك التالي"}
-            </button>
-          </aside>
+          {archiveOrders.length > 0 && (
+            <section className="cx-orders__block">
+              <header className="cx-orders__group">
+                <h2>
+                  الطلبات السابقة
+                  <span className="cx-orders__count mono-num">
+                    {digits.format(archiveOrders.length)}
+                  </span>
+                </h2>
+                <p>اضغط على أي طلب لمراجعة تفاصيله وحالته.</p>
+              </header>
+              <div className="cx-orders__rows">{archiveOrders.map(renderRow)}</div>
+            </section>
+          )}
         </div>
       )}
     </div>
@@ -1154,7 +1531,7 @@ function OrdersView({
 }
 
 /* ============================================================
-   TrackingModal — live order timeline
+   TrackingModal — live order tracking
    ============================================================ */
 function TrackingModal({
   order,
@@ -1168,6 +1545,7 @@ function TrackingModal({
   useOverlay(onClose);
   const [trackedOrder, setTrackedOrder] = useState(order);
   const [trackingMessage, setTrackingMessage] = useState("");
+  const digits = new Intl.NumberFormat("ar-SY");
 
   useEffect(() => {
     setTrackedOrder(order);
@@ -1226,22 +1604,14 @@ function TrackingModal({
       ? 0
       : steps.indexOf(displayOrder.status);
 
-  const bannerTone = cancelled
-    ? "is-bad"
-    : displayOrder.status === "completed"
-      ? "is-done"
-      : displayOrder.status === "received"
-        ? "is-received"
-        : "is-active";
-
   const statusIcon = cancelled ? (
-    <X />
+    <X size={26} aria-hidden="true" />
   ) : displayOrder.status === "completed" ? (
-    <Check />
+    <Check size={26} aria-hidden="true" />
   ) : displayOrder.mode === "delivery" ? (
-    <Truck />
+    <Truck size={26} aria-hidden="true" />
   ) : (
-    <Utensils />
+    <Utensils size={26} aria-hidden="true" />
   );
 
   const bannerLine = cancelled
@@ -1252,113 +1622,139 @@ function TrackingModal({
         ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك."
         : "فريقنا يعمل على تجهيز طلبك الآن.";
 
+  const fmtSyp = (n: number) => `ل.س ${digits.format(n)}`;
+
   return (
     <div
       className="cx-overlay"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <section
-        className="cx-sheet cx-tracking"
+        className="cx-sheet cx-track"
         role="dialog"
         aria-modal="true"
-        aria-label={`تتبع الطلب ${displayOrder.id}`}
+        aria-label={`تتبع الطلب رقم ${displayOrder.id}`}
       >
-        <div className="cx-sheet__grab" aria-hidden="true">
-          <i />
-        </div>
-        <header className="cx-tracking__head">
-          <div>
-            <span className="cx-iden__kicker">
+        <div className="cx-track__hero">
+          <span className="cx-track__medallion" aria-hidden="true">
+            {statusIcon}
+          </span>
+          <div className="cx-track__title">
+            <span className="cx-eyebrow cx-eyebrow--light">
+              <i aria-hidden="true" />
               {modeLabels[displayOrder.mode]} · طلب رقم {displayOrder.id}
             </span>
             <h2>{statusLabels[displayOrder.status]}</h2>
-            <p>
-              {formatSyp(displayOrder.total)}
-              {displayOrder.table
-                ? ` · ${displayOrder.table}`
-                : displayOrder.address
-                  ? ` · ${displayOrder.address}`
-                  : ""}
-            </p>
+            <p>{bannerLine}</p>
           </div>
-          <button className="cx-close is-surface" onClick={onClose} aria-label="إغلاق">
-            <X />
+          <button
+            className="cx-close cx-close--light"
+            onClick={onClose}
+            aria-label="إغلاق"
+          >
+            <X size={20} aria-hidden="true" />
           </button>
-        </header>
-
-        <div className="cx-body-placeholder">
-          <div className={`cx-statusbanner ${bannerTone}`}>
-            <span className="cx-statusbanner__ico">{statusIcon}</span>
-            <div>
-              <strong>{statusLabels[displayOrder.status]}</strong>
-              <small>{bannerLine}</small>
-            </div>
-          </div>
-
-          {!cancelled && (
-            <div className="cx-timeline">
-              {steps.map((step, i) => (
-                <div
-                  key={step}
-                  className={`cx-tl-node${
-                    i < current
-                      ? " is-done"
-                      : i === current
-                        ? " is-done is-now"
-                        : ""
-                  }`}
-                >
-                  <span className="cx-tl-node__dot">
-                    {i < current || i === current ? <Check /> : i + 1}
-                  </span>
-                  <strong>{statusLabels[step]}</strong>
-                </div>
-              ))}
-            </div>
-          )}
+          <span className="cx-track__total">
+            <small>الإجمالي</small>
+            <b>{fmtSyp(displayOrder.total)}</b>
+          </span>
         </div>
 
-        <section className="cx-tracking__block" style={{ flex: 1, overflowY: "auto" }}>
-          <div className="cx-block__title">
-            <strong>محتويات الطلب</strong>
-            <small>{displayOrder.lines.length} أطباق</small>
-          </div>
-          {displayOrder.lines.map((line) => (
-            <div className="cx-lline" key={line.key}>
-              <div>
-                <strong>
-                  {line.qty} × {line.item.name}
-                </strong>
-                <small>
-                  {line.options.length
-                    ? line.options.map((o) => o.name).join(" · ")
-                    : "بدون إضافات"}
-                </small>
-              </div>
-              <b>
-                {formatSyp(
-                  (line.item.price +
-                    line.options.reduce((a, o) => a + o.price, 0)) *
-                    line.qty,
-                )}
-              </b>
-            </div>
-          ))}
-        </section>
+        <div className="cx-track__body">
+          {!cancelled && (
+            <ol className="cx-timeline">
+              {steps.map((step, i) => {
+                const done = i <= current;
+                const now = i === current;
+                return (
+                  <li
+                    key={step}
+                    className={`cx-tl${done ? " is-done" : ""}${
+                      now ? " is-now" : ""
+                    }`}
+                    aria-current={now ? "step" : undefined}
+                  >
+                    <span className="cx-tl__dot" aria-hidden="true">
+                      {done ? <Check size={14} /> : <i className="mono-num">{i + 1}</i>}
+                    </span>
+                    <span className="cx-tl__txt">
+                      <b>{statusLabels[step]}</b>
+                      <small>
+                        {now
+                          ? "نحن هنا الآن"
+                          : done
+                            ? "تم"
+                            : "الخطوة التالية"}
+                      </small>
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
 
-        <footer className="cx-tracking__foot">
+          {cancelled && (
+            <div className="cx-track__cancel">
+              <span className="cx-track__cancel-ico" aria-hidden="true">
+                <X size={20} />
+              </span>
+              <div>
+                <b>طلب ملغى</b>
+                <p>
+                  {displayOrder.cancellationReason ||
+                    "تم إلغاء الطلب من قبل المطعم. تواصل معنا عبر واتساب لأي استفسار."}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <section className="cx-track__lines">
+            <header className="cx-track__sub">
+              <h3>محتويات الطلب</h3>
+              <span className="mono-num">{displayOrder.lines.length} أطباق</span>
+            </header>
+            {displayOrder.lines.map((line) => {
+              const lineTotal =
+                (line.item.price +
+                  line.options.reduce((a, o) => a + o.price, 0)) *
+                line.qty;
+              return (
+                <div className="cx-track__line" key={line.key}>
+                  <span className="cx-track__thumb">
+                    <img src={line.item.image} alt="" loading="lazy" />
+                    <b className="mono-num">{line.qty}</b>
+                  </span>
+                  <span className="cx-track__mid">
+                    <strong>{line.item.name}</strong>
+                    <small>
+                      {line.options.length
+                        ? line.options.map((o) => o.name).join(" · ")
+                        : "بدون إضافات"}
+                      {line.note ? ` — ${line.note}` : ""}
+                    </small>
+                  </span>
+                  <b className="cx-track__amt mono-num">
+                    {fmtSyp(lineTotal)}
+                  </b>
+                </div>
+              );
+            })}
+          </section>
+        </div>
+
+        <footer className="cx-track__foot">
           {trackingMessage && (
-            <span className="cx-tracking__msg">
-              <ShieldCheck />
+            <span className="cx-track__live">
+              <i aria-hidden="true" />
               {trackingMessage}
             </span>
           )}
           <button
             type="button"
-            className="cx-wa-btn"
+            className="cx-track__wa"
             onClick={() => onWhatsApp(displayOrder)}
           >
-            <ShoppingBasket />
+            <MessageCircle size={19} aria-hidden="true" />
             تواصل مع المطعم عبر واتساب
           </button>
         </footer>

@@ -14,6 +14,7 @@ import {
   ScanLine,
   ShoppingBasket,
   Smartphone,
+  Star,
   Store,
   Utensils,
   Wallet,
@@ -112,10 +113,14 @@ const TAG_EN: Record<string, string> = {
 
 type Copy = {
   navSub: string;
+  navAriaLabel: string;
+  mobileNavAria: string;
   langLabel: string;
   adminLabel: string;
   navLinks: { href: string; label: string }[];
   tryCta: string;
+  edition: string;
+  marquee: string[];
   heroEyebrow: string;
   heroScript: string;
   heroTitleA: string;
@@ -123,13 +128,9 @@ type Copy = {
   heroSub: string;
   heroCtaDemo: string;
   heroCtaHow: string;
+  scanLabel: string;
   stats: Stat[];
-  promoKind: string;
   promoLive: string;
-  promoDishLabel: string;
-  promoCta: (name: string) => string;
-  promoHowTitle: string;
-  promoHowText: string;
   dishesKicker: string;
   dishesTitle: string;
   dishesSub: string;
@@ -139,10 +140,12 @@ type Copy = {
   howKicker: string;
   howTitle: string;
   howSub: string;
+  howFooter: string;
   steps: Step[];
   featKicker: string;
   featTitle: string;
   featSub: string;
+  featNote: string;
   features: Feature[];
   demoKicker: string;
   demoTitle: string;
@@ -151,6 +154,7 @@ type Copy = {
   demoNames: DemoLink[];
   demoButton: (name: string) => string;
   demoNote: string;
+  ctaScript: string;
   ctaTitle: string;
   ctaSub: string;
   ctaBtn1: string;
@@ -161,12 +165,16 @@ type Copy = {
   footerAdminTitle: string;
   footerDemos: DemoLink[];
   footerAdmin: string;
+  footerStatus: string;
+  madeIn: string;
   openAria: string;
   closeAria: string;
 };
 
 const AR: Copy = {
   navSub: PLATFORM_TAGLINE_AR,
+  navAriaLabel: "روابط التنقل الرئيسية",
+  mobileNavAria: "قائمة التنقل للجوال",
   langLabel: "EN",
   adminLabel: PLATFORM_ADMIN_LABEL_AR,
   navLinks: [
@@ -176,6 +184,13 @@ const AR: Copy = {
     { href: "#demos", label: "متاجر حية" },
   ],
   tryCta: "جرّب المتجر التجريبي",
+  edition: "المجلد الأول · دمشق",
+  marquee: [
+    "اطلب من الطاولة",
+    "بلا تطبيق",
+    "دفع محلي مرن",
+    "قوائم رقمية عربية",
+  ],
   heroEyebrow: "منصّة سورية للقوائم الرقمية والطلب من الطاولة",
   heroScript: "اطلب وأنت جالس على طاولتك",
   heroTitleA: "لكل مطعم ومقهى",
@@ -183,18 +198,13 @@ const AR: Copy = {
   heroSub: PLATFORM_DESCRIPTION_AR,
   heroCtaDemo: "جرّب المتجر التجريبي",
   heroCtaHow: "كيف تعمل؟",
+  scanLabel: "امسح · اطلب · استمتع",
   stats: [
     { value: "٣", unit: "خطوات", desc: "لطلبك: من المسح حتى المطبخ" },
     { value: "١", unit: "رمز QR", desc: "لكل طاولة في مطعمك" },
     { value: "٠", unit: "تطبيق", desc: "على الهاتف — كل شيء من المتصفح" },
   ],
-  promoKind: "مطعم شامي",
   promoLive: "مثال حيّ من مطبخنا",
-  promoDishLabel: "طبق اليوم",
-  promoCta: (name) => `افتح متجر ${name}`,
-  promoHowTitle: "متجر رقمي لمطبخك",
-  promoHowText:
-    "قائمة رقمية بلون علامتك، طلب مباشر من الطاولة، ودفع محلي مرن.",
   dishesKicker: "من قوائمنا الحية",
   dishesTitle: "أطباق تليق بمائدتك",
   dishesSub:
@@ -206,6 +216,7 @@ const AR: Copy = {
   howTitle: "من الطاولة إلى المطبخ في لحظات",
   howSub:
     "ثلاث خطوات بسيطة تفصل زبونك عن الطبق — بلا تطبيق يُحمَّل ولا رقم يُحفظ.",
+  howFooter: "من المطبخ الشامي إلى طاولتك — بلا جرسون ولا انتظار.",
   steps: [
     {
       icon: QrCode,
@@ -227,6 +238,7 @@ const AR: Copy = {
   featTitle: "كل ما يحتاجه مطعمك <em>في مكان واحد</em>",
   featSub:
     "صُممت المنصة للمطاعم والمقاهي السورية: سهلة لزبونك، وقوية لإدارتك.",
+  featNote: "صُنعت في دمشق · لكل المطاعم والمقاهي السورية",
   features: [
     {
       icon: Store,
@@ -270,6 +282,7 @@ const AR: Copy = {
   demoButton: (name) => `افتح متجر ${name}`,
   demoNote:
     "هذه متاجر حية — جرّب تجربة الطلب الكاملة من أول طبق حتى إرسال الطلب.",
+  ctaScript: "ألف هنا وصحة",
   ctaTitle: "جاهز لقائمة رقمية تليق بمطبخك؟",
   ctaSub: "ابدأ بمتجر تجريبي اليوم — مجاناً وبلا تعقيد.",
   ctaBtn1: "جرّب سُفرة الشام",
@@ -283,12 +296,16 @@ const AR: Copy = {
     { slug: "cozy", label: "Cozy Corner" },
   ],
   footerAdmin: PLATFORM_ADMIN_LABEL_AR,
+  footerStatus: "منصة سورية · قوائم رقمية وطلبات مباشرة",
+  madeIn: "صُنع بحب في سوريا",
   openAria: "فتح قائمة التنقل",
   closeAria: "إغلاق قائمة التنقل",
 };
 
 const EN: Copy = {
   navSub: PLATFORM_TAGLINE_EN,
+  navAriaLabel: "Primary navigation",
+  mobileNavAria: "Mobile navigation menu",
   langLabel: "عربي",
   adminLabel: PLATFORM_ADMIN_LABEL_EN,
   navLinks: [
@@ -298,6 +315,13 @@ const EN: Copy = {
     { href: "#demos", label: "Live stores" },
   ],
   tryCta: "Try a live demo",
+  edition: "Vol. 01 · Damascus",
+  marquee: [
+    "Order from the table",
+    "No app needed",
+    "Flexible local payments",
+    "Bilingual digital menus",
+  ],
   heroEyebrow: "A Syrian platform for digital menus and table ordering",
   heroScript: "Order from your seat",
   heroTitleA: "Every restaurant & café gets its own",
@@ -305,18 +329,13 @@ const EN: Copy = {
   heroSub: PLATFORM_DESCRIPTION_EN,
   heroCtaDemo: "Try a live demo",
   heroCtaHow: "How it works?",
+  scanLabel: "Scan · Order · Enjoy",
   stats: [
     { value: "3", unit: "steps", desc: "to order — from scan to kitchen" },
     { value: "1", unit: "QR code", desc: "per table in your venue" },
     { value: "0", unit: "apps", desc: "to install — everything runs in the browser" },
   ],
-  promoKind: "Levantine restaurant",
   promoLive: "Live from our kitchen",
-  promoDishLabel: "Today's dish",
-  promoCta: (name) => `Open ${name}`,
-  promoHowTitle: "A digital storefront for your kitchen",
-  promoHowText:
-    "A QR menu in your brand colours, direct table ordering and flexible local payments.",
   dishesKicker: "From our live menus",
   dishesTitle: "Dishes worthy of your table",
   dishesSub:
@@ -328,6 +347,7 @@ const EN: Copy = {
   howTitle: "From table to kitchen in moments",
   howSub:
     "Three simple steps separate your guest from the dish — no app to download, no number to remember.",
+  howFooter: "From the Damascene kitchen to your table — no waiter, no waiting.",
   steps: [
     {
       icon: QrCode,
@@ -349,6 +369,7 @@ const EN: Copy = {
   featTitle: "Everything your venue needs, <em>in one place</em>",
   featSub:
     "Built for Syrian restaurants and cafés: effortless for your guests, powerful for your team.",
+  featNote: "Made in Damascus · for every Syrian restaurant & café",
   features: [
     {
       icon: Store,
@@ -392,6 +413,7 @@ const EN: Copy = {
   demoButton: (name) => `Open ${name}`,
   demoNote:
     "These are real working stores — experience the full ordering journey from your first dish to sending the order.",
+  ctaScript: "Bon appétit",
   ctaTitle: "Ready for a digital menu that suits your kitchen?",
   ctaSub: "Start with a free demo store today — no strings attached.",
   ctaBtn1: "Try Sufra Sham",
@@ -406,6 +428,8 @@ const EN: Copy = {
     { slug: "cozy", label: "Cozy Corner" },
   ],
   footerAdmin: PLATFORM_ADMIN_LABEL_EN,
+  footerStatus: "Proudly Syrian · digital menus & direct orders",
+  madeIn: "Made with love in Syria",
   openAria: "Open navigation menu",
   closeAria: "Close navigation menu",
 };
@@ -425,7 +449,7 @@ export default function LandingPage({
 }): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const t = language === "ar" ? AR : EN;
-    const demoOf = (slug: string) => DEMOS.find((d) => d.slug === slug) ?? DEMOS[0];
+  const demoOf = (slug: string) => DEMOS.find((d) => d.slug === slug) ?? DEMOS[0];
   const demoName = (d: Demo) => (language === "ar" ? d.nameAr : d.nameEn);
   const demoKind = (d: Demo) => (language === "ar" ? d.kindAr : d.kindEn);
   const demoLocation = (d: Demo) =>
@@ -437,7 +461,7 @@ export default function LandingPage({
     language === "ar" ? i.category : CATEGORY_EN[i.category] ?? "";
   const dishTags = (i: Item) =>
     language === "ar"
-      ? i.tags.map((tag) => tag === "chef" ? "اختيار الشيف" : tag === "vegetarian" ? "نباتي" : "حار")
+      ? i.tags.map((tag) => (tag === "chef" ? "اختيار الشيف" : tag === "vegetarian" ? "نباتي" : "حار"))
       : i.tags.map((tag) => TAG_EN[tag] ?? tag);
 
   const openDemo = (slug: string) => {
@@ -449,6 +473,7 @@ export default function LandingPage({
   const cozyDemo = demoOf("cozy");
   const mainDish = dishById("chicken");
   const cozyDish = dishById("coffee");
+  const marquee = [...t.marquee, ...t.marquee, ...t.marquee, ...t.marquee];
 
   return (
     <div
@@ -460,9 +485,10 @@ export default function LandingPage({
         {language === "ar" ? "تخطَّ إلى المحتوى" : "Skip to content"}
       </a>
 
+      {/* ================= NAV ================= */}
       <header className="lp-nav">
         <div className="lp-nav__inner">
-          <div className="lp-nav__start">
+          <a className="lp-brand" href="#top" aria-label={`${PLATFORM_NAME} — ${t.navSub}`}>
             <span className="lp-brand__mark" aria-hidden="true">
               <Utensils size={20} strokeWidth={2.4} />
             </span>
@@ -470,12 +496,9 @@ export default function LandingPage({
               <strong className="lp-brand__name">{PLATFORM_NAME}</strong>
               <small className="lp-brand__sub">{t.navSub}</small>
             </span>
-          </div>
+          </a>
 
-          <nav
-            className="lp-nav__links"
-            aria-label={language === "ar" ? "روابط التنقل" : "Navigation links"}
-          >
+          <nav className="lp-nav__links" aria-label={t.navAriaLabel}>
             {t.navLinks.map((link) => (
               <a key={link.href} href={link.href}>
                 {link.label}
@@ -494,7 +517,7 @@ export default function LandingPage({
                   : "التبديل إلى العربية"
               }
             >
-              <Globe2 size={16} />
+              <Globe2 size={16} aria-hidden="true" />
               <span>{t.langLabel}</span>
             </button>
             <button type="button" className="lp-btn lp-admin" onClick={onOpenAdmin}>
@@ -508,7 +531,7 @@ export default function LandingPage({
               aria-label={menuOpen ? t.closeAria : t.openAria}
               onClick={() => setMenuOpen((open) => !open)}
             >
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
+              {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -517,7 +540,7 @@ export default function LandingPage({
           <nav
             id="lp-mobile-menu"
             className="lp-nav-menu"
-            aria-label={language === "ar" ? "قائمة الجوال" : "Mobile menu"}
+            aria-label={t.mobileNavAria}
           >
             {t.navLinks.map((link) => (
               <a
@@ -530,14 +553,14 @@ export default function LandingPage({
             ))}
             <div className="lp-nav-menu__row">
               <button type="button" onClick={onToggleLanguage}>
-                <Globe2 size={16} />
+                <Globe2 size={16} aria-hidden="true" />
                 {t.langLabel}
               </button>
               <button type="button" onClick={onOpenAdmin}>
                 {t.adminLabel}
               </button>
               <button type="button" onClick={() => openDemo("sufra")}>
-                <Utensils size={16} />
+                <Utensils size={16} aria-hidden="true" />
                 {t.tryCta}
               </button>
             </div>
@@ -548,173 +571,151 @@ export default function LandingPage({
       <main id="lp-main">
         {/* ================= HERO ================= */}
         <section className="lp-hero" id="top">
-          <div className="lp-hero__sun lp-hero__sun--a" aria-hidden="true" />
-          <div className="lp-hero__sun lp-hero__sun--b" aria-hidden="true" />
+          <span className="lp-hero__texture" aria-hidden="true" />
+          <span className="lp-hero__orb lp-hero__orb--a" aria-hidden="true" />
+          <span className="lp-hero__orb lp-hero__orb--b" aria-hidden="true" />
 
           <div className="lp-inner">
-            <div className="lp-hero__intro">
-              <span className="lp-eyebrow">
-                <Flame size={15} strokeWidth={2.4} />
-                {t.heroEyebrow}
-              </span>
-              <p className="lp-hero__script">{t.heroScript}</p>
-              <h1 className="lp-hero__title">
-                <span>{t.heroTitleA}</span>
-                <span className="lp-hero__title-accent">{t.heroTitleB}</span>
-              </h1>
-              <p className="lp-hero__sub">{t.heroSub}</p>
-              <div className="lp-hero__cta">
-                <button
-                  type="button"
-                  className="lp-btn lp-btn--red"
-                  onClick={() => openDemo("sufra")}
-                >
-                  {t.heroCtaDemo}
-                  <ArrowRight />
-                </button>
-                <a href="#how" className="lp-btn lp-btn--light">
-                  {t.heroCtaHow}
-                </a>
-              </div>
-            </div>
-
-            {/* Promotional grid */}
-            <div className="lp-promos">
-              <article className="lp-promo lp-promo--red">
-                <span className="lp-promo__burst" aria-hidden="true" />
-                <div className="lp-promo__copy">
-                  <span className="lp-promo__kicker">
-                    <i />
-                    {demoKind(mainDemo)}
-                  </span>
-                  <h2>{demoName(mainDemo)}</h2>
-                  <p>
-                    {language === "ar" ? mainDemo.subAr : mainDemo.subEn}
-                  </p>
-                  <span className="lp-promo__dish">
-                    {t.promoDishLabel} · {dishName(mainDish)}
-                  </span>
+            <div className="lp-hero__grid">
+              <div className="lp-hero__intro">
+                <span className="lp-kicker lp-kicker--hero">
+                  <span className="lp-kicker__bar" aria-hidden="true" />
+                  {t.heroEyebrow}
+                </span>
+                <p className="lp-hero__script">{t.heroScript}</p>
+                <h1 className="lp-hero__title">
+                  <span>{t.heroTitleA}</span>
+                  <span className="lp-hero__title-accent">{t.heroTitleB}</span>
+                </h1>
+                <p className="lp-hero__sub">{t.heroSub}</p>
+                <div className="lp-hero__cta">
                   <button
                     type="button"
                     className="lp-btn lp-btn--yellow"
-                    onClick={() => openDemo(mainDemo.slug)}
+                    onClick={() => openDemo("sufra")}
                   >
-                    {t.promoCta(demoName(mainDemo))}
-                    <ArrowRight />
+                    {t.heroCtaDemo}
+                    <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
                   </button>
-                </div>
-                <div className="lp-promo__media">
-                  <img src={mainDish.image} alt={dishName(mainDish)} />
-                  <span className="lp-promo__badge">
-                    <b>{formatSyp(mainDish.price)}</b>
-                    <small>{t.promoLive}</small>
-                  </span>
-                </div>
-              </article>
-
-              <article className="lp-promo lp-promo--yellow">
-                <div className="lp-promo__media">
-                  <img src={cozyDish.image} alt={dishName(cozyDish)} />
-                </div>
-                <div className="lp-promo__copy">
-                  <span className="lp-promo__kicker">
-                    <i />
-                    {demoKind(cozyDemo)}
-                  </span>
-                  <h2>{demoName(cozyDemo)}</h2>
-                  <p>
-                    {language === "ar" ? cozyDemo.subAr : cozyDemo.subEn}
-                  </p>
-                  <span className="lp-promo__dish">
-                    {t.promoDishLabel} · {dishName(cozyDish)}
-                  </span>
-                  <div className="lp-promo__row">
-                    <button
-                      type="button"
-                      className="lp-btn lp-btn--ink"
-                      onClick={() => openDemo(cozyDemo.slug)}
-                    >
-                      {t.promoCta(demoName(cozyDemo))}
-                      <ArrowRight />
-                    </button>
-                    <span className="lp-promo__chip">
-                      {formatSyp(cozyDish.price)}
-                    </span>
-                  </div>
-                </div>
-              </article>
-
-              <article className="lp-promo lp-promo--teal">
-                <div className="lp-promo__copy">
-                  <span className="lp-promo__kicker">
-                    <i />
-                    SYRIAN QR
-                  </span>
-                  <h2>{t.promoHowTitle}</h2>
-                  <p>{t.promoHowText}</p>
-                  <div className="lp-promo__ticks">
-                    <span>
-                      <Check size={13} strokeWidth={3} /> {t.stats[1].unit} QR
-                    </span>
-                    <span>
-                      <Check size={13} strokeWidth={3} /> {t.stats[2].unit} {language === "ar" ? "تطبيقات" : "apps"}
-                    </span>
-                    <span>
-                      <Check size={13} strokeWidth={3} /> {language === "ar" ? "دفع محلي" : "Local payments"}
-                    </span>
-                  </div>
-                  <a href="#how" className="lp-btn lp-btn--light">
+                  <a href="#how" className="lp-btn lp-btn--ghost">
                     {t.heroCtaHow}
-                    <ArrowRight />
                   </a>
                 </div>
-                <div className="lp-promo__qr" aria-hidden="true">
-                  <QrCode size={150} strokeWidth={1.1} />
-                </div>
-              </article>
-            </div>
 
-            {/* Stats band */}
-            <dl className="lp-stats">
-              {t.stats.map((stat) => (
-                <div className="lp-stat" key={stat.unit + stat.value}>
-                  <dt>
-                    <span className="lp-stat__value">{stat.value}</span>
-                    <span className="lp-stat__unit">{stat.unit}</span>
-                  </dt>
-                  <dd>{stat.desc}</dd>
-                </div>
-              ))}
-            </dl>
+                <dl className="lp-stats">
+                  {t.stats.map((stat, index) => (
+                    <div className="lp-stat" key={stat.unit + stat.value}>
+                      <dt>
+                        <span className="lp-stat__num" aria-hidden="true">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="lp-stat__value">{stat.value}</span>
+                        <span className="lp-stat__unit">{stat.unit}</span>
+                      </dt>
+                      <dd>{stat.desc}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              <div className="lp-hero__stage">
+                <span className="lp-hero__edition">
+                  {PLATFORM_NAME} — {t.edition}
+                </span>
+
+                <figure className="lp-hero__plate lp-hero__plate--main">
+                  <img src={mainDish.image} alt={dishName(mainDish)} />
+                  <span className="lp-hero__burst" aria-hidden="true">
+                    <Star size={30} fill="currentColor" strokeWidth={0} />
+                  </span>
+                  <figcaption>
+                    <span className="lp-hero__plate-index">01</span>
+                    <span className="lp-hero__plate-title">
+                      <small>{dishCategory(mainDish)}</small>
+                      <strong>{dishName(mainDish)}</strong>
+                    </span>
+                    <b className="lp-hero__plate-price">{formatSyp(mainDish.price)}</b>
+                  </figcaption>
+                </figure>
+
+                <figure className="lp-hero__plate lp-hero__plate--side">
+                  <img src={cozyDish.image} alt={dishName(cozyDish)} />
+                  <figcaption>
+                    <span className="lp-hero__plate-index">02</span>
+                    <span className="lp-hero__plate-title">
+                      <small>{t.promoLive}</small>
+                      <strong>{dishName(cozyDish)}</strong>
+                    </span>
+                    <b className="lp-hero__plate-price">{formatSyp(cozyDish.price)}</b>
+                  </figcaption>
+                </figure>
+
+                <span className="lp-hero__scan" aria-hidden="true">
+                  <QrCode size={22} strokeWidth={1.8} />
+                  <span>{t.scanLabel}</span>
+                </span>
+
+                <span className="lp-hero__num" aria-hidden="true">
+                  {language === "ar" ? "٠٢" : "02"}
+                </span>
+              </div>
+            </div>
           </div>
         </section>
+
+        {/* ================= TICKER ================= */}
+        <div className="lp-ticker" aria-hidden="true">
+          <div className="lp-ticker__track">
+            {marquee.map((item, index) => (
+              <span className="lp-ticker__item" key={`${item}-${index}`}>
+                <Star size={13} fill="currentColor" strokeWidth={0} />
+                {item}
+                <i />
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* ================= POPULAR DISHES ================= */}
         <section className="lp-section lp-section--paper" id="dishes">
           <div className="lp-inner">
-            <div className="lp-head lp-head--center">
-              <span className="section-kicker">{t.dishesKicker}</span>
-              <h2 className="section-title">{t.dishesTitle}</h2>
-              <p className="section-sub lp-head__sub">{t.dishesSub}</p>
-            </div>
+            <header className="lp-head lp-head--split">
+              <div className="lp-head__title">
+                <span className="lp-kicker">
+                  <span className="lp-kicker__bar" aria-hidden="true" />
+                  <b className="lp-kicker__num" aria-hidden="true">01</b>
+                  {t.dishesKicker}
+                </span>
+                <h2 className="lp-title">{t.dishesTitle}</h2>
+              </div>
+              <p className="lp-head__sub">{t.dishesSub}</p>
+            </header>
 
             <div className="lp-dishes">
-              {DISHES.map((pick) => {
+              {DISHES.map((pick, index) => {
                 const item = pick.item;
                 const tags = dishTags(item);
                 return (
                   <article className="lp-dish" key={item.id}>
-                    <button
-                      type="button"
-                      className="lp-dish__media"
-                      onClick={() => openDemo(pick.slug)}
-                      aria-label={`${dishName(item)} — ${t.dishFull}`}
-                    >
-                      <img src={item.image} alt={dishName(item)} loading="lazy" />
-                      {item.popular && (
-                        <span className="lp-dish__badge">{t.dishBadge}</span>
-                      )}
-                    </button>
+                    <div className="lp-dish__frame">
+                      <button
+                        type="button"
+                        className="lp-dish__media"
+                        onClick={() => openDemo(pick.slug)}
+                        aria-label={`${dishName(item)} — ${t.dishFull}`}
+                      >
+                        <img src={item.image} alt={dishName(item)} loading="lazy" />
+                        <span className="lp-dish__num" aria-hidden="true">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        {item.popular && (
+                          <span className="lp-dish__badge">
+                            <Star size={11} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+                            {t.dishBadge}
+                          </span>
+                        )}
+                      </button>
+                    </div>
                     <div className="lp-dish__body">
                       <span className="lp-dish__cat">{dishCategory(item)}</span>
                       <button
@@ -738,11 +739,11 @@ export default function LandingPage({
                         </strong>
                         <button
                           type="button"
-                          className="lp-dish__btn"
+                          className="lp-btn lp-btn--mini lp-btn--ink"
                           onClick={() => openDemo(pick.slug)}
                         >
                           {t.dishesCta}
-                          <ArrowRight size={16} />
+                          <ArrowRight size={15} className="lp-arrow" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -754,24 +755,28 @@ export default function LandingPage({
         </section>
 
         {/* ================= HOW ================= */}
-        <section className="lp-section" id="how">
+        <section className="lp-section lp-section--teal" id="how">
           <div className="lp-inner">
-            <div className="lp-head">
-              <span className="section-kicker">{t.howKicker}</span>
-              <h2 className="section-title">{t.howTitle}</h2>
-              <p className="section-sub lp-head__sub">{t.howSub}</p>
-            </div>
+            <header className="lp-head lp-head--center lp-head--on-dark">
+              <span className="lp-kicker lp-kicker--on-dark">
+                <span className="lp-kicker__bar" aria-hidden="true" />
+                <b className="lp-kicker__num" aria-hidden="true">02</b>
+                {t.howKicker}
+              </span>
+              <h2 className="lp-title">{t.howTitle}</h2>
+              <p className="lp-head__sub">{t.howSub}</p>
+            </header>
 
             <div className="lp-steps">
               {t.steps.map((step, index) => {
                 const Icon = step.icon;
                 return (
                   <article className="lp-step" key={step.title}>
-                    <span className="lp-step__num">
+                    <span className="lp-step__num" aria-hidden="true">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span className="lp-step__icon">
-                      <Icon size={26} />
+                      <Icon size={26} strokeWidth={2} aria-hidden="true" />
                     </span>
                     <h3>{step.title}</h3>
                     <p>{step.text}</p>
@@ -779,28 +784,42 @@ export default function LandingPage({
                 );
               })}
             </div>
+
+            <p className="lp-how__foot">
+              <Check size={16} strokeWidth={3} aria-hidden="true" />
+              {t.howFooter}
+            </p>
           </div>
         </section>
 
         {/* ================= FEATURES ================= */}
-        <section className="lp-section lp-section--alt" id="features">
+        <section className="lp-section lp-section--cream" id="features">
           <div className="lp-inner">
-            <div className="lp-head lp-head--center">
-              <span className="section-kicker">{t.featKicker}</span>
-              <h2
-                className="section-title"
-                dangerouslySetInnerHTML={{ __html: t.featTitle }}
-              />
-              <p className="section-sub lp-head__sub">{t.featSub}</p>
-            </div>
+            <header className="lp-head lp-head--split">
+              <div className="lp-head__title">
+                <span className="lp-kicker">
+                  <span className="lp-kicker__bar" aria-hidden="true" />
+                  <b className="lp-kicker__num" aria-hidden="true">03</b>
+                  {t.featKicker}
+                </span>
+                <h2
+                  className="lp-title"
+                  dangerouslySetInnerHTML={{ __html: t.featTitle }}
+                />
+              </div>
+              <p className="lp-head__sub">{t.featSub}</p>
+            </header>
 
             <div className="lp-features">
-              {t.features.map((feature) => {
+              {t.features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
                   <article className="lp-feature" key={feature.title}>
+                    <span className="lp-feature__index" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                     <span className="lp-feature__icon">
-                      <Icon size={22} />
+                      <Icon size={22} aria-hidden="true" />
                     </span>
                     <h3>{feature.title}</h3>
                     <p>{feature.text}</p>
@@ -808,20 +827,31 @@ export default function LandingPage({
                 );
               })}
             </div>
+
+            <p className="lp-feat__note">
+              <Flame size={15} strokeWidth={2.2} aria-hidden="true" />
+              {t.featNote}
+            </p>
           </div>
         </section>
 
         {/* ================= LIVE STORES ================= */}
-        <section className="lp-section" id="demos">
+        <section className="lp-section lp-section--paper" id="demos">
           <div className="lp-inner">
-            <div className="lp-head">
-              <span className="section-kicker">{t.demoKicker}</span>
-              <h2 className="section-title">{t.demoTitle}</h2>
-              <p className="section-sub lp-head__sub">{t.demoSub}</p>
-            </div>
+            <header className="lp-head lp-head--split">
+              <div className="lp-head__title">
+                <span className="lp-kicker">
+                  <span className="lp-kicker__bar" aria-hidden="true" />
+                  <b className="lp-kicker__num" aria-hidden="true">04</b>
+                  {t.demoKicker}
+                </span>
+                <h2 className="lp-title">{t.demoTitle}</h2>
+              </div>
+              <p className="lp-head__sub">{t.demoSub}</p>
+            </header>
 
             <div className="lp-demos">
-              {DEMOS.map((demo) => {
+              {DEMOS.map((demo, index) => {
                 const pick =
                   demo.slug === "sufra"
                     ? dishById("kibbeh")
@@ -830,7 +860,13 @@ export default function LandingPage({
                   <article className="lp-demo" key={demo.slug}>
                     <div className="lp-demo__media">
                       <img src={pick.image} alt={demoName(demo)} loading="lazy" />
-                      <span className="lp-demo__badge">{t.demoBadge}</span>
+                      <span className="lp-demo__badge">
+                        <Star size={11} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+                        {t.demoBadge}
+                      </span>
+                      <span className="lp-demo__num" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
                     </div>
                     <div className="lp-demo__body">
                       <span className="lp-demo__kind">{demoKind(demo)}</span>
@@ -839,17 +875,23 @@ export default function LandingPage({
                         {language === "ar" ? demo.subAr : demo.subEn}
                       </p>
                       <p className="lp-demo__loc">
-                        <MapPin size={14} />
+                        <MapPin size={14} aria-hidden="true" />
                         {demoLocation(demo)}
                       </p>
-                      <button
-                        type="button"
-                        className="lp-demo-btn"
-                        onClick={() => openDemo(demo.slug)}
-                      >
-                        {t.demoButton(demoName(demo))}
-                        <ArrowRight size={17} />
-                      </button>
+                      <div className="lp-demo__foot">
+                        <button
+                          type="button"
+                          className="lp-btn lp-btn--red"
+                          onClick={() => openDemo(demo.slug)}
+                        >
+                          {t.demoButton(demoName(demo))}
+                          <ArrowRight size={17} className="lp-arrow" aria-hidden="true" />
+                        </button>
+                        <span className="lp-demo__chip">
+                          <Utensils size={14} aria-hidden="true" />
+                          {formatSyp(pick.price)}
+                        </span>
+                      </div>
                     </div>
                   </article>
                 );
@@ -860,19 +902,17 @@ export default function LandingPage({
           </div>
         </section>
 
-        {/* ================= FEATURED OFFER ================= */}
+        {/* ================= CTA ================= */}
         <section className="lp-section lp-offer-wrap">
           <div className="lp-inner">
             <div className="lp-offer">
-              <div className="lp-offer__burst" aria-hidden="true" />
+              <span className="lp-offer__burst" aria-hidden="true" />
               <span className="lp-offer__disc" aria-hidden="true">
                 <small>٪</small>
                 <b>{language === "ar" ? "شهي" : "Tasty"}</b>
               </span>
               <div className="lp-offer__copy">
-                <p className="lp-offer__script">
-                  {language === "ar" ? "ألف هنا وصحة" : "Bon appétit"}
-                </p>
+                <p className="lp-offer__script">{t.ctaScript}</p>
                 <h2>{t.ctaTitle}</h2>
                 <p className="lp-offer__sub">{t.ctaSub}</p>
                 <div className="lp-offer__actions">
@@ -882,7 +922,7 @@ export default function LandingPage({
                     onClick={() => openDemo("sufra")}
                   >
                     {t.ctaBtn1}
-                    <ArrowRight />
+                    <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -890,13 +930,17 @@ export default function LandingPage({
                     onClick={() => openDemo("cozy")}
                   >
                     {t.ctaBtn2}
-                    <ArrowRight />
+                    <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
                   </button>
                 </div>
-                <small className="lp-offer__print">{t.ctaPrint}</small>
+                <small className="lp-offer__print">
+                  <Check size={14} strokeWidth={3} aria-hidden="true" />
+                  {t.ctaPrint}
+                </small>
               </div>
               <div className="lp-offer__plate" aria-hidden="true">
                 <img src={dishById("burger").image} alt="" />
+                <span className="lp-offer__plate-num">٪</span>
               </div>
             </div>
           </div>
@@ -940,15 +984,17 @@ export default function LandingPage({
             <span className="lp-brand__mark" aria-hidden="true">
               <Globe2 size={16} />
             </span>
-            {language === "ar"
-              ? "منصة سورية · قوائم رقمية وطلبات مباشرة"
-              : "Proudly Syrian · digital menus & direct orders"}
+            {t.footerStatus}
           </div>
         </div>
         <div className="lp-footer__bottom">
           <div className="lp-inner">
             <span>
               © {new Date().getFullYear()} {PLATFORM_NAME}
+            </span>
+            <span className="lp-footer__made">
+              <Flame size={14} aria-hidden="true" />
+              {t.madeIn}
             </span>
           </div>
         </div>

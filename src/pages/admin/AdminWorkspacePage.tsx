@@ -1,11 +1,13 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-import { ArrowRight, Home, LayoutDashboard, Store } from "lucide-react";
+  ExternalLink,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  Store,
+  Utensils,
+} from "lucide-react";
 import { supabase } from "../../supabase";
 import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
@@ -307,11 +309,32 @@ export default function AdminWorkspacePage() {
 
   if (!authReady) {
     return (
-      <div className="app-root" dir={dir} style={cafeThemeVars(slug) as CSSProperties}>
-        <div className="admin section">
-          <div className="empty-state">
-            <h3>جارٍ التحقق من الجلسة…</h3>
+      <div
+        className="app-root adm-root"
+        dir={dir}
+        style={cafeThemeVars(slug) as CSSProperties}
+      >
+        <div className="adm-authloading" role="status" aria-live="polite">
+          <span className="sr-only">جارٍ التحقق من الجلسة…</span>
+          <div className="adm-authloading__card">
+            <div className="adm-authloading__head">
+              <span className="sk adm-authloading__seal" aria-hidden="true" />
+              <div className="adm-authloading__lines" aria-hidden="true">
+                <span className="sk" />
+                <span className="sk" />
+              </div>
+            </div>
+            <div className="adm-authloading__grid" aria-hidden="true">
+              <span className="sk" />
+              <span className="sk" />
+              <span className="sk" />
+            </div>
+            <div className="adm-authloading__foot" aria-hidden="true">
+              <span className="sk" />
+              <span className="sk" />
+            </div>
           </div>
+          <p className="adm-authloading__msg">جارٍ تجهيز مساحة عمل المطعم…</p>
         </div>
       </div>
     );
@@ -328,34 +351,69 @@ export default function AdminWorkspacePage() {
 
   return (
     <div
-      className="app-root"
+      className="app-root adm-root"
       dir={dir}
       style={cafeThemeVars(slug) as CSSProperties}
     >
-      <header className="admin-bar">
-        <button className="admin-bar__link" onClick={() => navigate("/")}>
-          <Home /> <span>SYRIAN QR</span>
-        </button>
-        <span className="admin-bar__sep">·</span>
-        {platformAdmin && (
-          <>
+      <header className="adm-bar">
+        <div className="adm-bar__in">
+          <button
+            type="button"
+            className="adm-bar__brand"
+            onClick={() => navigate("/")}
+            aria-label="الرجوع إلى الموقع العام"
+          >
+            <span className="adm-bar__seal">
+              <Utensils aria-hidden="true" />
+            </span>
+            <span className="adm-bar__word">
+              SYRIAN QR
+              <small>غرفة عمليات المطاعم</small>
+            </span>
+          </button>
+          <span className="adm-bar__sep" aria-hidden="true" />
+          <nav className="adm-bar__quick" aria-label="روابط سريعة">
+            {platformAdmin && (
+              <button
+                type="button"
+                className="adm-bar__link"
+                onClick={() => navigate("/platform")}
+              >
+                <LayoutDashboard aria-hidden="true" />
+                <span className="adm-linklabel">لوحة المنصة</span>
+              </button>
+            )}
             <button
-              className="admin-bar__link"
-              onClick={() => navigate("/platform")}
+              type="button"
+              className="adm-bar__link"
+              onClick={() => navigate("/")}
             >
-              <LayoutDashboard /> <span>لوحة المنصة</span>
+              <Home aria-hidden="true" />
+              <span className="adm-linklabel">الرئيسية</span>
             </button>
-            <span className="admin-bar__sep">·</span>
-          </>
-        )}
-        <button className="admin-bar__link" onClick={() => navigate(`/c/${slug}`)}>
-          <Store /> <span>المتجر</span>
-          <ArrowRight />
-        </button>
-        <span className="admin-bar__spacer" />
-        <button className="admin-bar__link" onClick={() => void signOut()}>
-          تسجيل الخروج
-        </button>
+            <button
+              type="button"
+              className="adm-bar__link"
+              onClick={() => navigate(`/c/${slug}`)}
+            >
+              <Store aria-hidden="true" />
+              <span className="adm-linklabel">عرض المتجر</span>
+              <ExternalLink
+                aria-hidden="true"
+                style={{ width: 13, height: 13 }}
+              />
+            </button>
+          </nav>
+          <span className="adm-bar__spacer" aria-hidden="true" />
+          <button
+            type="button"
+            className="adm-bar__signout"
+            onClick={() => void signOut()}
+          >
+            <LogOut aria-hidden="true" />
+            <span className="adm-linklabel">تسجيل الخروج</span>
+          </button>
+        </div>
       </header>
       <AdminView
         restaurant={restaurantForView}

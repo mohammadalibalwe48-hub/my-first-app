@@ -72,7 +72,12 @@ type CafeContextValue = {
   trackOrder: (o: Order) => void;
   closeTracking: () => void;
 
-  addToCart: (item: Item, options?: Option[], note?: string) => void;
+  addToCart: (
+    item: Item,
+    options?: Option[],
+    note?: string,
+    qty?: number,
+  ) => void;
   updateQty: (key: string, delta: number) => void;
   placeOrder: (form: HTMLFormElement) => Promise<void>;
   openWhatsApp: (order: Order) => Promise<void>;
@@ -183,7 +188,12 @@ export function CafeProvider({
     noticeTimer.current = window.setTimeout(() => setNotice(""), ms);
   };
 
-  const addToCart = (item: Item, options: Option[] = [], note = "") => {
+  const addToCart = (
+    item: Item,
+    options: Option[] = [],
+    note = "",
+    qty = 1,
+  ) => {
     const key = `${item.id}-${options
       .map((o) => o.id)
       .sort()
@@ -192,9 +202,9 @@ export function CafeProvider({
       const existing = current.find((line) => line.key === key);
       return existing
         ? current.map((line) =>
-            line.key === key ? { ...line, qty: line.qty + 1 } : line,
+            line.key === key ? { ...line, qty: line.qty + qty } : line,
           )
-        : [...current, { key, item, qty: 1, options, note }];
+        : [...current, { key, item, qty, options, note }];
     });
     setSelectedItem(null);
     showNotice("تمت الإضافة إلى الطلب", 1800);
