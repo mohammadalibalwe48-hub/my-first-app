@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Outlet,
   useLocation,
@@ -18,7 +18,12 @@ import {
 import { useUI } from "../context/UI";
 import { useAuth } from "../context/Auth";
 import { CafeProvider, useCafe } from "../context/Cafe";
-import { cafeThemeVars } from "../cafeTheme";
+import {
+  DEFAULT_MENU_DESIGN,
+  ensureGoogleFonts,
+  menuDesignAttrs,
+  menuDesignCssVars,
+} from "../menuDesign";
 import { formatSyp, formatUsd } from "../domain";
 import {
   CartDrawer,
@@ -78,6 +83,18 @@ function CafeShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const ds = restaurant.design ?? DEFAULT_MENU_DESIGN;
+  const designStyle = useMemo(
+    () => menuDesignCssVars(ds, restaurant.design ? undefined : restaurant.accent),
+    [ds, restaurant.design, restaurant.accent],
+  );
+  const designAttrs = useMemo(() => menuDesignAttrs(ds), [ds]);
+  const logoIsImage = Boolean(ds.content.logoUrl);
+
+  useEffect(() => {
+    ensureGoogleFonts(ds);
+  }, [ds.type.display, ds.type.body]);
+
   const overlays: ReactNode = (
     <>
       {cafe.selectedItem && (
@@ -131,7 +148,8 @@ function CafeShell() {
     <div
       className="cx"
       dir={dir}
-      style={cafeThemeVars(slug) as CSSProperties}
+      style={designStyle as CSSProperties}
+      {...designAttrs}
     >
       {/* Skip link for keyboard users */}
       <a className="cx-skip" href="#cx-main">
@@ -147,7 +165,11 @@ function CafeShell() {
             aria-label={`${restaurant.name} — العودة إلى القائمة`}
           >
             <span className="cx-brand__seal" aria-hidden="true">
-              {restaurant.logo || "م"}
+              {logoIsImage ? (
+                <img src={ds.content.logoUrl} alt="" />
+              ) : (
+                restaurant.logo || "م"
+              )}
             </span>
             <span className="cx-brand__id">
               <b>{restaurant.name}</b>

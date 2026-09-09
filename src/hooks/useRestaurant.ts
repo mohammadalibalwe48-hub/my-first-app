@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabase";
+import { normalizeMenuDesign } from "../menuDesign";
 import {
   defaultCategories,
   images,
@@ -54,6 +55,8 @@ function findBase(slug: string): Restaurant {
 const menuCache: Record<string, Item[]> = {};
 const categoryCache: Record<string, MenuCategory[]> = {};
 const settingsCache: Record<string, RestaurantSettings> = {};
+const accentCache: Record<string, string> = {};
+const designCache: Record<string, unknown> = {};
 
 export type RestaurantData = {
   slug: string;
@@ -76,6 +79,13 @@ export function useRestaurant(slug: string): RestaurantData {
   const [settings, setSettings] = useState<RestaurantSettings | null>(
     () => settingsCache[slug] ?? null,
   );
+  const [extra, setExtra] = useState<{
+    accent: string | null;
+    design: unknown;
+  }>(() => ({
+      accent: accentCache[slug] || null,
+      design: designCache[slug] ?? null,
+    }));
   const [ready, setReady] = useState<boolean>(() => !!menuCache[slug]);
   const [tableContext, setTableContext] =
     useState<PublicMenuPayload["table"]>(null);
@@ -86,6 +96,10 @@ export function useRestaurant(slug: string): RestaurantData {
       setMenuItems(menuCache[slug]);
       setCategories(categoryCache[slug]);
       setSettings(settingsCache[slug]);
+      setExtra({
+        accent: accentCache[slug] ?? null,
+        design: designCache[slug] ?? null,
+      });
       setReady(true);
       return;
     }
@@ -107,6 +121,15 @@ export function useRestaurant(slug: string): RestaurantData {
       }
       const payload = data as PublicMenuPayload;
       setTableContext(payload.table);
+      const fetchedAccent = payload.restaurant.accent ?? null;
+      const fetchedDesign =
+        payload.restaurant.design &&
+        typeof payload.restaurant.design === "object"
+          ? payload.restaurant.design
+          : null;
+      accentCache[slug] = fetchedAccent || "";
+      designCache[slug] = fetchedDesign;
+      setExtra({ accent: fetchedAccent, design: fetchedDesign });
 
       const nameByCategory = new Map(
         payload.categories.map((c) => [c.id, c.nameAr]),
@@ -204,8 +227,10 @@ export function useRestaurant(slug: string): RestaurantData {
       ...base,
       ...resolvedSettings,
       items: menuItems ?? base.items,
+      accent: extra.accent || base.accent,
+      design: extra.design ? normalizeMenuDesign(extra.design) : undefined,
     }),
-    [base, resolvedSettings, menuItems],
+    [base, resolvedSettings, menuItems, extra],
   );
   const customerCategories = useMemo(
     () => categories.filter((c) => c.visible && !c.archived),

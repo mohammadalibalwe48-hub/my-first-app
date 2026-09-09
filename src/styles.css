@@ -53,6 +53,15 @@
     --success: #177a47;
     --warn: #a76a00;
 
+    /* On-tone adaptive text (menu design system) */
+    --on-brand: #ffffff;
+    --on-brand-deep: #ffffff;
+    --on-action: #ffffff;
+    --on-ink: #ffffff;
+    --muted-brand: rgba(255, 255, 255, 0.78);
+    --faint-brand: rgba(255, 255, 255, 0.6);
+    --muted-action: rgba(255, 255, 255, 0.78);
+
     /* ---- Inverted (deep-teal) tokens for surfaces ---------------- */
     --teal-bg-1: #063239;
     --teal-bg-2: #04242a;

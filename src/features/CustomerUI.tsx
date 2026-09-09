@@ -165,10 +165,16 @@ function MenuView({
   onQuickAdd: (i: Item) => void;
 }) {
   const rate = restaurant.rate;
+  const designCover = restaurant.design?.content.coverUrl || "";
   const heroImage =
-    items.find((i) => i.image)?.image ??
-    restaurant.items.find((i) => i.image)?.image ??
+    designCover ||
+    items.find((i) => i.image)?.image ||
+    restaurant.items.find((i) => i.image)?.image ||
     images.mezze;
+  const designLogoUrl = restaurant.design?.content.logoUrl || "";
+  const bannerOn = restaurant.design?.content.bannerOn === true;
+  const bannerText = restaurant.design?.content.bannerText?.trim() || "";
+  const bannerTone = restaurant.design?.content.bannerTone || "brand";
   const itemCount = items.length;
 
   const catEntries = [
@@ -213,6 +219,13 @@ function MenuView({
 
   return (
     <div className="cx-store">
+      {bannerOn && bannerText && (
+        <div className={`cx-banner cx-banner--${bannerTone}`} role="status">
+          <span aria-hidden="true">✦</span>
+          <p>{bannerText}</p>
+        </div>
+      )}
+
       {/* ---- Editorial campaign hero ---- */}
       <section className="cx-hero">
         <span className="cx-hero__grain" aria-hidden="true" />
@@ -279,7 +292,11 @@ function MenuView({
               </span>
             </figure>
             <span className="cx-hero__seal" aria-hidden="true">
-              {restaurant.logo || "م"}
+              {designLogoUrl ? (
+                <img src={designLogoUrl} alt="" />
+              ) : (
+                restaurant.logo || "م"
+              )}
             </span>
           </div>
         </div>

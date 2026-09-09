@@ -29,6 +29,7 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  Palette,
   Pencil,
   Plus,
   Printer,
@@ -54,6 +55,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import { supabase } from "../supabase";
+import MenuDesignStudio from "./MenuDesignStudio";
 import {
   cafePath,
   formatSyp,
@@ -476,6 +478,7 @@ type AdminTab =
   | "tables"
   | "reports"
   | "operations"
+  | "design"
   | "settings";
 
 const TAB_ITEMS: {
@@ -489,6 +492,7 @@ const TAB_ITEMS: {
   { id: "tables", label: "الطاولات و QR", icon: QrCode },
   { id: "reports", label: "التقارير", icon: BarChart3 },
   { id: "operations", label: "الفريق والتشغيل", icon: Users },
+  { id: "design", label: "استوديو التصميم", icon: Palette },
   { id: "settings", label: "الإعدادات", icon: Settings },
 ];
 
@@ -599,6 +603,8 @@ function AdminView({
   const membership = memberships.find(
     (entry) => entry.restaurantSlug === restaurant.id,
   );
+  const canDesign =
+    membership?.role === "owner" || membership?.role === "manager";
   const activeOrdersCount = orders.filter(
     (o) => !["completed", "cancelled"].includes(o.status),
   ).length;
@@ -973,6 +979,14 @@ function AdminView({
             <OperationsPanel
               restaurantId={restaurant.id}
               restaurantDatabaseId={restaurantDatabaseId}
+            />
+          )}
+
+          {tab === "design" && (
+            <MenuDesignStudio
+              restaurant={restaurant}
+              restaurantDatabaseId={restaurantDatabaseId}
+              canEdit={canDesign}
             />
           )}
 
