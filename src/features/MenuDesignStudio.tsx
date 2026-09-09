@@ -4,14 +4,7 @@
    public.sync_menu_design. Live phone/desktop preview embeds the real
    storefront (/c/:slug) so every change is seen for real.
    ========================================================================== */
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  Component,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState, Component, type CSSProperties, type ReactNode } from "react";
 import {
   AlertCircle,
   Check,
@@ -20,19 +13,22 @@ import {
   ExternalLink,
   Loader2,
   Palette as PaletteIcon,
-  Play,
   RefreshCw,
   Upload,
   X,
 } from "lucide-react";
 import { supabase } from "../supabase";
-import type { MenuDesign, Restaurant } from "../domain";
+import type { MenuCategory, MenuDesign, Restaurant } from "../domain";
 import {
   DEFAULT_MENU_DESIGN,
+  ensureGoogleFonts,
+  menuDesignAttrs,
+  menuDesignCssVars,
   normalizeMenuDesign,
   PALETTE_PRESETS,
   type PalettePreset,
 } from "../menuDesign";
+import { MenuView } from "./CustomerUI";
 import "./menu-design.css";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -114,7 +110,6 @@ const toneOptions = [
   ["action", "أحمر"],
   ["brand", "هوية"],
 ] as const;
-const deviceOptions = [390, 768, 1280] as const;
 
 const contentToggles: { key: keyof MenuDesign["content"]; label: string }[] = [
   { key: "subtitle", label: "الوصف المختصر في الواجهة" },
@@ -172,10 +167,12 @@ class StudioBoundary extends Component<
 export default function MenuDesignStudio({
   restaurant,
   restaurantDatabaseId,
+  categories = [],
   canEdit = true,
 }: {
   restaurant: Restaurant;
   restaurantDatabaseId: string;
+  categories?: MenuCategory[];
   canEdit?: boolean;
 }) {
   const initial = useMemo(() => {
@@ -192,13 +189,14 @@ export default function MenuDesignStudio({
   const [working, setWorking] = useState<MenuDesign>(initial);
   const [status, setStatus] = useState<SaveState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [saveTick, setSaveTick] = useState(0);
-  const [device, setDevice] = useState<number>(390);
-  const [showPreview, setShowPreview] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const dirtyRef = useRef(false);
   const firstRun = useRef(true);
+
+  useEffect(() => {
+    ensureGoogleFonts(working);
+  }, [working.type.display, working.type.body]);
 
   const persist = async (next: MenuDesign) => {
     if (!restaurantDatabaseId) {
@@ -218,8 +216,6 @@ export default function MenuDesignStudio({
     }
     setStatus("saved");
     setErrorMsg("");
-    setSaveTick((t) => t + 1);
-    if (!showPreview) setShowPreview(true);
   };
 
   const patch = (fn: (d: MenuDesign) => MenuDesign) => {
@@ -242,6 +238,22 @@ export default function MenuDesignStudio({
   const previewSrc = useMemo(
     () => `/c/${encodeURIComponent(restaurant.id)}`,
     [restaurant.id],
+  );
+
+  const previewRestaurant = useMemo(
+    () => ({ ...restaurant, design: working }),
+    [restaurant, working],
+  );
+
+  const previewItems = useMemo(
+    () => restaurant.items.slice(0, 8),
+    [restaurant.items],
+  );
+
+  const previewAttrs = useMemo(() => menuDesignAttrs(working), [working]);
+  const previewStyle = useMemo(
+    () => menuDesignCssVars(working, restaurant.accent),
+    [working, restaurant.accent],
   );
 
   const applyPreset = (preset: PalettePreset) =>
@@ -768,19 +780,7 @@ export default function MenuDesignStudio({
           <div className="md__stage-top">
             <div className="md__stage-title">
               <b>معاينة حية</b>
-              <small>تُحدَّث تلقائياً بعد كل حفظ</small>
-            </div>
-            <div className="md-dev" role="group" aria-label="حجم المعاينة">
-              {deviceOptions.map((width) => (
-                <button
-                  type="button"
-                  key={width}
-                  className={`md-dev__btn${device === width ? " is-on" : ""}`}
-                  onClick={() => setDevice(width)}
-                >
-                  {width}px
-                </button>
-              ))}
+              <small>تتحدّث فوراً مع كل تغيير — دون حفظ</small>
             </div>
             <a
               className="md-btn md-btn--ghost"
@@ -792,32 +792,31 @@ export default function MenuDesignStudio({
               فتح بملء الشاشة
             </a>
           </div>
-          <div className="md__frame-wrap">
-            {showPreview ? (
-              <div className="md__frame" style={{ width: Math.min(device, 1280) }}>
-                <iframe
-                  key={saveTick}
-                  title={`معاينة قائمة ${restaurant.name}`}
-                  src={previewSrc}
-                  loading="lazy"
+          <div className="md-preview" aria-label="معاينة صفحة القائمة">
+            <div className="md-preview__phone">
+              <div
+                className="cx cx--preview"
+                dir="rtl"
+                style={previewStyle as CSSProperties}
+                {...previewAttrs}
+              >
+                <MenuView
+                  restaurant={previewRestaurant}
+                  categories={categories}
+                  currency="syp"
+                  setCurrency={() => {}}
+                  category="كل الأصناف"
+                  setCategory={() => {}}
+                  tag="all"
+                  setTag={() => {}}
+                  query=""
+                  setQuery={() => {}}
+                  items={previewItems}
+                  onSelect={() => {}}
+                  onQuickAdd={() => {}}
                 />
               </div>
-            ) : (
-              <div className="md-preview-idle">
-                <button
-                  type="button"
-                  className="md-btn md-btn--red md-btn--lg"
-                  onClick={() => setShowPreview(true)}
-                >
-                  <Play aria-hidden="true" />
-                  تشغيل المعاينة الحية
-                </button>
-                <p>
-                  ستُفتح صفحة المطعم الفعلية داخل إطار بحجم الهاتف/الجهاز
-                  لترى تصميمك كما يظهر لعملائك — وتتحدّث تلقائياً بعد كل حفظ.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </section>
         </div>

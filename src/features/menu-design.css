@@ -613,28 +613,40 @@ html[dir="rtl"] .md-switch input:checked + i::after {
     justify-content: center;
 }
 
-.md__frame {
-    aspect-ratio: 9 / 16;
-    max-height: min(760px, 76vh);
-    border-radius: 22px;
-    overflow: hidden;
+.md-preview {
+    border-radius: 20px;
+    background: var(--surface-2);
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-lg);
-    background: #fff;
-    flex: none;
+    overflow: hidden;
 }
 
-.md__frame iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: #fff;
+.md-preview__phone {
+    max-height: min(70vh, 760px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg);
 }
 
-@media (min-width: 1280px) {
-    .md__frame[data-wide] {
-        aspect-ratio: 16 / 9;
-    }
+/* Neutralise the storefront shell inside the studio so only the menu shows */
+.md-preview .cx--preview {
+    min-height: auto;
+    background: var(--bg);
+}
+
+.md-preview .cx--preview .cx-stick {
+    position: static;
+}
+
+.md-preview .cx--preview .cx-bottompad {
+    display: none;
+}
+
+.md-preview .cx--preview .cx-dock,
+.md-preview .cx--preview .cx-bottab,
+.md-preview .cx--preview .cx-topbtn,
+.md-preview .cx--preview .cx-head,
+.md-preview .cx--preview .cx-toast {
+    display: none;
 }
 
 @media (max-width: 1100px) {
@@ -647,10 +659,6 @@ html[dir="rtl"] .md-switch input:checked + i::after {
         max-height: none;
         overflow: visible;
     }
-
-    .md__frame {
-        max-height: 66vh;
-    }
 }
 
 @media (max-width: 600px) {
@@ -661,10 +669,6 @@ html[dir="rtl"] .md-switch input:checked + i::after {
 
     .md__head-actions {
         width: 100%;
-    }
-
-    .md__frame {
-        border-radius: 14px;
     }
 }
 

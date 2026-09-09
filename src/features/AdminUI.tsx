@@ -986,6 +986,7 @@ function AdminView({
             <MenuDesignStudio
               restaurant={restaurant}
               restaurantDatabaseId={restaurantDatabaseId}
+              categories={categories}
               canEdit={canDesign}
             />
           )}
