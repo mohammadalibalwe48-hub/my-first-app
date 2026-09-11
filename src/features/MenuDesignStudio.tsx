@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../supabase";
+import { markMenuDesignSaved } from "../hooks/useRestaurant";
 import type { MenuCategory, MenuDesign, Restaurant } from "../domain";
 import {
   DEFAULT_MENU_DESIGN,
@@ -216,6 +217,7 @@ export default function MenuDesignStudio({
     }
     setStatus("saved");
     setErrorMsg("");
+    markMenuDesignSaved(restaurant.id, next);
   };
 
   const patch = (fn: (d: MenuDesign) => MenuDesign) => {

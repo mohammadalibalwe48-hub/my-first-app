@@ -58,6 +58,62 @@ const settingsCache: Record<string, RestaurantSettings> = {};
 const accentCache: Record<string, string> = {};
 const designCache: Record<string, unknown> = {};
 
+const savedKey = (slug: string) => `sqr-design-saved-${slug}`;
+const storeKey = (slug: string) => `sqr-design-store-${slug}`;
+
+function seedFromStorage(slug: string): void {
+  if (slug in designCache) return;
+  try {
+    const raw = window.localStorage.getItem(storeKey(slug));
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as {
+      design?: unknown;
+      accent?: string | null;
+    };
+    if (parsed && typeof parsed === "object") {
+      designCache[slug] = parsed.design ?? null;
+      accentCache[slug] = parsed.accent ?? "";
+    }
+  } catch {
+    /* corrupted cache — ignored, refetch will overwrite */
+  }
+}
+
+function persistToStorage(slug: string, design: unknown, accent: string | null): void {
+  try {
+    window.localStorage.setItem(
+      storeKey(slug),
+      JSON.stringify({ design: design ?? null, accent: accent ?? null }),
+    );
+  } catch {
+    /* storage full/unavailable — non-fatal */
+  }
+}
+
+export function invalidateRestaurantCache(slug: string): void {
+  delete menuCache[slug];
+  delete categoryCache[slug];
+  delete settingsCache[slug];
+  delete accentCache[slug];
+  delete designCache[slug];
+}
+
+/** Call after a successful design save so storefront tabs pick up the new design. */
+export function markMenuDesignSaved(slug: string, design: unknown): void {
+  const cachedAccent = accentCache[slug] || null;
+  invalidateRestaurantCache(slug);
+  try {
+    // Seed the fresh design first so the next paint uses it (no stale flash).
+    window.localStorage.setItem(
+      storeKey(slug),
+      JSON.stringify({ design: design ?? null, accent: cachedAccent }),
+    );
+    window.localStorage.setItem(savedKey(slug), String(Date.now()));
+  } catch {
+    /* storage unavailable — same-tab invalidation still applies */
+  }
+}
+
 export type RestaurantData = {
   slug: string;
   restaurant: Restaurant;
@@ -70,6 +126,7 @@ export type RestaurantData = {
 };
 
 export function useRestaurant(slug: string): RestaurantData {
+  seedFromStorage(slug);
   const [menuItems, setMenuItems] = useState<Item[]>(
     () => menuCache[slug] ?? findBase(slug).items,
   );
@@ -89,9 +146,23 @@ export function useRestaurant(slug: string): RestaurantData {
   const [ready, setReady] = useState<boolean>(() => !!menuCache[slug]);
   const [tableContext, setTableContext] =
     useState<PublicMenuPayload["table"]>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  // Cross-tab invalidation: refetch when the design is saved from the studio.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === savedKey(slug) || event.key === storeKey(slug)) {
+        invalidateRestaurantCache(slug);
+        setReloadNonce((n) => n + 1);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [slug]);
 
   useEffect(() => {
     let active = true;
+    seedFromStorage(slug);
     if (menuCache[slug]) {
       setMenuItems(menuCache[slug]);
       setCategories(categoryCache[slug]);
@@ -129,6 +200,7 @@ export function useRestaurant(slug: string): RestaurantData {
           : null;
       accentCache[slug] = fetchedAccent || "";
       designCache[slug] = fetchedDesign;
+      persistToStorage(slug, fetchedDesign, fetchedAccent);
       setExtra({ accent: fetchedAccent, design: fetchedDesign });
 
       const nameByCategory = new Map(
@@ -218,7 +290,7 @@ export function useRestaurant(slug: string): RestaurantData {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, reloadNonce]);
 
   const base = useMemo(() => findBase(slug), [slug]);
   const resolvedSettings = settings ?? buildDefaultSettings(base);
