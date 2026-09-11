@@ -3995,3 +3995,38 @@ html[dir="rtl"] .ov-queue__go {
     opacity: 1;
   }
 }
+
+/* ---- QR public base warning ---- */
+.adm-qrbanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(167, 106, 0, 0.45);
+  background: rgba(255, 196, 0, 0.08);
+  color: var(--warn);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.adm-qrbanner code {
+  background: rgba(167, 106, 0, 0.14);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 0.8rem;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+.adm-field--full {
+  grid-column: 1 / -1;
+}
+
+.adm-geo__hint {
+  color: var(--text-3);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  font-weight: 500;
+}

@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
+  Loader2,
   MapPin,
   MessageCircle,
   Minus,
@@ -20,6 +21,11 @@ import {
   X,
 } from "lucide-react";
 import { bumpCart, flyToCart } from "./motion";
+import {
+  verifyOnSitePresence,
+  type GeoFix,
+  type PresenceResult,
+} from "../geolocation";
 import { supabase } from "../supabase";
 import {
   formatSyp,
@@ -950,7 +956,7 @@ function CheckoutModal({
   mode: Mode;
   setMode: (m: Mode) => void;
   onClose: () => void;
-  onSubmit: (form: HTMLFormElement) => void | Promise<void>;
+  onSubmit: (form: HTMLFormElement, fix?: GeoFix | null) => void | Promise<void>;
   settings?: RestaurantSettings;
   tableContext: PublicMenuPayload["table"];
   backendReady: boolean;
@@ -964,6 +970,28 @@ function CheckoutModal({
   const [orderBusy, setOrderBusy] = useState(false);
 
   const missingDineInContext = mode === "dine-in" && !tableContext;
+  const hasCoords =
+    settings?.latitude != null && settings?.longitude != null;
+  const gpsRequired = mode === "dine-in" && hasCoords;
+  const [presence, setPresence] = useState<PresenceResult | null>(null);
+  const [presenceBusy, setPresenceBusy] = useState(false);
+
+  const verifyPresence = async () => {
+    if (!hasCoords || presenceBusy) return;
+    setPresenceBusy(true);
+    setPresence(null);
+    const result = await verifyOnSitePresence(
+      { lat: settings?.latitude, lng: settings?.longitude },
+      settings?.geofenceMeters,
+    );
+    setPresence(result);
+    setPresenceBusy(false);
+  };
+
+  useEffect(() => {
+    if (mode === "dine-in" && hasCoords) void verifyPresence();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, hasCoords]);
   const modeKey =
     mode === "dine-in"
       ? ("dineIn" as const)
@@ -971,8 +999,14 @@ function CheckoutModal({
         ? ("takeaway" as const)
         : ("delivery" as const);
   const disabledBySettings = Boolean(settings && !settings[modeKey]);
+  const presenceOk = presence?.ok === true;
   const submitDisabled =
-    !backendReady || missingDineInContext || disabledBySettings || orderBusy;
+    !backendReady ||
+    missingDineInContext ||
+    disabledBySettings ||
+    orderBusy ||
+    presenceBusy ||
+    (gpsRequired && !presenceOk);
 
   const cashLabel = mode === "delivery" ? "نقداً عند الاستلام" : "نقداً";
   const itemCount = (lines ?? []).reduce((a, l) => a + l.qty, 0);
@@ -989,7 +1023,7 @@ function CheckoutModal({
     if (submitDisabled || orderBusy) return;
     setOrderBusy(true);
     try {
-      await onSubmit(form);
+      await onSubmit(form, presence?.ok ? presence.fix : null);
     } finally {
       setOrderBusy(false);
     }
@@ -1145,6 +1179,83 @@ function CheckoutModal({
                       المطعم.
                     </p>
                   ))}
+
+                {mode === "dine-in" && hasCoords && (
+                  <div
+                    className={`cx-geo cx-field--full${
+                      presenceBusy
+                        ? " is-busy"
+                        : presence?.ok
+                          ? " is-ok"
+                          : presence
+                            ? " is-bad"
+                            : ""
+                    }`}
+                  >
+                    <span className="cx-geo__ico" aria-hidden="true">
+                      {presenceBusy ? (
+                        <Loader2 size={18} className="cx-geo__spin" />
+                      ) : presence?.ok ? (
+                        <Check size={18} />
+                      ) : (
+                        <MapPin size={18} />
+                      )}
+                    </span>
+                    <span className="cx-geo__txt">
+                      {presenceBusy ? (
+                        <b>جارٍ التحقق من وجودك داخل المطعم…</b>
+                      ) : presence?.ok ? (
+                        <>
+                          <b>تم تأكيد وجودك داخل المطعم ✓</b>
+                          <small className="mono-num">
+                            {presence.distance > 0
+                              ? `البعد عن المطعم ≈ ${Math.round(presence.distance)} م`
+                              : "تم التحقق من الموقع"}
+                          </small>
+                        </>
+                      ) : presence ? (
+                        <>
+                          <b>
+                            {presence.reason === "far"
+                              ? "أنت خارج نطاق المطعم"
+                              : presence.reason === "denied"
+                                ? "لم يُسمح بالوصول إلى الموقع"
+                                : presence.reason === "timeout"
+                                  ? "تأخر تحديد الموقع"
+                                  : presence.reason === "unsupported"
+                                    ? "جهازك لا يدعم تحديد الموقع"
+                                    : "تعذر تحديد موقعك الآن"}
+                          </b>
+                          {presence.reason === "far" &&
+                          presence.distance != null ? (
+                            <small className="mono-num">
+                              بعدك ≈ {Math.round(presence.distance)} م — المسموح{" "}
+                              {presence.radius} م
+                            </small>
+                          ) : (
+                            <small>
+                              {presence.reason === "denied"
+                                ? "فعّل إذن الموقع من إعدادات المتصفح ثم أعد المحاولة."
+                                : "اقترب من المطعم وانتظر لحظات ثم أعد المحاولة."}
+                            </small>
+                          )}
+                        </>
+                      ) : (
+                        <b>لابد من تأكيد وجودك داخل المطعم للطلب داخل الصالة</b>
+                      )}
+                    </span>
+                    {(presence && !presence.ok) || !presenceBusy ? (
+                      <button
+                        type="button"
+                        className="cx-geo__retry"
+                        onClick={() => void verifyPresence()}
+                        disabled={presenceBusy}
+                      >
+                        {presence ? "إعادة التحقق" : "تحقق من موقعي"}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
 
                 {mode === "delivery" && (
                   <>

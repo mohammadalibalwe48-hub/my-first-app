@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   Archive,
+  AlertCircle,
   ArrowDown,
   ArrowRight,
   ArrowUp,
@@ -28,6 +29,7 @@ import {
   Loader2,
   MapPin,
   MessageCircle,
+  Navigation,
   Package,
   Palette,
   Pencil,
@@ -53,6 +55,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { GeolocationError, getPrecisePosition } from "../geolocation";
 import QRCode from "qrcode";
 import { supabase } from "../supabase";
 import MenuDesignStudio from "./MenuDesignStudio";
@@ -3519,7 +3522,8 @@ function TablesManager({
 
   const tableUrl = (table: RestaurantTable) => {
     if (!table.qrToken) return "";
-    const url = new URL(cafePath(restaurant.id), location.origin);
+    const base = import.meta.env.VITE_SITE_URL?.trim() || location.origin;
+    const url = new URL(cafePath(restaurant.id), base);
     url.searchParams.set("table", table.code);
     url.searchParams.set("tableToken", table.qrToken);
     return url.toString();
@@ -3621,6 +3625,16 @@ function TablesManager({
           </>
         }
       />
+
+      {(import.meta.env.VITE_SITE_URL?.trim() ?? "").length === 0 &&
+        /localhost|127\.0\.0\.1/.test(location.origin) && (
+          <p className="adm-qrbanner" role="status">
+            <AlertCircle aria-hidden="true" />
+            يتم توليد الرموز الآن على عنوان محلي (تجريبي). اضبط
+            <code> VITE_SITE_URL </code>
+            على نطاق موقعك العام قبل طباعة رموز حقيقية للطاولات.
+          </p>
+        )}
 
       {tables.length === 0 ? (
         <AdminEmpty
@@ -3859,6 +3873,7 @@ const SET_ICONS: LucideIcon[] = [
   ShoppingBasket,
   Clock,
   MapPin,
+  Navigation,
 ];
 
 function SettingsPanel({
@@ -3916,6 +3931,28 @@ function SettingsPanel({
         i === index ? { ...entry, ...patch } : entry,
       ),
     }));
+
+  const [locNote, setLocNote] = useState("");
+  const captureMyLocation = async () => {
+    setLocNote("جارٍ تحديد الموقع…");
+    try {
+      const fix = await getPrecisePosition();
+      setDraft((current) => ({
+        ...current,
+        latitude: Number(fix.lat.toFixed(6)),
+        longitude: Number(fix.lng.toFixed(6)),
+      }));
+      setLocNote(
+        `تم الالتقاط بدقة ±${Math.round(fix.accuracy)} م — احفظ التغييرات لاعتمادها.`,
+      );
+    } catch (err) {
+      setLocNote(
+        err instanceof GeolocationError && err.kind === "denied"
+          ? "تم رفض إذن الموقع — فعّله من إعدادات المتصفح ثم أعد المحاولة."
+          : "تعذر تحديد الموقع الآن — أدخل الإحداثيات يدويًا.",
+      );
+    }
+  };
 
   const sections: {
     num: string;
@@ -4213,6 +4250,79 @@ function SettingsPanel({
             إضافة منطقة
           </button>
         </>
+      ),
+    },
+    {
+      num: "07",
+      tag: "حضور الزبائن",
+      title: "موقع المطعم وحد الطلب داخل الصالة",
+      body: (
+        <div className="adm-form-grid">
+          <label className="adm-field">
+            <span>خط العرض (Latitude)</span>
+            <input
+              type="number"
+              step="0.000001"
+              min="-90"
+              max="90"
+              dir="ltr"
+              placeholder="33.513800"
+              value={draft.latitude ?? ""}
+              onChange={(event) =>
+                field(
+                  "latitude",
+                  event.target.value === "" ? null : Number(event.target.value),
+                )
+              }
+            />
+          </label>
+          <label className="adm-field">
+            <span>خط الطول (Longitude)</span>
+            <input
+              type="number"
+              step="0.000001"
+              min="-180"
+              max="180"
+              dir="ltr"
+              placeholder="36.276900"
+              value={draft.longitude ?? ""}
+              onChange={(event) =>
+                field(
+                  "longitude",
+                  event.target.value === "" ? null : Number(event.target.value),
+                )
+              }
+            />
+          </label>
+          <label className="adm-field">
+            <span>نطاق الطلب داخل المطعم (متر)</span>
+            <input
+              type="number"
+              min="10"
+              max="5000"
+              dir="ltr"
+              value={draft.geofenceMeters ?? 150}
+              onChange={(event) =>
+                field("geofenceMeters", Number(event.target.value) || 150)
+              }
+            />
+          </label>
+          <div className="adm-field">
+            <span>&nbsp;</span>
+            <button
+              type="button"
+              className="adm-btn adm-btn--soft adm-btn--sm"
+              onClick={() => void captureMyLocation()}
+            >
+              <Navigation aria-hidden="true" />
+              التقاط موقعي الحالي
+            </button>
+          </div>
+          <p className="adm-field adm-field--full adm-geo__hint">
+            {locNote ||
+              "يُطلب من الزبون إذن الموقع عند الدفع داخل الصالة، ويُرفض الطلب إذا كان خارج النطاق أو لم يمسح رمز الطاولة."}
+          </p>
+        </div>
       ),
     },
   ];

@@ -42,6 +42,9 @@ export function buildDefaultSettings(base: Restaurant): RestaurantSettings {
     takeaway: true,
     delivery: true,
     currencyEstimate: true,
+    latitude: null,
+    longitude: null,
+    geofenceMeters: 150,
     hours: DAYS.map((day) => ({ day, enabled: true, open: "09:00", close: "23:00" })),
     zones: [{ id: "damascus", name: "دمشق", fee: 15000, minimum: 100000, active: true }],
   };
@@ -261,6 +264,9 @@ export function useRestaurant(slug: string): RestaurantData {
         takeaway: payload.restaurant.takeaway,
         delivery: payload.restaurant.delivery,
         currencyEstimate: payload.restaurant.usdEstimateEnabled,
+        latitude: payload.restaurant.latitude ?? null,
+        longitude: payload.restaurant.longitude ?? null,
+        geofenceMeters: payload.restaurant.geofenceMeters ?? 150,
         hours: payload.hours.map((h) => ({
           day: DAYS[h.weekday],
           enabled: h.enabled,

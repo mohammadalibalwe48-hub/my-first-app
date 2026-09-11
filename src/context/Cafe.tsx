@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import { useRestaurant } from "../hooks/useRestaurant";
+import type { GeoFix } from "../geolocation";
 import {
   formatSyp,
   modeLabels,
@@ -79,7 +80,7 @@ type CafeContextValue = {
     qty?: number,
   ) => void;
   updateQty: (key: string, delta: number) => void;
-  placeOrder: (form: HTMLFormElement) => Promise<void>;
+  placeOrder: (form: HTMLFormElement, fix?: GeoFix | null) => Promise<void>;
   openWhatsApp: (order: Order) => Promise<void>;
   customerOrders: Order[];
 
@@ -219,7 +220,7 @@ export function CafeProvider({
         .filter((line) => line.qty > 0),
     );
 
-  const placeOrder = async (form: HTMLFormElement) => {
+  const placeOrder = async (form: HTMLFormElement, fix?: GeoFix | null) => {
     if (!isOnline || !ready) {
       showNotice("لا يمكن إرسال الطلب حالياً. تحقق من الاتصال وحاول مجدداً.", 4200);
       return;
@@ -229,6 +230,15 @@ export function CafeProvider({
     );
     if (mode === "dine-in" && (!tableToken || !tableContext)) {
       showNotice("لطلب داخل المطعم، امسح رمز QR الصحيح الموجود على الطاولة.", 4200);
+      return;
+    }
+    if (
+      mode === "dine-in" &&
+      settings.latitude != null &&
+      settings.longitude != null &&
+      !fix
+    ) {
+      showNotice("تحقق من موقعك داخل المطعم أولاً عبر زر التحقق في صفحة الدفع.", 3600);
       return;
     }
     const operationState = readStored<OperationsState | null>(
@@ -272,6 +282,9 @@ export function CafeProvider({
             pickupTime: String(dataForm.get("pickup") || ""),
             paymentMethod: String(dataForm.get("payment") || "الدفع نقداً"),
             paymentReference: String(dataForm.get("paymentReference") || ""),
+            clientLat: mode === "dine-in" && fix ? String(fix.lat) : undefined,
+            clientLng: mode === "dine-in" && fix ? String(fix.lng) : undefined,
+            clientAcc: mode === "dine-in" && fix ? String(fix.accuracy) : undefined,
             lines: cart.map((line) => ({
               itemId: line.item.id,
               quantity: line.qty,
@@ -282,7 +295,23 @@ export function CafeProvider({
         },
       );
       if (error || !submitted) {
-        showNotice(`تعذر إرسال الطلب: ${error?.message ?? "خطأ غير معروف"}`, 5000);
+        const raw = error?.message ?? "";
+        let friendly = "خطأ غير معروف";
+        if (raw.includes("table_token_required") || raw.includes("invalid_table"))
+          friendly = "لطلب داخل المطعم، امسح رمز QR الصحيح الموجود على الطاولة.";
+        else if (raw.includes("location_too_far"))
+          friendly =
+            "أنت خارج نطاق المطعم — يلزم وجودك داخل المطعم لإتمام الطلب من الصالة.";
+        else if (raw.includes("location_required"))
+          friendly =
+            "لم نتمكن من التحقق من موقعك. اسمح بالوصول إلى الموقع ثم أعد المحاولة.";
+        else if (raw.includes("minimum_order_not_met"))
+          friendly = "لم يتم بلوغ الحد الأدنى للطلب في هذه المنطقة.";
+        else if (raw.includes("item_unavailable"))
+          friendly = "أحد الأصناف لم يعد متاحاً — حدّث القائمة وأعد المحاولة.";
+        else if (raw.includes("restaurant_not_accepting_orders"))
+          friendly = "المطعم متوقف عن استقبال الطلبات حالياً.";
+        showNotice(`تعذر إرسال الطلب: ${friendly}`, 5200);
         return;
       }
       const receipt = submitted as unknown as OrderReceipt;

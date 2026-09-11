@@ -4383,3 +4383,82 @@ html[dir="rtl"] .cx-arrow {
 .cx[data-cd-show-gear='0'] .cx-dish__gear { display: none; }
 .cx[data-cd-show-foot='0'] .cx-catalog__foot { display: none; }
 .cx[data-cd-show-live='0'] .cx-live { display: none; }
+
+/* ---- dine-in GPS presence ---- */
+.cx-geo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+}
+
+.cx-geo__ico {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-3);
+}
+
+.cx-geo__txt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-inline-end: auto;
+}
+
+.cx-geo__txt small {
+    color: var(--text-3);
+    font-size: 0.74rem;
+}
+
+.cx-geo.is-ok {
+    border-color: rgba(23, 122, 71, 0.5);
+    background: rgba(23, 122, 71, 0.06);
+}
+
+.cx-geo.is-ok .cx-geo__ico {
+    background: var(--success);
+    color: #fff;
+}
+
+.cx-geo.is-bad {
+    border-color: rgba(158, 0, 21, 0.45);
+    background: rgba(240, 0, 47, 0.05);
+}
+
+.cx-geo.is-bad .cx-geo__ico {
+    background: rgba(240, 0, 47, 0.12);
+    color: var(--red-deep);
+}
+
+.cx-geo__retry {
+    flex: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--ink);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.cx-geo__retry:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.cx-geo__spin {
+    animation: cx-geo-rotate 1s linear infinite;
+}
+
+@keyframes cx-geo-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}

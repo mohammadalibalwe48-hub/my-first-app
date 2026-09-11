@@ -74,6 +74,9 @@ export type RestaurantSettings = {
   takeaway: boolean;
   delivery: boolean;
   currencyEstimate: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
+  geofenceMeters?: number;
   hours: BusinessHour[];
   zones: DeliveryZone[];
 };
@@ -355,6 +358,9 @@ export type PublicMenuPayload = {
     taxPercent: number;
     servicePercent: number;
     usdEstimateEnabled: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
+    geofenceMeters?: number | null;
     design?: Record<string, unknown>;
   };
   categories: Array<{
