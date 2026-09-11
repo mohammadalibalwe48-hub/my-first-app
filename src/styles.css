@@ -67,31 +67,7 @@
     --teal-bg-2: #04242a;
     --teal-bg-3: #0a4550;
 
-    /* ---- Legacy aliases -----------------------------------------------
-       Old markup and per-cafe theme hooks referenced these names. They are
-       preserved as aliases so nothing breaks and old surfaces inherit the
-       new brand automatically. Do NOT add new uses of them. */
-    --gold: var(--red);
-    --gold-2: var(--red-2);
-    --gold-light: var(--red-2);
-    --gold-deep: var(--red-deep);
-    --gold-glow: rgba(240, 0, 47, 0.24);
-    --gold-dim: rgba(240, 0, 47, 0.09);
-    --star: var(--yellow);
-    --star-soft: rgba(255, 196, 0, 0.2);
-    --cream: #fbfaf8;
-    --navy: var(--teal);
-    --navy-2: var(--teal-2);
-    --ink-2: var(--ink);
-    --bg-0: #ffffff;
-    --bg-1: var(--paper);
-    --bg-2: var(--paper-2);
-    --bg-3: #e2dfda;
-    --bg-card: #ffffff;
-    --text-soft: var(--text-2);
-    --text-faint: rgba(8, 7, 17, 0.55);
-    --border: var(--line);
-    --border-soft: rgba(8, 7, 17, 0.12);
+    /* ---- Per-cafe theme hook -------------------------------------------- */
     --cafe-accent: #f0002f;
 
     /* ---- Typography ---------------------------------------------------- */
@@ -349,7 +325,6 @@ textarea {
    Shared micro-primitives (used across every surface)
    ========================================================================== */
 
-.visually-hidden,
 .sr-only {
     position: absolute !important;
     width: 1px;
@@ -432,11 +407,6 @@ html[dir="rtl"] .sk::after {
 
 /* ---- Buttons (global type system) --------------------------------------- */
 
-@font-face {
-    font-family: "DisplayStack";
-    src: local("Changa"), local("Oswald");
-}
-
 .btn {
     display: inline-flex;
     align-items: center;
@@ -467,22 +437,6 @@ html[dir="rtl"] .sk::after {
 
 .btn:disabled {
     opacity: 0.45;
-}
-
-/* == Sections (shared admin/ops/console structure) =======================
-   Page-level scaffolding reused by workspace + console surfaces. */
-
-.section-head {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--sp-4);
-    flex-wrap: wrap;
-    margin-bottom: var(--sp-6);
-}
-
-.section-head__text {
-    max-width: 640px;
 }
 
 /* ============================================================================

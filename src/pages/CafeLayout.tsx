@@ -244,7 +244,9 @@ function CafeShell() {
       </header>
 
       <main id="cx-main" className="cx-main">
-        <Outlet />
+        <div className="cx-page" key={location.pathname}>
+          <Outlet />
+        </div>
         <div className="cx-bottompad" aria-hidden="true" />
       </main>
 

@@ -190,31 +190,6 @@
     margin: 6px 0 14px;
 }
 
-.md-btn--lg {
-    min-height: 50px;
-    padding-inline: 22px;
-    font-size: 1rem;
-    border-radius: 12px;
-}
-
-.md-preview-idle {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    text-align: center;
-    padding: 60px 24px;
-    min-height: 420px;
-    width: 100%;
-}
-
-.md-preview-idle p {
-    max-width: 46ch;
-    color: var(--text-3);
-    font-size: 0.9rem;
-}
-
 .md-import {
     display: flex;
     flex-direction: column;
@@ -578,39 +553,6 @@ html[dir="rtl"] .md-switch input:checked + i::after {
 .md__stage-title small {
     color: var(--text-3);
     font-size: 0.76rem;
-}
-
-.md-dev {
-    display: flex;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 10px;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-}
-
-.md-dev__btn {
-    min-height: 32px;
-    padding-inline: 12px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-3);
-}
-
-.md-dev__btn.is-on {
-    background: var(--ink);
-    color: #fff;
-}
-
-.md__frame-wrap {
-    overflow-x: auto;
-    padding: 18px;
-    border-radius: 20px;
-    background: var(--surface-2);
-    border: 1px solid var(--line);
-    display: flex;
-    justify-content: center;
 }
 
 .md-preview {

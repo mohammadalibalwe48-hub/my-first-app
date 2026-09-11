@@ -19,6 +19,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { bumpCart, flyToCart } from "./motion";
 import { supabase } from "../supabase";
 import {
   formatSyp,
@@ -494,12 +495,20 @@ function MenuView({
                           {secondary && <small>{secondary}</small>}
                         </div>
                         {!configurable ? (
-                          <button
-                            type="button"
-                            className="cx-add"
-                            onClick={() => onQuickAdd(item)}
-                            aria-label={`أضف ${item.name} إلى الطلب`}
-                          >
+                           <button
+                             type="button"
+                             className="cx-add"
+                             onClick={(e) => {
+                               const dish = e.currentTarget.closest(".cx-dish");
+                               flyToCart(
+                                 dish?.querySelector<HTMLElement>(
+                                   ".cx-dish__imgwrap img"
+                                 )
+                               );
+                               onQuickAdd(item);
+                             }}
+                             aria-label={`أضف ${item.name} إلى الطلب`}
+                           >
                             <Plus size={20} aria-hidden="true" />
                             <span>أضف</span>
                           </button>
@@ -601,6 +610,7 @@ function ItemModal({
   const confirm = () => {
     if (!valid) return;
     onAdd(item, Object.values(selected).flat(), note.trim(), qty);
+    bumpCart();
   };
 
   const groups = item.options ?? [];

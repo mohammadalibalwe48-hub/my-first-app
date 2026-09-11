@@ -240,6 +240,64 @@
     box-shadow: 0 0 0 2px var(--paper);
 }
 
+.cx-cartbtn.is-bumped {
+    animation: cx-cart-bump 0.45s var(--ease-out);
+}
+
+.cx-cartbtn__badge.is-bumped {
+    animation: cx-badge-pop 0.45s var(--ease-out);
+}
+
+@keyframes cx-cart-bump {
+    30% {
+        transform: translateY(3px) scale(0.92);
+    }
+    60% {
+        transform: translateY(-2px) scale(1.06);
+    }
+    100% {
+        transform: none;
+    }
+}
+
+@keyframes cx-badge-pop {
+    30% {
+        transform: scale(1.45);
+    }
+    65% {
+        transform: scale(0.88);
+    }
+    100% {
+        transform: none;
+    }
+}
+
+/* ---- page transitions ---- */
+.cx-page {
+    animation: cx-page-in 0.3s var(--ease-out) both;
+}
+
+@keyframes cx-page-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ---- fly-to-cart ghost ---- */
+.cx-flyimg {
+    position: fixed;
+    z-index: 1200;
+    object-fit: cover;
+    border-radius: 18px;
+    box-shadow: var(--shadow-md);
+    will-change: transform, opacity;
+}
+
 /* ---- main / paddings ---- */
 .cx-main {
     min-height: calc(100dvh - var(--cx-head));
@@ -568,17 +626,6 @@ html[dir="rtl"] .cx-toast {
 
 .cx-eyebrow--light {
     color: rgba(255, 255, 255, 0.82);
-}
-
-.cx-hero__folio {
-    font-family: var(--font-body);
-    font-weight: 700;
-    font-size: 0.74rem;
-    letter-spacing: 0.14em;
-    color: var(--yellow);
-    border: 1px solid rgba(255, 196, 0, 0.4);
-    padding: 5px 12px;
-    border-radius: 999px;
 }
 
 .cx-hero__name {
@@ -3374,6 +3421,19 @@ html[dir="rtl"] .cx-ordercard:hover {
     border-color: var(--red);
     color: #fff;
     box-shadow: 0 0 0 5px rgba(240, 0, 47, 0.18);
+    animation: cx-step-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes cx-step-pulse {
+    0% {
+        box-shadow: 0 0 0 4px rgba(240, 0, 47, 0.22);
+    }
+    60% {
+        box-shadow: 0 0 0 9px rgba(240, 0, 47, 0.08);
+    }
+    100% {
+        box-shadow: 0 0 0 4px rgba(240, 0, 47, 0.22);
+    }
 }
 
 .cx-tl__txt {
