@@ -25,6 +25,9 @@ export const DEFAULT_MENU_DESIGN: MenuDesign = {
     body: "Tajawal",
     weight: 700,
     scale: "regular",
+    tracking: "normal",
+    leading: "normal",
+    headingCase: "normal",
   },
   layout: {
     hero: "editorial",
@@ -37,6 +40,17 @@ export const DEFAULT_MENU_DESIGN: MenuDesign = {
     radius: "soft",
     density: "cozy",
     shadow: "soft",
+    mode: "light",
+    header: "solid",
+    imageFit: "cover",
+    border: "hairline",
+  },
+  effects: {
+    pattern: "none",
+    gradientHero: false,
+    glow: false,
+    grain: true,
+    motion: "normal",
   },
   content: {
     subtitle: true,
@@ -50,11 +64,21 @@ export const DEFAULT_MENU_DESIGN: MenuDesign = {
     modifierHint: true,
     catalogueNote: true,
     liveBadge: true,
+    rating: false,
+    hours: false,
+    socials: false,
+    footer: false,
     bannerText: "",
     bannerOn: false,
     bannerTone: "brand",
     logoUrl: "",
     coverUrl: "",
+    ratingValue: 4.8,
+    instagram: "",
+    facebook: "",
+    whatsappLabel: "",
+    footerText: "",
+    hoursText: "يومياً · ٩:٠٠ ص — ١١:٠٠ م",
   },
 };
 
@@ -213,6 +237,233 @@ export const PALETTE_PRESETS: PalettePreset[] = [
       line: "#DDDDDD",
     },
   },
+  {
+    id: "saffron-souk",
+    label: "سوق الزعفران",
+    labelEn: "Saffron Souk",
+    swatches: ["#5B2A0B", "#D99A2B", "#B3271E", "#FBF3E4"],
+    palette: {
+      accent: "#B3271E",
+      brand: "#5B2A0B",
+      brandDeep: "#3B1A05",
+      action: "#B3271E",
+      actionDeep: "#7C160F",
+      glow: "#D99A2B",
+      canvas: "#FBF3E4",
+      surface: "#FFFFFF",
+      ink: "#2C1607",
+      line: "#EBD9BC",
+    },
+  },
+  {
+    id: "mint-lab",
+    label: "مختبر النعناع",
+    labelEn: "Mint Lab",
+    swatches: ["#0F3D3E", "#2EC4B6", "#FF9F1C", "#F6FBFB"],
+    palette: {
+      accent: "#FF9F1C",
+      brand: "#0F3D3E",
+      brandDeep: "#092A2B",
+      action: "#2EC4B6",
+      actionDeep: "#1E8C82",
+      glow: "#FF9F1C",
+      canvas: "#F6FBFB",
+      surface: "#FFFFFF",
+      ink: "#0B2B2C",
+      line: "#CDE9E7",
+    },
+  },
+  {
+    id: "rose-eclair",
+    label: "إكلير وردي",
+    labelEn: "Rosé Éclair",
+    swatches: ["#5A1F33", "#C96A8B", "#E8B23A", "#FFF3F6"],
+    palette: {
+      accent: "#E8B23A",
+      brand: "#5A1F33",
+      brandDeep: "#3E1224",
+      action: "#C96A8B",
+      actionDeep: "#963F5C",
+      glow: "#E8B23A",
+      canvas: "#FFF3F6",
+      surface: "#FFFFFF",
+      ink: "#37101F",
+      line: "#F2D5DE",
+    },
+  },
+  {
+    id: "deep-ocean",
+    label: "محيط عميق",
+    labelEn: "Deep Ocean",
+    swatches: ["#05263B", "#0B4F6C", "#01BAEF", "#F1FAFB"],
+    palette: {
+      accent: "#01BAEF",
+      brand: "#05263B",
+      brandDeep: "#021A2A",
+      action: "#0B4F6C",
+      actionDeep: "#063349",
+      glow: "#01BAEF",
+      canvas: "#F1FAFB",
+      surface: "#FFFFFF",
+      ink: "#041B29",
+      line: "#CBE6EF",
+    },
+  },
+];
+
+/* ---- full design templates (palette + type + layout + effects) ------------ */
+
+export type DesignTemplate = {
+  id: string;
+  label: string;
+  labelEn: string;
+  description: string;
+  swatches: string[];
+  build: () => MenuDesign;
+};
+
+function deepMerge<T>(base: T, patch: Record<string, unknown>): T {
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const key of Object.keys(patch)) {
+    const pv = patch[key];
+    const bv = out[key];
+    out[key] =
+      isRecord(pv) && isRecord(bv) ? deepMerge(bv, pv) : pv;
+  }
+  return out as T;
+}
+
+const template = (
+  meta: Omit<DesignTemplate, "build">,
+  patch: Record<string, unknown>,
+): DesignTemplate => ({
+  ...meta,
+  build: () => deepMerge(DEFAULT_MENU_DESIGN, patch),
+});
+
+export const DESIGN_TEMPLATES: DesignTemplate[] = [
+  template(
+    {
+      id: "classic-dark",
+      label: "الكلاسيكية الداكنة",
+      labelEn: "Classic Dark",
+      description: "الافتراضي — افتتاحية غنية وبطاقات مصوّرة",
+      swatches: ["#063239", "#F0002F", "#FFC400", "#F4F3F1"],
+    },
+    {},
+  ),
+  template(
+    {
+      id: "modern-bistro",
+      label: "بسترو حديث",
+      labelEn: "Modern Bistro",
+      description: "واجهة زجاجية، تبويبات ناعمة، وخطوط كيرو",
+      swatches: ["#12372A", "#ADBC9F", "#FFFFFF", "#FBF8F1"],
+    },
+    {
+      name: "بسترو حديث",
+      palette: PALETTE_PRESETS.find((p) => p.id === "silk-bistro")!.palette,
+      type: { display: "Cairo", body: "Inter", weight: 700, headingCase: "upper", tracking: "wide" },
+      layout: { hero: "centered", header: "glass", radius: "soft", shadow: "soft", tabs: "soft", add: "pill", border: "none" },
+      effects: { grain: false, gradientHero: true },
+    },
+  ),
+  template(
+    {
+      id: "street-bold",
+      label: "شارع جريء",
+      labelEn: "Street Bold",
+      description: "ألوان صاخبة، عناوين ضخمة، وبطاقات متراكبة",
+      swatches: ["#4E1F12", "#E4572E", "#F6C445", "#FDF0E7"],
+    },
+    {
+      name: "شارع جريء",
+      palette: PALETTE_PRESETS.find((p) => p.id === "terracotta-table")!.palette,
+      type: { display: "Noto Kufi Arabic", body: "Rubik", weight: 900, scale: "editorial", tracking: "tight", headingCase: "upper" },
+      layout: { hero: "banner", cards: "overlay", radius: "sharp", shadow: "deep", density: "compact", add: "square", price: "brand" },
+      effects: { glow: true, grain: true, motion: "lively", pattern: "glow" },
+    },
+  ),
+  template(
+    {
+      id: "elegant-calm",
+      label: "أنيق هادئ",
+      labelEn: "Elegant Calm",
+      description: "واجهة كاملة الصورة، مساحات واسعة، وهدوء راقٍ",
+      swatches: ["#101820", "#E6B31E", "#F7F5F0", "#CF142B"],
+    },
+    {
+      name: "أنيق هادئ",
+      palette: PALETTE_PRESETS.find((p) => p.id === "ink-gold")!.palette,
+      type: { display: "Cairo", body: "Tajawal", weight: 600, scale: "editorial", leading: "loose" },
+      layout: { hero: "cover", cards: "photo", radius: "sharp", shadow: "flat", density: "roomy", tabs: "line", imageFit: "cover" },
+      effects: { grain: false },
+    },
+  ),
+  template(
+    {
+      id: "minimal-clean",
+      label: "مينيمال",
+      labelEn: "Minimal",
+      description: "قائمة نقية بلا ضجيج — خطوط ومساحات فقط",
+      swatches: ["#0A0A0A", "#E30613", "#FFFFFF", "#F4F4F4"],
+    },
+    {
+      name: "مينيمال",
+      palette: PALETTE_PRESETS.find((p) => p.id === "monochrome")!.palette,
+      type: { display: "Inter", body: "Inter", weight: 600, scale: "compact", tracking: "wide", headingCase: "upper" },
+      layout: { hero: "minimal", cards: "compact", columns: "three", radius: "sharp", shadow: "flat", density: "roomy", tabs: "line", add: "outline", border: "hairline" },
+      effects: { grain: false, motion: "calm" },
+    },
+  ),
+  template(
+    {
+      id: "midnight-lounge",
+      label: "ليلي فاخر",
+      labelEn: "Midnight Lounge",
+      description: "وضع داكن كامل مع توهّج زجاجي",
+      swatches: ["#021A2A", "#01BAEF", "#0B4F6C", "#F1FAFB"],
+    },
+    {
+      name: "ليلي فاخر",
+      palette: PALETTE_PRESETS.find((p) => p.id === "deep-ocean")!.palette,
+      type: { display: "Readex Pro", body: "IBM Plex Sans Arabic", weight: 700, headingCase: "upper", tracking: "wide" },
+      layout: { mode: "dark", hero: "split", cards: "overlay", radius: "round", shadow: "deep", header: "glass", add: "pill", border: "none" },
+      effects: { pattern: "glow", glow: true, gradientHero: true, grain: false, motion: "lively" },
+    },
+  ),
+  template(
+    {
+      id: "olive-table",
+      label: "مائدة الزيتون",
+      labelEn: "Olive Table",
+      description: "طبيعي ودافئ مع تبويبات خطية وبطاقات مدمجة",
+      swatches: ["#3C4F2F", "#D5A021", "#F6F4EC", "#A63D2F"],
+    },
+    {
+      name: "مائدة الزيتون",
+      palette: PALETTE_PRESETS.find((p) => p.id === "olive-garden")!.palette,
+      type: { display: "Almarai", body: "Almarai", weight: 700 },
+      layout: { hero: "split", cards: "compact", radius: "soft", density: "cozy", tabs: "soft", add: "soft", border: "hairline" },
+      effects: { pattern: "dots", grain: false },
+    },
+  ),
+  template(
+    {
+      id: "candy-shop",
+      label: "متجر الحلوى",
+      labelEn: "Candy Shop",
+      description: "مرح ورديّ لطيف للمقاهي والحلويات",
+      swatches: ["#5A1F33", "#C96A8B", "#E8B23A", "#FFF3F6"],
+    },
+    {
+      name: "متجر الحلوى",
+      palette: PALETTE_PRESETS.find((p) => p.id === "rose-eclair")!.palette,
+      type: { display: "Readex Pro", body: "Cairo", weight: 700, scale: "editorial" },
+      layout: { hero: "centered", cards: "photo", radius: "round", shadow: "soft", density: "roomy", add: "pill", tabs: "pill" },
+      effects: { pattern: "dots", glow: true, grain: false },
+    },
+  ),
 ];
 
 /* ---- luminance helpers --------------------------------------------------- */
@@ -272,6 +523,7 @@ export function normalizeMenuDesign(raw: unknown): MenuDesign {
   const type = isRecord(raw.type) ? raw.type : {};
   const layout = isRecord(raw.layout) ? raw.layout : {};
   const content = isRecord(raw.content) ? raw.content : {};
+  const effects = isRecord(raw.effects) ? raw.effects : {};
   const str = (v: unknown, fb: string) =>
     typeof v === "string" && v.trim() ? v.trim() : fb;
   const bool = (v: unknown, fb: boolean) =>
@@ -295,20 +547,27 @@ export function normalizeMenuDesign(raw: unknown): MenuDesign {
     type: {
       display: (["Changa", "Cairo", "Oswald", "Almarai", "Readex Pro", "Noto Kufi Arabic"].includes(String(type.display)) ? type.display : d.type.display) as MenuDesign["type"]["display"],
       body: (["Tajawal", "Inter", "Cairo", "Rubik", "Almarai", "IBM Plex Sans Arabic"].includes(String(type.body)) ? type.body : d.type.body) as MenuDesign["type"]["body"],
-      weight: ([600, 700, 800].includes(Number(type.weight)) ? Number(type.weight) : d.type.weight) as MenuDesign["type"]["weight"],
+      weight: ([500, 600, 700, 800, 900].includes(Number(type.weight)) ? Number(type.weight) : d.type.weight) as MenuDesign["type"]["weight"],
       scale: (["compact", "regular", "editorial"].includes(String(type.scale)) ? type.scale : d.type.scale) as MenuDesign["type"]["scale"],
+      tracking: (["tight", "normal", "wide"].includes(String(type.tracking)) ? type.tracking : d.type.tracking) as MenuDesign["type"]["tracking"],
+      leading: (["tight", "normal", "loose"].includes(String(type.leading)) ? type.leading : d.type.leading) as MenuDesign["type"]["leading"],
+      headingCase: (["normal", "upper"].includes(String(type.headingCase)) ? type.headingCase : d.type.headingCase) as MenuDesign["type"]["headingCase"],
     },
     layout: {
-      hero: (["editorial", "cover", "minimal"].includes(String(layout.hero)) ? layout.hero : d.layout.hero) as MenuDesign["layout"]["hero"],
-      cards: (["photo", "list"].includes(String(layout.cards)) ? layout.cards : d.layout.cards) as MenuDesign["layout"]["cards"],
+      hero: (["editorial", "cover", "minimal", "split", "centered", "banner"].includes(String(layout.hero)) ? layout.hero : d.layout.hero) as MenuDesign["layout"]["hero"],
+      cards: (["photo", "list", "overlay", "compact"].includes(String(layout.cards)) ? layout.cards : d.layout.cards) as MenuDesign["layout"]["cards"],
       columns: (["auto", "two", "three", "four"].includes(String(layout.columns)) ? layout.columns : d.layout.columns) as MenuDesign["layout"]["columns"],
-      ratio: (["4:3", "square", "3:2", "16:9"].includes(String(layout.ratio)) ? layout.ratio : d.layout.ratio) as MenuDesign["layout"]["ratio"],
-      tabs: (["pill", "line"].includes(String(layout.tabs)) ? layout.tabs : d.layout.tabs) as MenuDesign["layout"]["tabs"],
-      price: (["action", "ink"].includes(String(layout.price)) ? layout.price : d.layout.price) as MenuDesign["layout"]["price"],
-      add: (["solid", "soft", "outline"].includes(String(layout.add)) ? layout.add : d.layout.add) as MenuDesign["layout"]["add"],
+      ratio: (["4:3", "square", "3:2", "16:9", "portrait"].includes(String(layout.ratio)) ? layout.ratio : d.layout.ratio) as MenuDesign["layout"]["ratio"],
+      tabs: (["pill", "line", "soft"].includes(String(layout.tabs)) ? layout.tabs : d.layout.tabs) as MenuDesign["layout"]["tabs"],
+      price: (["action", "ink", "brand"].includes(String(layout.price)) ? layout.price : d.layout.price) as MenuDesign["layout"]["price"],
+      add: (["solid", "soft", "outline", "pill", "square"].includes(String(layout.add)) ? layout.add : d.layout.add) as MenuDesign["layout"]["add"],
       radius: (["sharp", "soft", "round"].includes(String(layout.radius)) ? layout.radius : d.layout.radius) as MenuDesign["layout"]["radius"],
       density: (["compact", "cozy", "roomy"].includes(String(layout.density)) ? layout.density : d.layout.density) as MenuDesign["layout"]["density"],
       shadow: (["flat", "soft", "deep"].includes(String(layout.shadow)) ? layout.shadow : d.layout.shadow) as MenuDesign["layout"]["shadow"],
+      mode: (["light", "dark"].includes(String(layout.mode)) ? layout.mode : d.layout.mode) as MenuDesign["layout"]["mode"],
+      header: (["solid", "glass", "minimal", "centered"].includes(String(layout.header)) ? layout.header : d.layout.header) as MenuDesign["layout"]["header"],
+      imageFit: (["cover", "contain"].includes(String(layout.imageFit)) ? layout.imageFit : d.layout.imageFit) as MenuDesign["layout"]["imageFit"],
+      border: (["none", "hairline", "bold"].includes(String(layout.border)) ? layout.border : d.layout.border) as MenuDesign["layout"]["border"],
     },
     content: {
       subtitle: bool(content.subtitle, d.content.subtitle),
@@ -322,14 +581,43 @@ export function normalizeMenuDesign(raw: unknown): MenuDesign {
       modifierHint: bool(content.modifierHint, d.content.modifierHint),
       catalogueNote: bool(content.catalogueNote, d.content.catalogueNote),
       liveBadge: bool(content.liveBadge, d.content.liveBadge),
+      rating: bool(content.rating, d.content.rating),
+      hours: bool(content.hours, d.content.hours),
+      socials: bool(content.socials, d.content.socials),
+      footer: bool(content.footer, d.content.footer),
       bannerText: typeof content.bannerText === "string" ? content.bannerText.slice(0, 160) : "",
       bannerOn: bool(content.bannerOn, d.content.bannerOn),
       bannerTone: (["ink", "glow", "action", "brand"].includes(String(content.bannerTone)) ? content.bannerTone : d.content.bannerTone) as MenuDesign["content"]["bannerTone"],
       logoUrl: str(content.logoUrl, ""),
       coverUrl: str(content.coverUrl, ""),
+      ratingValue: clampNumber(content.ratingValue, 0, 5, d.content.ratingValue),
+      instagram: str(content.instagram, ""),
+      facebook: str(content.facebook, ""),
+      whatsappLabel: str(content.whatsappLabel, ""),
+      footerText:
+        typeof content.footerText === "string"
+          ? content.footerText.slice(0, 240)
+          : "",
+      hoursText:
+        typeof content.hoursText === "string"
+          ? content.hoursText.slice(0, 240)
+          : d.content.hoursText,
+    },
+    effects: {
+      pattern: (["none", "dots", "grid", "diagonal", "noise", "glow"].includes(String(effects.pattern)) ? effects.pattern : d.effects.pattern) as MenuDesign["effects"]["pattern"],
+      gradientHero: bool(effects.gradientHero, d.effects.gradientHero),
+      glow: bool(effects.glow, d.effects.glow),
+      grain: bool(effects.grain, d.effects.grain),
+      motion: (["calm", "normal", "lively"].includes(String(effects.motion)) ? effects.motion : d.effects.motion) as MenuDesign["effects"]["motion"],
     },
   };
   return normalized;
+}
+
+function clampNumber(v: unknown, min: number, max: number, fb: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fb;
+  return Math.min(max, Math.max(min, Math.round(n * 10) / 10));
 }
 
 /* ---- map design to scoped CSS custom properties --------------------------- */
@@ -337,11 +625,38 @@ export function normalizeMenuDesign(raw: unknown): MenuDesign {
 const mix = (a: string, b: string, aPct: number) =>
   `color-mix(in srgb, ${a} ${aPct}%, ${b})`;
 
+/** Derive an effective palette for the chosen mode (dark inverts canvas/ink). */
+export function resolvePalette(
+  p: MenuDesign["palette"],
+  mode: MenuDesign["layout"]["mode"],
+): MenuDesign["palette"] {
+  if (mode !== "dark") return p;
+  const ink = onColor(p.brandDeep);
+  return {
+    ...p,
+    canvas: p.brandDeep,
+    surface: shade(p.brandDeep, 22),
+    ink,
+    line: shade(p.brandDeep, 40),
+  };
+}
+
+const TRACKING: Record<MenuDesign["type"]["tracking"], string> = {
+  tight: "-0.015em",
+  normal: "0em",
+  wide: "0.05em",
+};
+const LEADING: Record<MenuDesign["type"]["leading"], string> = {
+  tight: "1.06",
+  normal: "1.14",
+  loose: "1.32",
+};
+
 export function menuDesignCssVars(
   d: MenuDesign,
   accentFallback?: string,
 ): Record<string, string> {
-  const p = d.palette;
+  const p = resolvePalette(d.palette, d.layout.mode);
   const onBrand = onColor(p.brand);
   const onBrandDeep = onColor(p.brandDeep);
   const onAction = onColor(p.action);
@@ -393,7 +708,58 @@ export function menuDesignCssVars(
     "--muted-action": mix(onAction, "transparent", 76),
     "--font-display": cssFontStack(d.type.display),
     "--font-body": cssFontStack(d.type.body),
+    "--cd-tracking": TRACKING[d.type.tracking],
+    "--cd-leading": LEADING[d.type.leading],
   };
+}
+
+/* ---- contrast checking (accessibility guardrails) -------------------------- */
+
+export function contrastRatio(a: string, b: string): number {
+  const la = hexLuminance(a);
+  const lb = hexLuminance(b);
+  const light = Math.max(la, lb);
+  const dark = Math.min(la, lb);
+  return (light + 0.05) / (dark + 0.05);
+}
+
+export type ContrastIssue = {
+  id: string;
+  label: string;
+  ratio: number;
+  level: "fail" | "warn";
+  detail: string;
+};
+
+export function designContrastIssues(d: MenuDesign): ContrastIssue[] {
+  const p = resolvePalette(d.palette, d.layout.mode);
+  const checks: {
+    id: string;
+    label: string;
+    fg: string;
+    bg: string;
+    min: number;
+  }[] = [
+    { id: "ink-canvas", label: "النص على الخلفية", fg: p.ink, bg: p.canvas, min: 4.5 },
+    { id: "ink-surface", label: "النص على البطاقات", fg: p.ink, bg: p.surface, min: 4.5 },
+    { id: "on-brand", label: "نص الهوية", fg: onColor(p.brand), bg: p.brand, min: 4.5 },
+    { id: "on-action", label: "نص زر الطلب", fg: onColor(p.action), bg: p.action, min: 4.5 },
+    { id: "price", label: "لون السعر", fg: d.layout.price === "ink" ? p.ink : d.layout.price === "brand" ? p.brand : p.action, bg: p.surface, min: 3 },
+  ];
+  const issues: ContrastIssue[] = [];
+  for (const c of checks) {
+    const ratio = contrastRatio(c.fg, c.bg);
+    if (ratio < c.min) {
+      issues.push({
+        id: c.id,
+        label: c.label,
+        ratio: Math.round(ratio * 100) / 100,
+        level: ratio < c.min - 0.5 ? "fail" : "warn",
+        detail: `${c.fg} على ${c.bg}`,
+      });
+    }
+  }
+  return issues;
 }
 
 /* ---- fonts ---------------------------------------------------------------- */
@@ -455,8 +821,20 @@ export function menuDesignAttrs(d: MenuDesign): AttrMap {
     "data-cd-radius": d.layout.radius,
     "data-cd-density": d.layout.density,
     "data-cd-shadow": d.layout.shadow,
+    "data-cd-mode": d.layout.mode,
+    "data-cd-header": d.layout.header,
+    "data-cd-imgfit": d.layout.imageFit,
+    "data-cd-border": d.layout.border,
     "data-cd-scale": d.type.scale,
     "data-cd-weight": String(d.type.weight),
+    "data-cd-tracking": d.type.tracking,
+    "data-cd-leading": d.type.leading,
+    "data-cd-case": d.type.headingCase,
+    "data-cd-pattern": d.effects.pattern,
+    "data-cd-gradient": b(d.effects.gradientHero),
+    "data-cd-glow": b(d.effects.glow),
+    "data-cd-grain": b(d.effects.grain),
+    "data-cd-motion": d.effects.motion,
     "data-cd-show-subtitle": b(c.subtitle),
     "data-cd-show-location": b(c.location),
     "data-cd-show-stats": b(c.stats),
@@ -468,5 +846,9 @@ export function menuDesignAttrs(d: MenuDesign): AttrMap {
     "data-cd-show-gear": b(c.modifierHint),
     "data-cd-show-foot": b(c.catalogueNote),
     "data-cd-show-live": b(c.liveBadge),
+    "data-cd-show-rating": b(c.rating),
+    "data-cd-show-hours": b(c.hours),
+    "data-cd-show-socials": b(c.socials),
+    "data-cd-show-footer": b(c.footer),
   };
 }

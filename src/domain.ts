@@ -117,15 +117,36 @@ export type Item = {
 export type DesignRadius = "sharp" | "soft" | "round";
 export type DesignDensity = "compact" | "cozy" | "roomy";
 export type DesignShadow = "flat" | "soft" | "deep";
-export type DesignHero = "editorial" | "cover" | "minimal";
-export type DesignCards = "photo" | "list";
+export type DesignHero =
+  | "editorial"
+  | "cover"
+  | "minimal"
+  | "split"
+  | "centered"
+  | "banner";
+export type DesignCards = "photo" | "list" | "overlay" | "compact";
 export type DesignColumns = "auto" | "two" | "three" | "four";
-export type DesignImageRatio = "4:3" | "square" | "3:2" | "16:9";
-export type DesignTabs = "pill" | "line";
-export type DesignPrice = "action" | "ink";
-export type DesignAdd = "solid" | "soft" | "outline";
+export type DesignImageRatio = "4:3" | "square" | "3:2" | "16:9" | "portrait";
+export type DesignTabs = "pill" | "line" | "soft";
+export type DesignPrice = "action" | "ink" | "brand";
+export type DesignAdd = "solid" | "soft" | "outline" | "pill" | "square";
 export type DesignScale = "compact" | "regular" | "editorial";
-export type DesignWeight = 600 | 700 | 800;
+export type DesignWeight = 500 | 600 | 700 | 800 | 900;
+export type DesignMode = "light" | "dark";
+export type DesignHeader = "solid" | "glass" | "minimal" | "centered";
+export type DesignImageFit = "cover" | "contain";
+export type DesignBorder = "none" | "hairline" | "bold";
+export type DesignTracking = "tight" | "normal" | "wide";
+export type DesignLeading = "tight" | "normal" | "loose";
+export type DesignHeadingCase = "normal" | "upper";
+export type DesignPattern =
+  | "none"
+  | "dots"
+  | "grid"
+  | "diagonal"
+  | "noise"
+  | "glow";
+export type DesignMotion = "calm" | "normal" | "lively";
 export type DisplayFont =
   | "Changa"
   | "Cairo"
@@ -162,6 +183,9 @@ export type MenuDesign = {
     body: BodyFont;
     weight: DesignWeight;
     scale: DesignScale;
+    tracking: DesignTracking;
+    leading: DesignLeading;
+    headingCase: DesignHeadingCase;
   };
   layout: {
     hero: DesignHero;
@@ -174,6 +198,17 @@ export type MenuDesign = {
     radius: DesignRadius;
     density: DesignDensity;
     shadow: DesignShadow;
+    mode: DesignMode;
+    header: DesignHeader;
+    imageFit: DesignImageFit;
+    border: DesignBorder;
+  };
+  effects: {
+    pattern: DesignPattern;
+    gradientHero: boolean;
+    glow: boolean;
+    grain: boolean;
+    motion: DesignMotion;
   };
   content: {
     subtitle: boolean;
@@ -187,11 +222,20 @@ export type MenuDesign = {
     modifierHint: boolean;
     catalogueNote: boolean;
     liveBadge: boolean;
-    bannerText: string;
-    bannerOn: boolean;
+    rating: boolean;
+    hours: boolean;
+    socials: boolean;
+    footer: boolean;
+    bannerText: string;bannerOn: boolean;
     bannerTone: BannerTone;
     logoUrl: string;
     coverUrl: string;
+    ratingValue: number;
+    instagram: string;
+    facebook: string;
+    whatsappLabel: string;
+    footerText: string;
+    hoursText: string;
   };
 };
 

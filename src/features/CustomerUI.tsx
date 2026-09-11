@@ -5,6 +5,8 @@ import {
   Check,
   ChevronDown,
   ClipboardList,
+  AtSign,
+  Share2,
   Loader2,
   MapPin,
   MessageCircle,
@@ -14,6 +16,7 @@ import {
   ShieldCheck,
   ShoppingBasket,
   Smartphone,
+  Star,
   Store,
   Truck,
   Utensils,
@@ -183,6 +186,9 @@ function MenuView({
   const bannerText = restaurant.design?.content.bannerText?.trim() || "";
   const bannerTone = restaurant.design?.content.bannerTone || "brand";
   const itemCount = items.length;
+  const dc = restaurant.design?.content;
+  const socialHref = (raw: string) =>
+    !raw ? "" : /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 
   const catEntries = [
     "كل الأصناف",
@@ -260,6 +266,14 @@ function MenuView({
                 <small>يحضَّر عند الطلب</small>
               </span>
             </div>
+
+            {dc?.rating && (
+              <div className="cx-hero__rating">
+                <Star size={15} aria-hidden="true" />
+                <b>{dc.ratingValue.toFixed(1)}</b>
+                <small>تقييم الزبائن</small>
+              </div>
+            )}
 
             <div className="cx-hero__ctas">
               <button
@@ -563,6 +577,77 @@ function MenuView({
           </p>
         )}
       </section>
+
+      {dc && (dc.hours || dc.socials || dc.footer) && (
+        <footer className="cx-sitefoot">
+          <div className="cx-sitefoot__col">
+            <div className="cx-sitefoot__brand">
+              <span className="cx-sitefoot__seal">
+                {designLogoUrl ? (
+                  <img src={designLogoUrl} alt="" />
+                ) : (
+                  (restaurant.logo || "م").slice(0, 1)
+                )}
+              </span>
+              <span>
+                {restaurant.name}
+                {dc.footerText ? "" : null}
+              </span>
+            </div>
+            {dc.footerText && (
+              <p className="cx-sitefoot__note">{dc.footerText}</p>
+            )}
+          </div>
+
+          {dc.hours && (
+            <div className="cx-sitefoot__col">
+              <h3>ساعات العمل</h3>
+              <p className="cx-sitefoot__note">{dc.hoursText}</p>
+            </div>
+          )}
+
+          {dc.socials && (
+            <div className="cx-sitefoot__col">
+              <h3>تواصل معنا</h3>
+              <div className="cx-sitefoot__socials">
+                {dc.instagram && (
+                  <a
+                    className="cx-sitefoot__social"
+                    href={socialHref(dc.instagram)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <AtSign size={16} aria-hidden="true" />
+                    إنستغرام
+                  </a>
+                )}
+                {dc.facebook && (
+                  <a
+                    className="cx-sitefoot__social"
+                    href={socialHref(dc.facebook)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Share2 size={16} aria-hidden="true" />
+                    فيسبوك
+                  </a>
+                )}
+                {restaurant.whatsapp && (
+                  <a
+                    className="cx-sitefoot__social"
+                    href={`https://wa.me/${restaurant.whatsapp}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle size={16} aria-hidden="true" />
+                    {dc.whatsappLabel || "واتساب"}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </footer>
+      )}
     </div>
   );
 }
