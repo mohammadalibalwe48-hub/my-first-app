@@ -1,4 +1,5 @@
 import "./admin.css";
+import "./onboarding.css";
 import {
   useEffect,
   useRef,
@@ -22,6 +23,7 @@ import {
   Clock,
   Copy,
   Download,
+  ExternalLink,
   Flame,
   FileDown,
   LayoutDashboard,
@@ -499,6 +501,60 @@ const TAB_ITEMS: {
   { id: "settings", label: "الإعدادات", icon: Settings },
 ];
 
+type OnboardingState = { completed: string[]; dismissed: boolean };
+const onboardingKey = (restaurantId: string) => `sufra-onboarding-v1-${restaurantId}`;
+
+function loadOnboarding(restaurantId: string): OnboardingState {
+  const saved = readStored<unknown>(onboardingKey(restaurantId), null);
+  if (!saved || typeof saved !== "object")
+    return { completed: [], dismissed: false };
+  const value = saved as Partial<OnboardingState>;
+  return {
+    completed: Array.isArray(value.completed)
+      ? value.completed.filter((entry): entry is string => typeof entry === "string")
+      : [],
+    dismissed: value.dismissed === true,
+  };
+}
+
+const FIRST_RUN_STEPS: {
+  id: string;
+  number: string;
+  title: string;
+  copy: string;
+  action: string;
+  tab: AdminTab;
+  icon: LucideIcon;
+}[] = [
+  {
+    id: "profile",
+    number: "01",
+    title: "عرّف الزبائن بمطعمك",
+    copy: "أضف رقم التواصل والحي وساعات العمل حتى تظهر التفاصيل الصحيحة في متجرك.",
+    action: "إعدادات المطعم",
+    tab: "settings",
+    icon: Store,
+  },
+  {
+    id: "menu",
+    number: "02",
+    title: "رتّب قائمتك وأسعارك",
+    copy: "راجع الأصناف التجريبية، حدّث الأسعار، وأضف أطباقك وصورك الخاصة.",
+    action: "إدارة القائمة",
+    tab: "menu",
+    icon: UtensilsCrossed,
+  },
+  {
+    id: "tables",
+    number: "03",
+    title: "جهّز الطاولات ورموز QR",
+    copy: "أنشئ طاولاتك، ثم نزّل رموزها واطبعها ليصل الزبون مباشرة إلى الطلب.",
+    action: "إعداد الطاولات",
+    tab: "tables",
+    icon: QrCode,
+  },
+];
+
 function AdminView({
   restaurant,
   settings,
@@ -548,7 +604,31 @@ function AdminView({
   const [operationState, setOperationState] = useState<OperationsState | null>(
     null,
   );
+  const [onboarding, setOnboarding] = useState<OnboardingState>(() =>
+    loadOnboarding(restaurant.id),
+  );
+  const onboardingStorageKey = onboardingKey(restaurant.id);
   const previousOrderCount = useRef(orders.length);
+
+  useEffect(() => {
+    setOnboarding(loadOnboarding(restaurant.id));
+  }, [restaurant.id]);
+
+  const saveOnboarding = (next: OnboardingState) => {
+    setOnboarding(next);
+    writeStored(onboardingStorageKey, next);
+  };
+  const toggleOnboardingStep = (stepId: string) => {
+    const completed = onboarding.completed.includes(stepId)
+      ? onboarding.completed.filter((id) => id !== stepId)
+      : [...onboarding.completed, stepId];
+    saveOnboarding({ ...onboarding, completed });
+  };
+  const updateOnboardingDismissed = (dismissed: boolean) =>
+    saveOnboarding({ ...onboarding, dismissed });
+  const onboardingProgress = FIRST_RUN_STEPS.filter((step) =>
+    onboarding.completed.includes(step.id),
+  ).length;
 
   useEffect(
     () =>
@@ -767,15 +847,46 @@ function AdminView({
       <main className="adm-body">
         <div className="adm-body__in">
           {tab === "overview" && (
-            <AdminOverview
-              orders={orders}
-              settings={settings}
-              onOpenOrders={() => setTab("orders")}
-              onOpenOrder={(order) => {
-                setTab("orders");
-                setSelectedOrder(order);
-              }}
-            />
+            <>
+              {onboarding.dismissed ? (
+                <aside className="adm-onboard-reopen">
+                  <span className="adm-onboard-reopen__mark">
+                    <Sparkles aria-hidden="true" />
+                  </span>
+                  <span className="adm-onboard-reopen__copy">
+                    <strong>تهيئة المطعم</strong>
+                    <small>
+                      {onboardingProgress} من {FIRST_RUN_STEPS.length} خطوات مكتملة
+                    </small>
+                  </span>
+                  <button
+                    className="adm-btn adm-btn--soft adm-btn--sm"
+                    onClick={() => updateOnboardingDismissed(false)}
+                  >
+                    متابعة الدليل
+                    <ArrowRight aria-hidden="true" />
+                  </button>
+                </aside>
+              ) : (
+                <FirstRunGuide
+                  restaurantName={restaurant.name}
+                  restaurantSlug={restaurant.id}
+                  completed={onboarding.completed}
+                  onToggleStep={toggleOnboardingStep}
+                  onDismiss={() => updateOnboardingDismissed(true)}
+                  onOpenTab={setTab}
+                />
+              )}
+              <AdminOverview
+                orders={orders}
+                settings={settings}
+                onOpenOrders={() => setTab("orders")}
+                onOpenOrder={(order) => {
+                  setTab("orders");
+                  setSelectedOrder(order);
+                }}
+              />
+            </>
           )}
 
           {tab === "orders" && (
@@ -1026,6 +1137,130 @@ function visibleOrders(
 /* ============================================================================
    AdminOverview — order command center
    ========================================================================== */
+
+function FirstRunGuide({
+  restaurantName,
+  restaurantSlug,
+  completed,
+  onToggleStep,
+  onDismiss,
+  onOpenTab,
+}: {
+  restaurantName: string;
+  restaurantSlug: string;
+  completed: string[];
+  onToggleStep: (stepId: string) => void;
+  onDismiss: () => void;
+  onOpenTab: (tab: AdminTab) => void;
+}) {
+  const progress = FIRST_RUN_STEPS.filter((step) => completed.includes(step.id)).length;
+  const percent = Math.round((progress / FIRST_RUN_STEPS.length) * 100);
+  const allDone = progress === FIRST_RUN_STEPS.length;
+
+  return (
+    <section className="adm-onboard" aria-labelledby="adm-onboard-title">
+      <div className="adm-onboard__intro">
+        <div className="adm-onboard__intro-copy">
+          <span className="adm-onboard__eyebrow">
+            <Sparkles aria-hidden="true" />
+            دليلك الأول · حوالي ٥ دقائق
+          </span>
+          <h2 id="adm-onboard-title">
+            {allDone ? "أحسنت، مطعمك صار جاهزاً" : `أهلاً بـ${restaurantName}`}
+          </h2>
+          <p>
+            {allDone
+              ? "أكملت الأساسيات. افتح متجرك كما يراه الزبائن، ثم استقبل طلبك الأول."
+              : "ثلاث خطوات بسيطة تفصلك عن قائمة رقمية جاهزة لاستقبال الطلبات."}
+          </p>
+        </div>
+        <div className="adm-onboard__progress" aria-label={`اكتملت ${progress} من ${FIRST_RUN_STEPS.length} خطوات`}>
+          <strong>{progress}<span>/{FIRST_RUN_STEPS.length}</span></strong>
+          <small>مكتملة</small>
+        </div>
+        <button
+          type="button"
+          className="adm-onboard__close"
+          onClick={onDismiss}
+          aria-label="إخفاء دليل التهيئة"
+          title="إخفاء الدليل"
+        >
+          <X aria-hidden="true" />
+        </button>
+        <div
+          className="adm-onboard__meter"
+          role="progressbar"
+          aria-label="تقدم تهيئة المطعم"
+          aria-valuemin={0}
+          aria-valuemax={FIRST_RUN_STEPS.length}
+          aria-valuenow={progress}
+        >
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      </div>
+
+      <div className="adm-onboard__steps">
+        {FIRST_RUN_STEPS.map((step) => {
+          const Icon = step.icon;
+          const isComplete = completed.includes(step.id);
+          return (
+            <article
+              className={`adm-onboard__step${isComplete ? " is-complete" : ""}`}
+              key={step.id}
+            >
+              <span className="adm-onboard__step-icon" aria-hidden="true">
+                {isComplete ? <CheckCircle2 /> : <Icon />}
+              </span>
+              <span className="adm-onboard__step-copy">
+                <small>الخطوة {step.number}</small>
+                <strong>{step.title}</strong>
+                <span>{step.copy}</span>
+              </span>
+              <div className="adm-onboard__step-actions">
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--soft adm-btn--sm"
+                  onClick={() => onOpenTab(step.tab)}
+                >
+                  {step.action}
+                  <ArrowRight aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="adm-onboard__done"
+                  aria-pressed={isComplete}
+                  onClick={() => onToggleStep(step.id)}
+                >
+                  {isComplete ? <Check aria-hidden="true" /> : null}
+                  {isComplete ? "تمت" : "علّم كمكتملة"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <footer className="adm-onboard__footer">
+        <span>
+          <ShieldCheck aria-hidden="true" />
+          {allDone
+            ? "جاهز للمشاركة — تحقق من تجربة الزبون قبل الطباعة."
+            : "تقدر تكمل الدليل بأي وقت؛ تقدمك محفوظ على هذا الجهاز."}
+        </span>
+        <a
+          className="adm-onboard__preview"
+          href={cafePath(restaurantSlug)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Store aria-hidden="true" />
+          معاينة المتجر
+          <ExternalLink aria-hidden="true" />
+        </a>
+      </footer>
+    </section>
+  );
+}
 
 function AdminOverview({
   orders,

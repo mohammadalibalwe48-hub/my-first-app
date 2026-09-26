@@ -1,0 +1,165 @@
+/* Restaurant first-run guide */
+.adm-onboard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  animation: onboard-enter 0.5s var(--ease-out) both;
+}
+
+.adm-onboard::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--yellow), var(--cafe-accent, var(--red)));
+}
+
+@keyframes onboard-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.adm-onboard__intro {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: clamp(20px, 3vw, 32px) clamp(20px, 3vw, 34px) 20px;
+  color: #fff;
+  background: radial-gradient(90% 160% at 100% 0%, rgba(255, 196, 0, 0.12), transparent 50%), linear-gradient(125deg, var(--teal-deep), var(--teal));
+}
+
+html[dir="rtl"] .adm-onboard__intro {
+  background: radial-gradient(90% 160% at 0% 0%, rgba(255, 196, 0, 0.12), transparent 50%), linear-gradient(235deg, var(--teal-deep), var(--teal));
+}
+
+.adm-onboard__intro-copy { flex: 1; min-width: 0; padding-inline-end: 34px; }
+.adm-onboard__eyebrow { display: inline-flex; align-items: center; gap: 7px; color: var(--yellow); font-size: 0.75rem; font-weight: 800; }
+.adm-onboard__eyebrow svg { width: 15px; height: 15px; }
+.adm-onboard__intro h2 { margin: 7px 0 4px; color: #fff; font-family: var(--font-display); font-size: clamp(1.35rem, 2.2vw, 1.9rem); line-height: 1.3; }
+.adm-onboard__intro p { margin: 0; max-width: 620px; color: var(--text-on-dark-2); font-size: 0.88rem; line-height: 1.75; }
+
+.adm-onboard__progress {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+.adm-onboard__progress strong { color: var(--yellow); font-family: var(--font-display); font-size: 1.35rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.adm-onboard__progress strong span { color: rgba(255, 255, 255, 0.58); font-size: 0.88rem; }
+.adm-onboard__progress small { color: var(--text-on-dark-2); font-size: 0.65rem; }
+
+.adm-onboard__close {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.adm-onboard__close:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.adm-onboard__close svg { width: 16px; height: 16px; }
+
+.adm-onboard__meter { height: 4px; background: rgba(255, 255, 255, 0.12); }
+.adm-onboard__meter span { display: block; height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--yellow), #f1a44b); transition: width 0.4s var(--ease-out); }
+
+.adm-onboard__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: clamp(14px, 2vw, 22px);
+}
+.adm-onboard__step {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 0;
+  min-height: 218px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--teal) 3%, var(--surface)));
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+.adm-onboard__step:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--teal) 34%, var(--line)); box-shadow: var(--shadow-xs); }
+.adm-onboard__step.is-complete { border-color: color-mix(in srgb, var(--success) 35%, var(--line)); background: color-mix(in srgb, var(--success) 4%, var(--surface)); }
+.adm-onboard__step-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; background: color-mix(in srgb, var(--teal) 10%, var(--surface)); color: var(--teal); }
+.adm-onboard__step-icon svg { width: 19px; height: 19px; }
+.adm-onboard__step.is-complete .adm-onboard__step-icon { background: color-mix(in srgb, var(--success) 12%, var(--surface)); color: var(--success); }
+.adm-onboard__step-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.adm-onboard__step-copy small { color: var(--cafe-accent, var(--red)); font-size: 0.67rem; font-weight: 800; letter-spacing: 0.04em; }
+.adm-onboard__step-copy strong { color: var(--text); font-size: 0.94rem; line-height: 1.5; }
+.adm-onboard__step-copy > span { color: var(--text-3); font-size: 0.76rem; line-height: 1.65; }
+.adm-onboard__step-actions { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-top: auto; }
+.adm-onboard__step-actions .adm-btn { justify-content: space-between; }
+.adm-onboard__done { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; border-radius: 9px; color: var(--text-3); font-size: 0.72rem; font-weight: 700; transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease); }
+.adm-onboard__done:hover { color: var(--success); background: color-mix(in srgb, var(--success) 7%, transparent); }
+.adm-onboard__done[aria-pressed="true"] { color: var(--success); }
+.adm-onboard__done svg { width: 14px; height: 14px; }
+
+.adm-onboard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px clamp(20px, 3vw, 34px);
+  border-top: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--teal) 3%, var(--surface));
+}
+.adm-onboard__footer > span, .adm-onboard__preview { display: inline-flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; }
+.adm-onboard__footer > span { color: var(--text-3); }
+.adm-onboard__footer > span svg { width: 16px; height: 16px; color: var(--teal); flex: none; }
+.adm-onboard__preview { min-height: 38px; color: var(--teal); }
+.adm-onboard__preview:hover { color: var(--red); }
+.adm-onboard__preview svg { width: 15px; height: 15px; }
+.adm-onboard__preview svg:last-child { width: 12px; height: 12px; opacity: 0.65; }
+
+.adm-onboard-reopen { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-xs); }
+.adm-onboard-reopen__mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--yellow); background: var(--teal); }
+.adm-onboard-reopen__mark svg { width: 18px; height: 18px; }
+.adm-onboard-reopen__copy { flex: 1; display: flex; flex-direction: column; line-height: 1.45; }
+.adm-onboard-reopen__copy strong { font-size: 0.85rem; }
+.adm-onboard-reopen__copy small { color: var(--text-3); font-size: 0.74rem; }
+
+@media (max-width: 900px) {
+  .adm-onboard__steps { grid-template-columns: 1fr; }
+  .adm-onboard__step { min-height: auto; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: start; }
+  .adm-onboard__step-actions { grid-column: 2 / -1; flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .adm-onboard__intro { align-items: flex-start; gap: 12px; padding: 22px 18px 18px; }
+  .adm-onboard__intro-copy { padding-inline-end: 22px; }
+  .adm-onboard__intro h2 { font-size: 1.28rem; }
+  .adm-onboard__intro p { font-size: 0.8rem; }
+  .adm-onboard__progress { width: 56px; height: 56px; margin-top: 5px; }
+  .adm-onboard__progress strong { font-size: 1.1rem; }
+  .adm-onboard__close { top: 10px; inset-inline-end: 10px; width: 30px; height: 30px; }
+  .adm-onboard__step { grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 13px; }
+  .adm-onboard__step-icon { width: 36px; height: 36px; }
+  .adm-onboard__step-actions { grid-column: 1 / -1; }
+  .adm-onboard__step-actions .adm-btn { flex: 1; }
+  .adm-onboard__footer { align-items: flex-start; padding: 12px 16px; }
+  .adm-onboard__footer > span { max-width: 100%; }
+  .adm-onboard__preview { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) { .adm-onboard, .adm-onboard * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+.adm-qrbanner
