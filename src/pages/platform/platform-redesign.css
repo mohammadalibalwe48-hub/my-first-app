@@ -1,0 +1,70 @@
+/* Platform console visual refresh: forest, parchment and warm terracotta */
+.px {
+  --px-bg: #f4f2ea;
+  --px-surface: #fffefa;
+  --px-surface-2: #f1efe7;
+  --px-surface-3: #e8e5da;
+  --px-ink: #202b25;
+  --px-ink-2: #536057;
+  --px-ink-3: #7c8279;
+  --px-line: #e4e2d8;
+  --px-line-2: rgba(32, 43, 37, 0.14);
+  --px-teal: #214c3e;
+  --px-teal-2: #2d624f;
+  --px-teal-3: #366d58;
+  --px-teal-deep: #102d25;
+  --px-red: #b85d3f;
+  --px-red-deep: #8e432f;
+  --px-yellow: #d4df9c;
+  --px-yellow-2: #e2e9bd;
+  --px-success: #39734e;
+  --px-warn: #9b6d23;
+  --px-sb: 258px;
+  background: radial-gradient(ellipse at 100% 0%, rgba(216,203,164,.15), transparent 32%), var(--px-bg);
+  color: var(--px-ink);
+}
+.px-sidebar {
+  background: radial-gradient(520px 420px at 118% -12%, rgba(184,93,63,.15), transparent 62%), radial-gradient(520px 380px at -30% 108%, rgba(212,223,156,.1), transparent 62%), linear-gradient(165deg, #1d4639, #173b31 54%, #102d25);
+}
+.px-seal { border-radius: 15px; background: var(--px-yellow); color: var(--px-teal-deep); box-shadow: 0 0 0 4px rgba(212,223,156,.12); }
+.px-brand { padding-block: 25px 21px; border-color: rgba(255,255,255,.1); }
+.px-brand__txt small { color: var(--px-yellow); }
+.px-nav__item { border-radius: 12px; }
+.px-nav__item.is-active, .px-nav__item.is-active:hover { background: var(--px-yellow); color: var(--px-teal-deep); box-shadow: 0 8px 20px rgba(7,22,15,.14); }
+.px-nav__item.is-active .px-nav__ico { background: rgba(23,59,49,.1); }
+.px-nav__count, .px-nav__item.is-active .px-nav__count { background: var(--px-red); color: #fffefa; }
+.px-sidebar__net, .px-user { border-color: rgba(255,255,255,.1); border-radius: 15px; }
+.px-user__avatar { background: var(--px-yellow); color: var(--px-teal-deep); box-shadow: none; }
+.px-sbtn--danger { background: rgba(184,93,63,.88); box-shadow: none; }
+.px-sbtn--danger:hover { background: var(--px-red-deep); }
+.px-head { padding-top: 38px; padding-bottom: 14px; }
+.px-eyebrow { color: var(--px-red); }
+.px-head h1 { color: #20352b; }
+.px-live { background: #eef4e8; border-color: rgba(57,115,78,.2); color: var(--px-success); }
+.px-lang__opt.is-on { background: var(--px-teal); }
+.px-btn--solid { background: var(--px-red); box-shadow: 0 9px 22px rgba(184,93,63,.16); }
+.px-btn--solid:hover:not(:disabled) { background: var(--px-red-deep); }
+.px-btn--teal { background: var(--px-teal); box-shadow: 0 9px 22px rgba(23,59,49,.14); }
+.px-btn--teal:hover:not(:disabled) { background: var(--px-teal-deep); }
+.px-main { padding-top: clamp(18px,2.8vw,34px); }
+.px-card, .px-kpi, .px-rst { border-color: var(--px-line); border-radius: 18px; box-shadow: 0 10px 30px rgba(39,50,39,.05); }
+.px-card__head { padding-top: 23px; }
+.px-card__mark { border-radius: 12px; background: #f2f0e8; }
+.px-kpi { transition: transform 180ms ease, box-shadow 180ms ease; }
+.px-kpi::after { background: linear-gradient(90deg, var(--px-teal), var(--px-red)); }
+.px-kpi:hover { box-shadow: 0 15px 34px rgba(39,50,39,.09); }
+.px-kpi.tone-hero { background: radial-gradient(360px 240px at 112% -18%, rgba(184,93,63,.25), transparent 60%), radial-gradient(300px 240px at -16% 118%, rgba(212,223,156,.13), transparent 60%), linear-gradient(150deg, #214c3e, #173b31 62%, #102d25); box-shadow: 0 15px 34px rgba(23,59,49,.16); }
+.px-kpi.tone-hero::after { background: linear-gradient(90deg, var(--px-yellow), var(--px-red)); }
+.px-rst::before { background: linear-gradient(90deg, var(--c1, var(--px-red)), #d4df9c); }
+.px-rst:hover { box-shadow: 0 16px 34px rgba(39,50,39,.1); }
+.px-rank.is-leader { background: linear-gradient(120deg, rgba(33,76,62,.05), var(--px-surface)); }
+.px-rank.is-leader .px-rank__mono { box-shadow: 0 0 0 3px rgba(212,223,156,.75), var(--shadow-xs); }
+.px-feedrow:hover, .px-rank:hover { background: #f5f3ec; }
+.px-netbar { border-radius: 16px; }
+.px-tabbar { background: rgba(255,254,250,.94); }
+.px-tabbar__item.is-active { color: var(--px-red); }
+.px-tabbar__item.is-active .px-tabbar__ico { background: rgba(184,93,63,.1); }
+.px :focus-visible { outline-color: var(--px-red); box-shadow: 0 0 0 3px rgba(184,93,63,.28); }
+@media (max-width: 1079.98px) { .px-head { padding-top: 26px; } }
+@media (max-width: 599.98px) { .px-head { padding-inline: 16px; } .px-main { padding-inline: 16px; } }
+@media (prefers-reduced-motion: reduce) { .px-kpi, .px-rst { transition: none; } }

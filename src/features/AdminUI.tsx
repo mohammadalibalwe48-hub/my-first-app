@@ -1,5 +1,6 @@
 import "./admin.css";
 import "./onboarding.css";
+import "./admin-redesign.css";
 import {
   useEffect,
   useRef,
@@ -720,7 +721,7 @@ function AdminView({
         : 0;
 
   return (
-    <div className="adm">
+    <div className="adm adm--workspace">
       {/* ---- Deep-teal command mast: identity + live status + switch ---- */}
       <header className="adm-mast">
         <div className="adm-mast__in">

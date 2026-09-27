@@ -50,6 +50,7 @@ import {
   type Tag,
 } from "../domain";
 import "./customer.css";
+import "./customer-mobile.css";
 
 /* ---------------- shared helpers ---------------- */
 

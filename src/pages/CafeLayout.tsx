@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Outlet,
   useLocation,
@@ -51,12 +51,28 @@ function CafeShell() {
   const location = useLocation();
 
   const [scrolled, setScrolled] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const [compactMenuTools, setCompactMenuTools] = useState(false);
   const [showTop, setShowTop] = useState(false);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const onScroll = () => {
-      setScrolled(window.scrollY > 8);
-      setShowTop(window.scrollY > 600);
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY.current;
+      const isMobile = window.matchMedia("(max-width: 900px)").matches;
+      setScrolled(currentY > 8);
+      setCompactMenuTools(isMobile && currentY > 120);
+      setShowTop(currentY > 600);
+
+      if (!isMobile || currentY < 80) {
+        setHeaderHidden(false);
+      } else if (delta > 6) {
+        setHeaderHidden(true);
+      } else if (delta < -6) {
+        setHeaderHidden(false);
+      }
+      lastScrollY.current = currentY;
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -146,7 +162,7 @@ function CafeShell() {
 
   return (
     <div
-      className="cx"
+      className={`cx${headerHidden ? " cx--header-hidden" : ""}${compactMenuTools ? " cx--tools-compact" : ""}`}
       dir={dir}
       style={designStyle as CSSProperties}
       {...designAttrs}
@@ -156,7 +172,7 @@ function CafeShell() {
         تخطَّ إلى المحتوى
       </a>
 
-      <header className={`cx-head${scrolled ? " is-scrolled" : ""}`}>
+      <header className={`cx-head${scrolled ? " is-scrolled" : ""}${headerHidden ? " is-hidden" : ""}`}>
         <div className="cx-head__in">
           <button
             type="button"

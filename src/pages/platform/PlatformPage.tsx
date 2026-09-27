@@ -41,6 +41,7 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { formatSyp, modeLabels, statusLabels } from "../../domain";
 import "./platform.css";
+import "./platform-redesign.css";
 
 /* ---------------- types ---------------- */
 

@@ -43,7 +43,15 @@
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid transparent;
     transition: border-color var(--t-fast) var(--ease),
-        box-shadow var(--t-fast) var(--ease);
+        box-shadow var(--t-fast) var(--ease), transform 220ms var(--ease);
+}
+
+.cx-head.is-hidden {
+    transform: translateY(-100%);
+}
+
+.cx-head.is-hidden .cx-head__in {
+    pointer-events: none;
 }
 
 .cx-head.is-scrolled {
