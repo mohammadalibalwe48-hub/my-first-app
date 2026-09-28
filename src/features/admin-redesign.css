@@ -177,16 +177,8 @@ html[dir="rtl"] .adm.adm--workspace .adm-mast {
   .adm.adm--workspace .adm-nav__item .adm-nav__label { display: inline; }
   .adm.adm--workspace .adm-nav__badge { position: static; }
   .adm.adm--workspace .adm-body { grid-column: auto; grid-row: auto; padding: 26px var(--adm-pad) 54px; }
-}
 
-@media (max-width: 620px) {
-  .adm.adm--workspace .adm-mast__in { align-items: flex-start; }
-  .adm.adm--workspace .adm-mast__tools, .adm.adm--workspace .adm-whoswitch { width: 100%; }
-  .adm.adm--workspace .adm-user, .adm.adm--workspace .adm-switchsel { flex: 1 1 180px; }
-  .adm.adm--workspace .adm-nav__in { gap: 3px; }
-  .adm.adm--workspace .adm-nav__item { padding-inline: 10px; font-size: .78rem; }
-  .adm.adm--workspace .adm-body { padding-top: 22px; }
-  /* Replace the sideways, narrow kanban lanes with readable phone-width sections. */
+  /* Give touch layouts full-width lanes and let every ticket size to its content. */
   .adm.adm--workspace .adm-kb {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -197,26 +189,43 @@ html[dir="rtl"] .adm.adm--workspace .adm-mast {
     scroll-snap-type: none;
   }
   .adm.adm--workspace .adm-kb__col {
+    display: flex;
     width: 100%;
+    height: auto;
     min-height: 0;
     max-height: none;
     flex: none;
+    overflow: visible;
   }
   .adm.adm--workspace .adm-kb__stack {
-    flex: none;
+    display: flex;
+    height: auto;
     min-height: 0;
+    max-height: none;
+    flex: 0 0 auto;
     overflow: visible;
     padding: 10px;
     gap: 10px;
   }
-  .adm.adm--workspace .adm-oc {
-    display: flex;
+  .adm.adm--workspace .adm-kb__stack > .adm-oc {
+    /* Natural block flow prevents the ticket's own flex children collapsing. */
+    display: block;
+    align-self: stretch;
     width: 100%;
     height: auto !important;
-    min-height: 0;
+    min-height: max-content;
     max-height: none !important;
     flex: 0 0 auto !important;
   }
+}
+
+@media (max-width: 620px) {
+  .adm.adm--workspace .adm-mast__in { align-items: flex-start; }
+  .adm.adm--workspace .adm-mast__tools, .adm.adm--workspace .adm-whoswitch { width: 100%; }
+  .adm.adm--workspace .adm-user, .adm.adm--workspace .adm-switchsel { flex: 1 1 180px; }
+  .adm.adm--workspace .adm-nav__in { gap: 3px; }
+  .adm.adm--workspace .adm-nav__item { padding-inline: 10px; font-size: .78rem; }
+  .adm.adm--workspace .adm-body { padding-top: 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) { .adm.adm--workspace .adm-nav__item:hover { transform: none; } }
