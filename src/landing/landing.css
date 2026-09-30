@@ -2951,3 +2951,45 @@
         animation: none !important;
     }
 }
+
+.lp-staff-link {
+    min-height: 44px;
+    padding: 10px 7px;
+    border: 0;
+    background: transparent;
+    color: #59645b;
+    font-family: var(--font-body);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lp-staff-link:hover {
+    color: var(--lp-terracotta);
+}
+
+.lp-staff-link:focus-visible {
+    outline: 2px solid var(--lp-terracotta);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+    .lp-staff-link {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .lp-nav__end .lp-lang {
+        display: none;
+    }
+
+    .lp-nav__end .lp-nav__demo {
+        min-height: 40px;
+        padding: 8px 12px;
+        gap: 6px;
+        font-size: 0.8rem;
+    }
+}

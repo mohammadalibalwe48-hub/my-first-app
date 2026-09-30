@@ -117,6 +117,7 @@ type Copy = {
   mobileNavAria: string;
   langLabel: string;
   adminLabel: string;
+  staffLogin: string;
   navLinks: { href: string; label: string }[];
   tryCta: string;
   edition: string;
@@ -177,6 +178,7 @@ const AR: Copy = {
   mobileNavAria: "قائمة التنقل للجوال",
   langLabel: "EN",
   adminLabel: PLATFORM_ADMIN_LABEL_AR,
+  staffLogin: "دخول الموظفين",
   navLinks: [
     { href: "#dishes", label: "المنيو" },
     { href: "#how", label: "كيف تعمل" },
@@ -253,7 +255,7 @@ const AR: Copy = {
     {
       icon: ScanLine,
       title: "طلب فوري من الطاولة",
-      text: "يصل طلبك إلى المطبخ لحظياً دون انتظار جرسون ولا رفع صوت.",
+      text: "يصل طلبك إلى المطبخ لحظياً دون انتظار ��رسون ولا رفع صوت.",
     },
     {
       icon: Wallet,
@@ -308,6 +310,7 @@ const EN: Copy = {
   mobileNavAria: "Mobile navigation menu",
   langLabel: "عربي",
   adminLabel: PLATFORM_ADMIN_LABEL_EN,
+  staffLogin: "Staff login",
   navLinks: [
     { href: "#dishes", label: "Menu" },
     { href: "#how", label: "How it works" },
@@ -509,6 +512,14 @@ export default function LandingPage({
           <div className="lp-nav__end">
             <button
               type="button"
+              className="lp-btn lp-btn--red lp-nav__demo"
+              onClick={() => openDemo("sufra")}
+            >
+              {t.tryCta}
+              <ArrowRight className="lp-arrow" size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
               className="lp-btn lp-lang"
               onClick={onToggleLanguage}
               aria-label={
@@ -520,8 +531,12 @@ export default function LandingPage({
               <Globe2 size={16} aria-hidden="true" />
               <span>{t.langLabel}</span>
             </button>
-            <button type="button" className="lp-btn lp-admin" onClick={onOpenAdmin}>
-              {t.adminLabel}
+            <button
+              type="button"
+              className="lp-staff-link"
+              onClick={onOpenAdmin}
+            >
+              {t.staffLogin}
             </button>
             <button
               type="button"
@@ -557,7 +572,7 @@ export default function LandingPage({
                 {t.langLabel}
               </button>
               <button type="button" onClick={onOpenAdmin}>
-                {t.adminLabel}
+                {t.staffLogin}
               </button>
               <button type="button" onClick={() => openDemo("sufra")}>
                 <Utensils size={16} aria-hidden="true" />
