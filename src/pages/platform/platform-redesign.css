@@ -62,6 +62,7 @@
 .px-feedrow:hover, .px-rank:hover { background: #f5f3ec; }
 .px-netbar { border-radius: 16px; }
 .px-tabbar { background: rgba(255,254,250,.94); }
+.px-tabbar--assets { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .px-tabbar__item.is-active { color: var(--px-red); }
 .px-tabbar__item.is-active .px-tabbar__ico { background: rgba(184,93,63,.1); }
 .px :focus-visible { outline-color: var(--px-red); box-shadow: 0 0 0 3px rgba(184,93,63,.28); }

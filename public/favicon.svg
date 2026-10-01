@@ -1,28 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="SYRIAN QR — منصة القوائم الرقمية للمطاعم والمقاهي">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="QR SYRIA logo mark">
   <defs>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#c98b2c"/>
-      <stop offset="1" stop-color="#7a4c0d"/>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0788ff"/>
+      <stop offset="1" stop-color="#0737ed"/>
     </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9b08"/>
+      <stop offset="1" stop-color="#ff4b18"/>
+    </linearGradient>
+    <mask id="q-cut">
+      <rect width="220" height="220" fill="#fff"/>
+      <circle cx="105" cy="103" r="54" fill="#000"/>
+      <path d="M105 103 163 165 A86 86 0 0 0 190 139Z" fill="#000"/>
+    </mask>
   </defs>
-  <rect width="96" height="96" rx="22" fill="#0e1f18"/>
-  <circle cx="48" cy="48" r="34" fill="#c98b2c" opacity="0.12"/>
-  <g stroke="url(#gold)" stroke-width="4.5" fill="none">
-    <rect x="13" y="13" width="16" height="16" rx="3.5"/>
-    <rect x="67" y="13" width="16" height="16" rx="3.5"/>
-    <rect x="13" y="67" width="16" height="16" rx="3.5"/>
-  </g>
-  <g fill="url(#gold)">
-    <rect x="18.5" y="18.5" width="5" height="5" rx="1"/>
-    <rect x="72.5" y="18.5" width="5" height="5" rx="1"/>
-    <rect x="18.5" y="72.5" width="5" height="5" rx="1"/>
-  </g>
-  <g fill="url(#gold)">
-    <rect x="44" y="44" width="6" height="6" rx="1.5"/>
-    <rect x="58" y="44" width="6" height="6" rx="1.5"/>
-    <rect x="44" y="58" width="6" height="6" rx="1.5"/>
-    <rect x="72" y="58" width="6" height="6" rx="1.5"/>
-    <rect x="58" y="72" width="6" height="6" rx="1.5"/>
-    <rect x="72" y="72" width="6" height="6" rx="1.5"/>
+  <circle cx="105" cy="103" r="87" fill="url(#blue)" mask="url(#q-cut)"/>
+  <g transform="rotate(42 105 103)">
+    <path d="M94 103h22l9 70q1 11-10 12h-20q-11-1-10-12z" fill="url(#orange)"/>
+    <path d="M79 44v26h8V44a5 5 0 0 1 10 0v26h8V39a5 5 0 0 1 10 0v31h8V44a5 5 0 0 1 10 0v34c0 16-10 27-23 31v10c0 8-5 13-13 13s-13-5-13-13v-10c-13-4-23-15-23-31V44a5 5 0 0 1 10 0z" fill="url(#blue)"/>
   </g>
 </svg>

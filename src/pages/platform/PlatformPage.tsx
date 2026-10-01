@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Globe2,
   Inbox,
+  Images,
   Languages,
   LayoutDashboard,
   Loader2,
@@ -279,6 +280,7 @@ export default function PlatformPage() {
         staffEmail={staffEmail}
         onSite={() => navigate("/")}
         onAdmin={() => navigate("/admin")}
+        onAssets={() => navigate("/platform/assets")}
         onSignOut={doSignOut}
       />
 
@@ -350,7 +352,12 @@ export default function PlatformPage() {
         </div>
       </div>
 
-      <MobileTabBar tab={tab} onTab={setTab} ordersCount={orders.length} />
+      <MobileTabBar
+        tab={tab}
+        onTab={setTab}
+        ordersCount={orders.length}
+        onAssets={() => navigate("/platform/assets")}
+      />
     </div>
   );
 }
@@ -376,6 +383,7 @@ function Sidebar({
   staffEmail,
   onSite,
   onAdmin,
+  onAssets,
   onSignOut,
 }: {
   tab: Tab;
@@ -388,6 +396,7 @@ function Sidebar({
   staffEmail: string;
   onSite: () => void;
   onAdmin: () => void;
+  onAssets: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -424,6 +433,10 @@ function Sidebar({
               </button>
             );
           })}
+          <button type="button" className="px-nav__item" onClick={onAssets}>
+            <span className="px-nav__ico"><Images aria-hidden /></span>
+            <span className="px-nav__txt">مكتبة الصور</span>
+          </button>
         </nav>
 
         <div className="px-sidebar__net">
@@ -565,13 +578,15 @@ function MobileTabBar({
   tab,
   onTab,
   ordersCount,
+  onAssets,
 }: {
   tab: Tab;
   onTab: (t: Tab) => void;
   ordersCount: number;
+  onAssets: () => void;
 }) {
   return (
-    <nav className="px-tabbar" aria-label="أقسام المنصة">
+    <nav className="px-tabbar px-tabbar--assets" aria-label="أقسام المنصة">
       {NAV_ORDER.map((key) => {
         const Icon = TAB_META[key].icon;
         const active = tab === key;
@@ -595,6 +610,10 @@ function MobileTabBar({
           </button>
         );
       })}
+      <button type="button" className="px-tabbar__item" onClick={onAssets}>
+        <span className="px-tabbar__ico"><Images aria-hidden /></span>
+        <span className="px-tabbar__label">مكتبة الصور</span>
+      </button>
     </nav>
   );
 }

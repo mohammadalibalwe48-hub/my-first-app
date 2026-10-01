@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 970 220" role="img" aria-labelledby="title">
+  <title id="title">QR SYRIA</title>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0788ff"/>
+      <stop offset="1" stop-color="#0737ed"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9b08"/>
+      <stop offset="1" stop-color="#ff4b18"/>
+    </linearGradient>
+  </defs>
+  <circle cx="104" cy="103" r="86" fill="none" stroke="url(#blue)" stroke-width="18" stroke-dasharray="488 65" stroke-linecap="round" transform="rotate(90 104 103)"/>
+  <g transform="rotate(-42 104 103)" stroke="url(#blue)" stroke-width="10" stroke-linecap="round" fill="none">
+    <path d="M74 42v34M94 34v42M114 34v42M134 42v34M74 76c0 17 13 31 30 31s30-14 30-31M104 107v10"/>
+  </g>
+  <path d="M96 108h17l9 72c1 11-4 17-14 17s-16-6-15-17z" fill="url(#orange)" transform="rotate(-42 104 103)"/>
+  <path fill="url(#blue)" fill-rule="evenodd" d="M218 28h96c51 0 77 27 77 67 0 29-14 49-41 61l48 53h-78l-39-45h-11v45h-52zm52 47v42h43q27 0 27-21t-27-21z"/>
+  <text x="416" y="171" fill="#f4f6f8" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="150" font-weight="900" letter-spacing="-8" textLength="342" lengthAdjust="spacingAndGlyphs">SYRI</text>
+  <path fill="#f4f6f8" fill-rule="evenodd" d="M831 28h52l72 181h-63l-14-39h-46l-14 39h-61z M858 111l-19 40h38z"/>
+  <path d="m858 111-19 40h38z" fill="url(#orange)"/>
+</svg>

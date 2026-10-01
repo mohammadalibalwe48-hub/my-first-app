@@ -8,6 +8,7 @@ import OrdersPage from "./pages/OrdersPage";
 import AdminEntryPage from "./pages/admin/AdminEntryPage";
 import AdminWorkspacePage from "./pages/admin/AdminWorkspacePage";
 import PlatformPage from "./pages/platform/PlatformPage";
+import AssetLibraryPage from "./pages/platform/AssetLibraryPage";
 
 export default function AppRoutes() {
   return (
@@ -23,6 +24,7 @@ export default function AppRoutes() {
             <Route path="/admin" element={<AdminEntryPage />} />
             <Route path="/admin/:slug/*" element={<AdminWorkspacePage />} />
             <Route path="/platform" element={<PlatformPage />} />
+            <Route path="/platform/assets" element={<AssetLibraryPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>
