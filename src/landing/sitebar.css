@@ -1,0 +1,315 @@
+.lp-sitebar {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    border-bottom: 1px solid rgba(31, 55, 44, 0.1);
+    background: rgba(250, 248, 241, 0.97);
+    box-shadow: 0 8px 28px rgba(22, 43, 34, 0.055);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+.lp-sitebar::before {
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 auto;
+    height: 3px;
+    content: "";
+    pointer-events: none;
+    background: linear-gradient(90deg, #b84537 0 24%, #d5aa5c 24% 76%, #17483d 76%);
+}
+
+.lp-sitebar .lp-sitebar__inner {
+    display: grid;
+    width: min(1240px, calc(100% - 56px));
+    min-height: 78px;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: clamp(18px, 2.5vw, 36px);
+    margin-inline: auto;
+}
+
+.lp-sitebar__identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+}
+
+.lp-sitebar__brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    text-decoration: none;
+}
+
+.lp-sitebar__logo {
+    display: block;
+    width: min(188px, 100%);
+    height: 46px;
+    object-fit: contain;
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.lp[dir="rtl"] .lp-sitebar__logo { object-position: right center; }
+.lp[dir="ltr"] .lp-sitebar__logo { object-position: left center; }
+.lp-sitebar__brand:hover .lp-sitebar__logo { opacity: 0.9; transform: translateY(-1px); }
+
+.lp-sitebar__links {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(14px, 1.9vw, 27px);
+    margin: 0;
+}
+
+.lp-sitebar__links a {
+    padding: 9px 2px;
+    color: #59675d;
+    font-size: 0.83rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 160ms ease;
+}
+
+.lp-sitebar__links a:hover { color: #b84537; }
+
+.lp-sitebar__actions {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+}
+
+.lp-sitebar__cta {
+    display: inline-flex !important;
+    min-height: 44px !important;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px !important;
+    border: 1px solid rgba(147, 51, 40, 0.16) !important;
+    border-radius: 999px !important;
+    color: #fffaf3 !important;
+    background: #b84537 !important;
+    box-shadow: 0 7px 16px rgba(143, 54, 42, 0.16) !important;
+    font-size: 0.8rem !important;
+    font-weight: 750;
+    white-space: nowrap;
+    transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.lp-sitebar__cta:hover {
+    background: #a63d31 !important;
+    box-shadow: 0 10px 20px rgba(143, 54, 42, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+.lp-sitebar__cta-compact { display: none; }
+
+.lp-sitebar__login {
+    min-height: 40px;
+    padding: 8px 2px;
+    border: 0;
+    color: #58675d;
+    background: transparent;
+    font-size: 0.77rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.lp-sitebar__login:hover { color: #b84537; }
+
+.lp-sitebar__tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid rgba(31, 55, 44, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.68);
+}
+
+.lp-sitebar__language {
+    display: inline-flex;
+    width: auto;
+    min-width: 64px;
+    height: 40px;
+    min-height: 40px !important;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    color: #29493d !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.lp-sitebar__language:hover,
+.lp-sitebar__toggle:hover { color: #173f36 !important; background: #efede4 !important; }
+
+.lp-sitebar__toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 50% !important;
+    color: #29493d !important;
+    background: transparent !important;
+    cursor: pointer;
+}
+
+.lp-sitebar :focus-visible {
+    outline: 2px solid #b84537;
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+@media (max-width: 1120px) {
+    .lp-sitebar .lp-sitebar__inner {
+        width: calc(100% - 40px);
+        grid-template-columns: minmax(0, 165px) minmax(0, 1fr) max-content;
+        gap: 14px;
+    }
+
+    .lp-sitebar__links { gap: 11px; }
+    .lp-sitebar__links a { font-size: 0.77rem; }
+    .lp-sitebar__login { display: none; }
+}
+
+@media (max-width: 900px) {
+    .lp-sitebar .lp-sitebar__inner {
+        width: calc(100% - 36px);
+        min-height: 68px;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .lp-sitebar__identity { grid-row: 1; grid-column: 1; }
+    .lp-sitebar__links { display: none; }
+    .lp-sitebar__actions { grid-row: 1; grid-column: 2; justify-self: end; gap: 7px; }
+    .lp-sitebar__logo { width: min(166px, 100%); height: 42px; }
+    .lp-sitebar__toggle { display: grid; }
+
+    .lp-sitebar .lp-nav-menu {
+        position: absolute;
+        z-index: 40;
+        inset-inline: 18px;
+        top: calc(100% + 8px);
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border: 1px solid rgba(31, 55, 44, 0.12);
+        border-radius: 17px;
+        background: #fffdf8;
+        box-shadow: 0 18px 45px rgba(18, 45, 37, 0.17);
+    }
+
+    .lp-sitebar .lp-nav-menu > a {
+        padding: 11px 12px;
+        border-radius: 10px;
+        color: #173a32;
+        font-size: 0.87rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .lp-sitebar .lp-nav-menu > a:hover { background: #f6f3eb; }
+
+    .lp-sitebar .lp-nav-menu__row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        padding-top: 9px;
+        border-top: 1px solid rgba(23, 58, 50, 0.13);
+    }
+
+    .lp-sitebar .lp-nav-menu__row button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 11px;
+        border: 1px solid rgba(23, 58, 50, 0.13);
+        border-radius: 999px;
+        color: #173a32;
+        background: transparent;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+}
+
+@media (max-width: 600px) {
+    .lp-sitebar .lp-sitebar__inner {
+        width: calc(100% - 28px);
+        min-height: 64px;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 7px;
+    }
+
+    .lp-sitebar__logo { width: min(138px, 100%); height: 38px; }
+    .lp-sitebar__actions { gap: 6px; }
+    .lp-sitebar__cta {
+        min-height: 38px !important;
+        padding-inline: 10px !important;
+        color: #fffdf7 !important;
+        background: #173f36 !important;
+        box-shadow: 0 5px 13px rgba(16, 59, 52, 0.14) !important;
+        font-size: 0.69rem !important;
+    }
+    .lp-sitebar__cta:hover { background: #0d332d !important; }
+    .lp-sitebar__cta-full,
+    .lp-sitebar__cta .lp-arrow { display: none; }
+    .lp-sitebar__cta-compact {
+        display: inline-block;
+        max-width: 94px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .lp-sitebar__tools { padding: 2px; background: rgba(255, 255, 255, 0.78); }
+    .lp-sitebar__language {
+        position: relative;
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+        min-height: 36px !important;
+        padding: 0 !important;
+    }
+    .lp-sitebar__language span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+    .lp-sitebar__toggle { width: 36px; height: 36px; min-height: 36px; }
+}
+
+@media (max-width: 390px) {
+    .lp-sitebar .lp-sitebar__inner { width: calc(100% - 22px); gap: 6px; }
+    .lp-sitebar__logo { width: min(120px, 100%); height: 35px; }
+    .lp-sitebar__cta { min-height: 36px !important; padding-inline: 8px !important; }
+    .lp-sitebar__cta-compact { max-width: 84px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-sitebar__logo,
+    .lp-sitebar__cta,
+    .lp-sitebar__tools > * { transition: none !important; }
+}

@@ -21,6 +21,8 @@ import {
   X,
 } from "lucide-react";
 import {
+  PLATFORM_ICON_URL,
+  PLATFORM_LOGO_URL,
   PLATFORM_NAME,
   PLATFORM_TAGLINE_AR,
   PLATFORM_TAGLINE_EN,
@@ -34,6 +36,7 @@ import {
   type Item,
 } from "../domain";
 import "./landing.css";
+import "./sitebar.css";
 
 type Demo = {
   slug: string;
@@ -120,6 +123,7 @@ type Copy = {
   demoBrowse: string;
   navLinks: { href: string; label: string }[];
   tryCta: string;
+  mobileTryCta: string;
   edition: string;
   marquee: string[];
   heroEyebrow: string;
@@ -188,6 +192,7 @@ const AR: Copy = {
     { href: "#demos", label: "متاجر تجريبية" },
   ],
   tryCta: "لوحة أصحاب المطاعم",
+  mobileTryCta: "دخول المطاعم",
   edition: "من دمشق إلى كل طاولة",
   marquee: [
     "اطلب من الطاولة",
@@ -322,6 +327,7 @@ const EN: Copy = {
     { href: "#demos", label: "Demo stores" },
   ],
   tryCta: "Restaurant dashboard",
+  mobileTryCta: "Restaurant login",
   edition: "From Damascus to every table",
   marquee: [
     "Order from the table",
@@ -493,19 +499,15 @@ export default function LandingPage({
       </a>
 
       {/* ================= NAV ================= */}
-      <header className="lp-nav">
-        <div className="lp-nav__inner">
-          <a className="lp-brand" href="#top" aria-label={`${PLATFORM_NAME} — ${t.navSub}`}>
-            <span className="lp-brand__mark" aria-hidden="true">
-              <QrCode size={20} strokeWidth={2.4} />
-            </span>
-            <span className="lp-brand__text">
-              <strong className="lp-brand__name">{PLATFORM_NAME}</strong>
-              <small className="lp-brand__sub">{t.navSub}</small>
-            </span>
-          </a>
+      <header className="lp-sitebar">
+        <div className="lp-sitebar__inner">
+          <div className="lp-sitebar__identity">
+            <a className="lp-sitebar__brand" href="#top" aria-label={`${PLATFORM_NAME} — ${t.navSub}`}>
+              <img className="lp-sitebar__logo" src={PLATFORM_LOGO_URL} alt="QR SYRIA" />
+            </a>
+          </div>
 
-          <nav className="lp-nav__links" aria-label={t.navAriaLabel}>
+          <nav className="lp-sitebar__links" aria-label={t.navAriaLabel}>
             {t.navLinks.map((link) => (
               <a key={link.href} href={link.href}>
                 {link.label}
@@ -513,45 +515,48 @@ export default function LandingPage({
             ))}
           </nav>
 
-          <div className="lp-nav__end">
+          <div className="lp-sitebar__actions">
             <button
               type="button"
-              className="lp-btn lp-btn--red lp-nav__demo"
+              className="lp-btn lp-sitebar__cta"
               onClick={onOpenAdmin}
             >
-              {t.tryCta}
+              <span className="lp-sitebar__cta-full">{t.tryCta}</span>
+              <span className="lp-sitebar__cta-compact">{t.mobileTryCta}</span>
               <ArrowRight className="lp-arrow" size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
-              className="lp-btn lp-lang"
-              onClick={onToggleLanguage}
-              aria-label={
-                language === "ar"
-                  ? "Switch to English"
-                  : "التبديل إلى العربية"
-              }
-            >
-              <Globe2 size={16} aria-hidden="true" />
-              <span>{t.langLabel}</span>
-            </button>
-            <button
-              type="button"
-              className="lp-staff-link"
+              className="lp-sitebar__login"
               onClick={onOpenAdmin}
             >
               {t.staffLogin}
             </button>
-            <button
-              type="button"
-              className="lp-burger"
-              aria-expanded={menuOpen}
-              aria-controls="lp-mobile-menu"
-              aria-label={menuOpen ? t.closeAria : t.openAria}
-              onClick={() => setMenuOpen((open) => !open)}
-            >
-              {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-            </button>
+            <div className="lp-sitebar__tools">
+              <button
+                type="button"
+                className="lp-btn lp-sitebar__language"
+                onClick={onToggleLanguage}
+                aria-label={
+                  language === "ar"
+                    ? "Switch to English"
+                    : "التبديل إلى العربية"
+                }
+              >
+                <Globe2 size={16} aria-hidden="true" />
+                <span>{t.langLabel}</span>
+              </button>
+              <button
+                type="button"
+                className="lp-sitebar__toggle"
+                aria-expanded={menuOpen}
+                aria-controls="lp-mobile-menu"
+                aria-label={menuOpen ? t.closeAria : t.openAria}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -977,13 +982,8 @@ export default function LandingPage({
       <footer className="lp-footer">
         <div className="lp-inner lp-footer__grid">
           <div className="lp-footer__brand">
-            <span className="lp-brand__mark" aria-hidden="true">
-              <QrCode size={18} strokeWidth={2.4} />
-            </span>
-            <div>
-              <strong>{PLATFORM_NAME}</strong>
-              <p>{t.footerTag}</p>
-            </div>
+            <img className="lp-brand__wordmark lp-brand__wordmark--footer" src={PLATFORM_LOGO_URL} alt="QR SYRIA" />
+            <p>{t.footerTag}</p>
           </div>
 
           <div className="lp-footer__col">
