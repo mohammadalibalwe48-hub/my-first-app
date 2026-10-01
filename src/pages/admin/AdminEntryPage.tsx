@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  ClipboardList,
   Globe2,
   Languages,
   LayoutDashboard,
@@ -9,11 +10,64 @@ import {
   LogOut,
   QrCode,
   ShieldCheck,
+  UsersRound,
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { StaffAuthModal } from "../../features/AdminUI";
 import "./admin-entry.css";
+
+const COPY = {
+  ar: {
+    brandSub: "إدارة مطعمك تبدأ من هنا",
+    language: "تغيير اللغة",
+    publicSite: "الموقع العام",
+    signOut: "خروج",
+    loading: "جارٍ التحقق من الجلسة…",
+    kicker: "مساحة مخصصة لفريق المطعم",
+    title: "أدِر مطعمك من مكان واحد.",
+    lead: "تابع الطلبات، حدّث قائمتك، ونظّم فريقك من لوحة بسيطة تعمل على هاتفك أو حاسوبك.",
+    points: ["الطلبات اليومية", "قائمتك الرقمية", "فريق المطعم"],
+    cardEyebrow: "بوابة آمنة للمشغّلين",
+    cardTitle: "مرحباً بعودتك",
+    cardText: "سجّل الدخول للوصول إلى لوحة مطعمك وأدوات فريقك.",
+    signIn: "تسجيل الدخول",
+    security: "حسابك وصلاحياتك محمية",
+    welcome: "أهلاً بعودتك",
+    destinations: "اختر مساحة العمل التي تريد فتحها.",
+    platform: "لوحة المنصة",
+    platformDescription: "إدارة المطاعم ومتابعة أداء المنصة",
+    restaurantDashboard: "لوحة المطعم",
+    noMembership: "حسابك لا يملك عضوية فعّالة في أي مطعم. اطلب من مالك المطعم إضافتك إلى فريق العمل.",
+    footer: "منصة سورية لإدارة المطاعم",
+    roles: { owner: "مالك", manager: "مدير", cashier: "كاشير", kitchen: "المطبخ", viewer: "مشاهدة" },
+  },
+  en: {
+    brandSub: "Restaurant management starts here",
+    language: "Change language",
+    publicSite: "Public site",
+    signOut: "Sign out",
+    loading: "Checking your session…",
+    kicker: "A workspace built for restaurant teams",
+    title: "Run your restaurant from one place.",
+    lead: "Keep orders moving, update your menu, and organize your team from a simple dashboard on any device.",
+    points: ["Daily orders", "Digital menu", "Restaurant team"],
+    cardEyebrow: "Secure operator access",
+    cardTitle: "Welcome back",
+    cardText: "Sign in to open your restaurant dashboard and team tools.",
+    signIn: "Sign in",
+    security: "Your account and access stay protected",
+    welcome: "Welcome back",
+    destinations: "Choose the workspace you want to open.",
+    platform: "Platform dashboard",
+    platformDescription: "Manage restaurants and review platform activity",
+    restaurantDashboard: "Restaurant dashboard",
+    noMembership: "This account has no active restaurant membership. Ask a restaurant owner to add you to their team.",
+    footer: "Syrian restaurant management platform",
+    roles: { owner: "Owner", manager: "Manager", cashier: "Cashier", kitchen: "Kitchen", viewer: "Viewer" },
+  },
+} as const;
 
 const ROLE_LABEL: Record<string, string> = {
   owner: "مالك",
@@ -31,6 +85,7 @@ const initials = (name: string): string => {
 export default function AdminEntryPage(): JSX.Element {
   const { authReady, staffEmail, platformAdmin, memberships, signOut } = useAuth();
   const { language, toggleLanguage } = useUI();
+  const t = COPY[language];
   const navigate = useNavigate();
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -62,14 +117,8 @@ export default function AdminEntryPage(): JSX.Element {
     <div
       className="entry"
       dir={language === "ar" ? "rtl" : "ltr"}
+      lang={language}
     >
-      <div className="entry-stage" aria-hidden="true">
-        <span className="entry-glyph entry-glyph--one">QR</span>
-        <span className="entry-glyph entry-glyph--two" />
-        <span className="entry-orbit entry-orbit--a" />
-        <span className="entry-orbit entry-orbit--b" />
-      </div>
-
       <header className="entry-top">
         <button
           type="button"
@@ -81,7 +130,7 @@ export default function AdminEntryPage(): JSX.Element {
           </span>
           <span className="entry-top__name">
             <b>SYRIAN QR</b>
-            <small>مركز الإدارة والدخول</small>
+            <small>{t.brandSub}</small>
           </span>
         </button>
         <div className="entry-top__actions">
@@ -89,14 +138,14 @@ export default function AdminEntryPage(): JSX.Element {
             type="button"
             className="entry-pill"
             onClick={toggleLanguage}
-            aria-label="تغيير اللغة"
+            aria-label={t.language}
           >
             <Languages />
             {language === "ar" ? "EN" : "عربي"}
           </button>
           <button type="button" className="entry-pill" onClick={() => navigate("/")}>
             <Globe2 />
-            الموقع العام
+            {t.publicSite}
           </button>
           {signedIn && (
             <button
@@ -105,7 +154,7 @@ export default function AdminEntryPage(): JSX.Element {
               onClick={() => void signOut()}
             >
               <LogOut />
-              خروج
+              {t.signOut}
             </button>
           )}
         </div>
@@ -115,45 +164,55 @@ export default function AdminEntryPage(): JSX.Element {
         {!authReady ? (
           <div className="entry-loading" role="status">
             <span className="entry-spinner" />
-            <span className="entry-loading__text">جارٍ التحقق من الجلسة…</span>
+            <span className="entry-loading__text">{t.loading}</span>
           </div>
         ) : !signedIn ? (
-          <section className="entry-hero entry-hero--signin">
+          <section className="entry-portal entry-portal--signin">
+            <div className="entry-portal__intro">
             <span className="entry-kicker">
               <span className="entry-kicker__dot" />
-              بوابة المشغّلين · دخول آمن
+              {t.kicker}
             </span>
             <h1 className="entry-hero__title">
-              سجّل الدخول إلى
-              <br />
-              مكتب التحكّم
+              {t.title}
             </h1>
             <p className="entry-hero__lead">
-              بوابة موحّدة لإدارة مطاعمك على منصة سيريان كيو آر — الطلبات،
-              القوائم، الفريق، والتقارير في مكان واحد.
+              {t.lead}
             </p>
+            <div className="entry-points">
+              <span><ClipboardList aria-hidden="true" />{t.points[0]}</span>
+              <span><Utensils aria-hidden="true" />{t.points[1]}</span>
+              <span><UsersRound aria-hidden="true" />{t.points[2]}</span>
+            </div>
+            </div>
+            <aside className="entry-login-card">
+              <span className="entry-login-card__mark"><QrCode aria-hidden="true" /></span>
+              <span className="entry-login-card__eyebrow">{t.cardEyebrow}</span>
+              <h2>{t.cardTitle}</h2>
+              <p>{t.cardText}</p>
             <button
               type="button"
               className="entry-cta"
               onClick={() => setAuthOpen(true)}
             >
               <Lock />
-              تسجيل الدخول
+              {t.signIn}
               <ArrowRight className="entry-arrow" />
             </button>
             <p className="entry-sec">
               <ShieldCheck />
-              اتصال مشفّر، وصلاحيات تُطبَّق على مستوى قاعدة البيانات.
+              {t.security}
             </p>
+            </aside>
           </section>
         ) : (
-          <section className="entry-hero entry-hero--hub">
+          <section className="entry-hub">
             <span className="entry-kicker">
               <span className="entry-kicker__dot" />
-              أهلاً بعودتك
+              {t.welcome}
             </span>
             <h1 className="entry-hero__title entry-hero__title--hub">
-              إلى أين تذهب اليوم؟
+              {t.destinations}
             </h1>
             <p className="entry-email">{staffEmail}</p>
 
@@ -168,8 +227,8 @@ export default function AdminEntryPage(): JSX.Element {
                     <LayoutDashboard />
                   </span>
                   <span className="entry-option__body">
-                    <b>لوحة المنصة</b>
-                    <small>تحليلات وإدارة كل المطاعم على المنصة</small>
+                    <b>{t.platform}</b>
+                    <small>{t.platformDescription}</small>
                   </span>
                   <span className="entry-option__tag">منصة</span>
                   <ArrowRight className="entry-arrow" />
@@ -188,10 +247,10 @@ export default function AdminEntryPage(): JSX.Element {
                   </span>
                   <span className="entry-option__body">
                     <b>{m.restaurantName}</b>
-                    <small>لوحة المطعم</small>
+                    <small>{t.restaurantDashboard}</small>
                   </span>
                   <span className="entry-option__tag">
-                    {ROLE_LABEL[m.role] ?? m.role}
+                    {t.roles[m.role as keyof typeof t.roles] ?? ROLE_LABEL[m.role] ?? m.role}
                   </span>
                   <ArrowRight className="entry-arrow" />
                 </button>
@@ -201,9 +260,7 @@ export default function AdminEntryPage(): JSX.Element {
                 <div className="entry-note">
                   <ShieldCheck />
                   <p>
-                    الحساب مسجّل لكنه لا يملك عضوية فعّالة في أي مطعم.
-                    <br />
-                    اطلب من مالك المطعم إضافتك إلى فريق العمل.
+                    {t.noMembership}
                   </p>
                 </div>
               )}
@@ -213,11 +270,12 @@ export default function AdminEntryPage(): JSX.Element {
       </main>
 
       <footer className="entry-foot">
-        <span>© {new Date().getFullYear()} SYRIAN QR — منصة سورية</span>
+        <span>© {new Date().getFullYear()} SYRIAN QR — {t.footer}</span>
       </footer>
 
       {authOpen && (
         <StaffAuthModal
+          language={language}
           onClose={() => setAuthOpen(false)}
           onSuccess={() => {
             setAuthOpen(false);

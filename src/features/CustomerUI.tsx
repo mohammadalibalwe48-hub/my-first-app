@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Minus,
   Plus,
+  RefreshCw,
   Search,
   ShieldCheck,
   ShoppingBasket,
@@ -157,6 +158,8 @@ function MenuView({
   setQuery,
   items,
   loading,
+  loadError,
+  onRetry,
   onSelect,
   onQuickAdd,
 }: {
@@ -172,6 +175,8 @@ function MenuView({
   setQuery: (q: string) => void;
   items: Item[];
   loading?: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
   onSelect: (i: Item) => void;
   onQuickAdd: (i: Item) => void;
 }) {
@@ -459,7 +464,9 @@ function MenuView({
                   </div>
                 </div>
               ))
-            : items.map((item) => {
+            : loadError
+              ? null
+              : items.map((item) => {
                 const price = money(item.price, currency, rate);
                 const secondary =
                   currency === "usd" ? formatSyp(item.price) : "";
@@ -550,7 +557,21 @@ function MenuView({
               })}
         </div>
 
-        {!loading && items.length === 0 && (
+        {!loading && loadError && (
+          <div className="cx-empty" role="alert">
+            <span className="cx-empty__art" aria-hidden="true">
+              <Store size={26} />
+            </span>
+            <h3>تعذر تحميل القائمة</h3>
+            <p>{loadError}</p>
+            <button type="button" className="cx-btn cx-btn--red" onClick={onRetry}>
+              <RefreshCw size={17} aria-hidden="true" />
+              حاول مرة أخرى
+            </button>
+          </div>
+        )}
+
+        {!loading && !loadError && items.length === 0 && (
           <div className="cx-empty">
             <span className="cx-empty__art" aria-hidden="true">
               <Search size={26} />
@@ -1042,7 +1063,7 @@ function CheckoutModal({
   mode: Mode;
   setMode: (m: Mode) => void;
   onClose: () => void;
-  onSubmit: (form: HTMLFormElement, fix?: GeoFix | null) => void | Promise<void>;
+  onSubmit: (form: HTMLFormElement, fix?: GeoFix | null) => boolean | Promise<boolean>;
   settings?: RestaurantSettings;
   tableContext: PublicMenuPayload["table"];
   backendReady: boolean;
@@ -1054,6 +1075,7 @@ function CheckoutModal({
   const cashValue = mode === "delivery" ? PAY_CASH_DELIVERY : PAY_CASH_DINE;
   const [pay, setPay] = useState<string>(cashValue);
   const [orderBusy, setOrderBusy] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
 
   const missingDineInContext = mode === "dine-in" && !tableContext;
   const hasCoords =
@@ -1108,8 +1130,12 @@ function CheckoutModal({
   const handleSubmit = async (form: HTMLFormElement) => {
     if (submitDisabled || orderBusy) return;
     setOrderBusy(true);
+    setSubmitError(false);
     try {
-      await onSubmit(form, presence?.ok ? presence.fix : null);
+      const submitted = await onSubmit(form, presence?.ok ? presence.fix : null);
+      if (!submitted) setSubmitError(true);
+    } catch {
+      setSubmitError(true);
     } finally {
       setOrderBusy(false);
     }
@@ -1530,6 +1556,11 @@ function CheckoutModal({
             <strong>{money(total, currency, rate)}</strong>
             {isUsd && <em>{moneySecondary(total, currency, rate)}</em>}
           </div>
+          {submitError && (
+            <p className="cx-note cx-note--danger" role="alert">
+              لم يصلنا تأكيد الطلب. بقيت سلتك وبياناتك كما هي؛ راجع التنبيه ثم أعد المحاولة.
+            </p>
+          )}
           {!backendReady ? (
             <p className="cx-note cx-note--danger">
               أنت دون اتصال — تحقق من الشبكة ثم أعد المحاولة.
@@ -1545,7 +1576,9 @@ function CheckoutModal({
                 ? "امسح رمز الطاولة أولاً"
                 : orderBusy
                   ? "جارٍ إرسال طلبك…"
-                  : "تأكيد الطلب وإرساله"}
+                  : submitError
+                    ? "أعد محاولة الإرسال"
+                    : "تأكيد الطلب وإرساله"}
               <ArrowRight className="cx-arrow" size={19} aria-hidden="true" />
             </button>
           )}

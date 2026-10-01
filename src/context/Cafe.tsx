@@ -42,6 +42,8 @@ type CafeContextValue = {
   categories: ReturnType<typeof useRestaurant>["customerCategories"];
   availableItems: Item[];
   ready: boolean;
+  loadError: string | null;
+  retryMenu: () => void;
   isOnline: boolean;
   tableContext: PublicMenuPayload["table"];
 
@@ -80,11 +82,11 @@ type CafeContextValue = {
     qty?: number,
   ) => void;
   updateQty: (key: string, delta: number) => void;
-  placeOrder: (form: HTMLFormElement, fix?: GeoFix | null) => Promise<void>;
+  placeOrder: (form: HTMLFormElement, fix?: GeoFix | null) => Promise<boolean>;
   openWhatsApp: (order: Order) => Promise<void>;
   customerOrders: Order[];
 
-  notice: string;
+  notice: { message: string; kind: "success" | "error" | "warning" | "info" | "loading" } | null;
 };
 
 const CafeContext = createContext<CafeContextValue | null>(null);
@@ -112,12 +114,15 @@ export function CafeProvider({
   const [orders, setOrders] = useState<Order[]>(() =>
     readStored("sufra-orders", []),
   );
+  const pendingOrderKey = useRef<string | null>(
+    readStored(`sufra-pending-order-${slug}`, null),
+  );
 
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<CafeContextValue["notice"]>(null);
   const noticeTimer = useRef<number | null>(null);
   const submittingRef = useRef(false);
 
@@ -135,10 +140,11 @@ export function CafeProvider({
   // Reset customer session state when switching cafe.
   useEffect(() => {
     setCart(readStored(`sufra-cart-${slug}`, []));
+    pendingOrderKey.current = readStored(`sufra-pending-order-${slug}`, null);
     setCategory("كل الأصناف");
     setTag("all");
     setQuery("");
-    setNotice("");
+    setNotice(null);
     setCartOpen(false);
     setCheckoutOpen(false);
     setSelectedItem(null);
@@ -152,8 +158,25 @@ export function CafeProvider({
   );
   useEffect(() => writeStored("sufra-orders", orders), [orders]);
 
-  const { restaurant, settings, categories, customerCategories, ready, tableContext } =
-    data;
+  const {
+    restaurant,
+    settings,
+    categories,
+    customerCategories,
+    ready,
+    loadError,
+    retryLoad,
+    tableContext,
+  } = data;
+
+  const clearPendingOrderKey = () => {
+    pendingOrderKey.current = null;
+    try {
+      window.localStorage.removeItem(`sufra-pending-order-${slug}`);
+    } catch {
+      // Keep the in-memory basket usable when storage is unavailable.
+    }
+  };
 
   const total = cart.reduce(
     (sum, line) =>
@@ -183,10 +206,14 @@ export function CafeProvider({
     [restaurant, customerCategories, category, tag, query],
   );
 
-  const showNotice = (msg: string, ms = 2400) => {
-    setNotice(msg);
+  const showNotice = (
+    msg: string,
+    ms = 2400,
+    kind: NonNullable<CafeContextValue["notice"]>["kind"] = "info",
+  ) => {
+    setNotice({ message: msg, kind });
     if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
-    noticeTimer.current = window.setTimeout(() => setNotice(""), ms);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), ms);
   };
 
   const addToCart = (
@@ -195,6 +222,7 @@ export function CafeProvider({
     note = "",
     qty = 1,
   ) => {
+    clearPendingOrderKey();
     const key = `${item.id}-${options
       .map((o) => o.id)
       .sort()
@@ -208,10 +236,11 @@ export function CafeProvider({
         : [...current, { key, item, qty, options, note }];
     });
     setSelectedItem(null);
-    showNotice("تمت الإضافة إلى الطلب", 1800);
+    showNotice(`تمت إضافة ${item.name} إلى الطلب`, 2600, "success");
   };
 
-  const updateQty = (key: string, delta: number) =>
+  const updateQty = (key: string, delta: number) => {
+    clearPendingOrderKey();
     setCart((current) =>
       current
         .map((line) =>
@@ -219,18 +248,22 @@ export function CafeProvider({
         )
         .filter((line) => line.qty > 0),
     );
+  };
 
-  const placeOrder = async (form: HTMLFormElement, fix?: GeoFix | null) => {
+  const placeOrder = async (
+    form: HTMLFormElement,
+    fix?: GeoFix | null,
+  ): Promise<boolean> => {
     if (!isOnline || !ready) {
-      showNotice("لا يمكن إرسال الطلب حالياً. تحقق من الاتصال وحاول مجدداً.", 4200);
-      return;
+      showNotice("لا يمكن إرسال الطلب حالياً. تحقق من الاتصال وحاول مجدداً.", 4200, "error");
+      return false;
     }
     const tableToken = new URLSearchParams(window.location.search).get(
       "tableToken",
     );
     if (mode === "dine-in" && (!tableToken || !tableContext)) {
-      showNotice("لطلب داخل المطعم، امسح رمز QR الصحيح الموجود على الطاولة.", 4200);
-      return;
+      showNotice("لطلب داخل المطعم، امسح رمز QR الصحيح الموجود على الطاولة.", 4200, "warning");
+      return false;
     }
     if (
       mode === "dine-in" &&
@@ -238,20 +271,20 @@ export function CafeProvider({
       settings.longitude != null &&
       !fix
     ) {
-      showNotice("تحقق من موقعك داخل المطعم أولاً عبر زر التحقق في صفحة الدفع.", 3600);
-      return;
+      showNotice("تحقق من موقعك داخل المطعم أولاً عبر زر التحقق في صفحة الدفع.", 3600, "warning");
+      return false;
     }
     const operationState = readStored<OperationsState | null>(
       `sufra-operations-${slug}`,
       null,
     );
     if (operationState?.acceptingOrders === false) {
-      showNotice("المطعم متوقف عن استقبال الطلبات حالياً", 2600);
-      return;
+      showNotice("المطعم متوقف عن استقبال الطلبات حالياً", 2600, "warning");
+      return false;
     }
     if (submittingRef.current) {
-      showNotice("جارٍ إرسال طلبك… لحظة واحدة", 2400);
-      return;
+      showNotice("جارٍ إرسال طلبك… لحظة واحدة", 2400, "loading");
+      return false;
     }
     submittingRef.current = true;
     try {
@@ -263,8 +296,13 @@ export function CafeProvider({
         showNotice(
           `الحد الأدنى للطلب في ${selectedZone.name} هو ${formatSyp(selectedZone.minimum)}`,
           3200,
+          "warning",
         );
-        return;
+        return false;
+      }
+      if (!pendingOrderKey.current) {
+        pendingOrderKey.current = newId();
+        writeStored(`sufra-pending-order-${slug}`, pendingOrderKey.current);
       }
       type OrderReceipt = { orderNumber: string; publicToken: string; total: number };
       const { data: submitted, error } = await supabase.rpc(
@@ -272,7 +310,7 @@ export function CafeProvider({
         {
           p_payload: {
             restaurantSlug: slug,
-            idempotencyKey: newId(),
+            idempotencyKey: pendingOrderKey.current,
             mode,
             tableToken,
             deliveryZoneId: selectedZone?.id ?? null,
@@ -307,12 +345,26 @@ export function CafeProvider({
             "لم نتمكن من التحقق من موقعك. اسمح بالوصول إلى الموقع ثم أعد المحاولة.";
         else if (raw.includes("minimum_order_not_met"))
           friendly = "لم يتم بلوغ الحد الأدنى للطلب في هذه المنطقة.";
+        else if (raw.includes("order_mode_disabled"))
+          friendly = "طريقة الاستلام المختارة غير مفعّلة حالياً في المطعم.";
+        else if (raw.includes("invalid_delivery_zone"))
+          friendly = "منطقة التوصيل لم تعد متاحة. اختر منطقة أخرى ثم أعد المحاولة.";
+        else if (raw.includes("phone_required"))
+          friendly = "أدخل رقم هاتفك لمتابعة طلب الاستلام أو التوصيل.";
+        else if (raw.includes("address_required"))
+          friendly = "أدخل عنوان التوصيل بالتفصيل قبل إرسال الطلب.";
+        else if (raw.includes("cart_empty"))
+          friendly = "أضف صنفاً واحداً على الأقل إلى طلبك أولاً.";
+        else if (raw.includes("required_options_missing"))
+          friendly = "أكمل الخيارات المطلوبة لأحد الأصناف ثم أعد المحاولة.";
+        else if (raw.includes("too_many_options"))
+          friendly = "راجع خيارات أحد الأصناف؛ تم اختيار خيارات أكثر من المسموح.";
         else if (raw.includes("item_unavailable"))
           friendly = "أحد الأصناف لم يعد متاحاً — حدّث القائمة وأعد المحاولة.";
         else if (raw.includes("restaurant_not_accepting_orders"))
           friendly = "المطعم متوقف عن استقبال الطلبات حالياً.";
-        showNotice(`تعذر إرسال الطلب: ${friendly}`, 5200);
-        return;
+        showNotice(`تعذر إرسال الطلب: ${friendly}`, 5200, "error");
+        return false;
       }
       const receipt = submitted as unknown as OrderReceipt;
       const order: Order = {
@@ -337,16 +389,20 @@ export function CafeProvider({
       };
       setOrders((current) => [order, ...current]);
       setCart([]);
+      clearPendingOrderKey();
       setCheckoutOpen(false);
       setCartOpen(false);
       setTrackingOrder(order);
       navigate(`/c/${slug}/orders`);
+      return true;
     } catch (err) {
       console.error("Order submission failed", err);
       showNotice(
         "تعذر إرسال الطلب — تحقق من اتصالك وحاول مجدداً. إذا استمرت المشكلة أعد تحميل الصفحة.",
         5200,
+        "error",
       );
+      return false;
     } finally {
       submittingRef.current = false;
     }
@@ -359,7 +415,7 @@ export function CafeProvider({
         p_order_id: order.databaseId,
       });
       if (error) {
-        showNotice(`تعذر تسجيل محاولة واتساب: ${error.message}`, 4200);
+        showNotice(`تعذر تسجيل محاولة واتساب: ${error.message}`, 4200, "error");
       } else {
         dispatchId = String((data as { id?: string } | null)?.id || "");
       }
@@ -406,6 +462,8 @@ export function CafeProvider({
     categories: customerCategories,
     availableItems,
     ready,
+    loadError,
+    retryMenu: retryLoad,
     isOnline,
     tableContext,
     currency,

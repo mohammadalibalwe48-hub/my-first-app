@@ -24,8 +24,6 @@ import {
   PLATFORM_NAME,
   PLATFORM_TAGLINE_AR,
   PLATFORM_TAGLINE_EN,
-  PLATFORM_DESCRIPTION_AR,
-  PLATFORM_DESCRIPTION_EN,
   PLATFORM_ADMIN_LABEL_AR,
   PLATFORM_ADMIN_LABEL_EN,
 } from "../platform";
@@ -118,6 +116,8 @@ type Copy = {
   langLabel: string;
   adminLabel: string;
   staffLogin: string;
+  ownerStart: string;
+  demoBrowse: string;
   navLinks: { href: string; label: string }[];
   tryCta: string;
   edition: string;
@@ -178,40 +178,42 @@ const AR: Copy = {
   mobileNavAria: "قائمة التنقل للجوال",
   langLabel: "EN",
   adminLabel: PLATFORM_ADMIN_LABEL_AR,
-  staffLogin: "دخول الموظفين",
+  staffLogin: "لأصحاب المطاعم",
+  ownerStart: "لديك مطعم؟ ابدأ من هنا",
+  demoBrowse: "استكشف المتاجر التجريبية",
   navLinks: [
     { href: "#dishes", label: "المنيو" },
     { href: "#how", label: "كيف تعمل" },
     { href: "#features", label: "المميزات" },
-    { href: "#demos", label: "متاجر حية" },
+    { href: "#demos", label: "متاجر تجريبية" },
   ],
-  tryCta: "جرّب المتجر التجريبي",
-  edition: "المجلد الأول · دمشق",
+  tryCta: "لوحة أصحاب المطاعم",
+  edition: "من دمشق إلى كل طاولة",
   marquee: [
     "اطلب من الطاولة",
     "بلا تطبيق",
     "دفع محلي مرن",
     "قوائم رقمية عربية",
   ],
-  heroEyebrow: "منصّة سورية للقوائم الرقمية والطلب من الطاولة",
-  heroScript: "اطلب وأنت جالس على طاولتك",
-  heroTitleA: "لكل مطعم ومقهى",
-  heroTitleB: "متجر رقمي باسمه وألوانه",
-  heroSub: PLATFORM_DESCRIPTION_AR,
-  heroCtaDemo: "جرّب المتجر التجريبي",
+  heroEyebrow: "القائمة والطلب وإدارة المطعم — في تجربة واحدة",
+  heroScript: "من QR إلى المطبخ",
+  heroTitleA: "قائمة مطعمك",
+  heroTitleB: "أذكى وأجمل",
+  heroSub: "حوّل قائمتك إلى تجربة أنيقة، ودع ضيوفك يتصفحون ويطلبون من هواتفهم — مع لوحة واحدة لفريقك.",
+  heroCtaDemo: "استكشف المتجر التجريبي",
   heroCtaHow: "كيف تعمل؟",
   scanLabel: "امسح · اطلب · استمتع",
   stats: [
-    { value: "٣", unit: "خطوات", desc: "لطلبك: من المسح حتى المطبخ" },
-    { value: "١", unit: "رمز QR", desc: "لكل طاولة في مطعمك" },
-    { value: "٠", unit: "تطبيق", desc: "على الهاتف — كل شيء من المتصفح" },
+    { value: "٣", unit: "خطوات", desc: "من المسح حتى المطبخ" },
+    { value: "١", unit: "رمز QR", desc: "لكل طاولة" },
+    { value: "٠", unit: "تطبيق", desc: "لا تنزيلات" },
   ],
-  promoLive: "مثال حيّ من مطبخنا",
-  dishesKicker: "من قوائمنا الحية",
+  promoLive: "طبق من قائمة تجريبية",
+  dishesKicker: "من القوائم التجريبية",
   dishesTitle: "أطباق تليق بمائدتك",
   dishesSub:
-    "نختار لك من قوائم متاجرنا التجريبية — اضغط على أي طبق لتدخل المطبخ الحيّ وتطلبه مباشرة.",
-  dishesCta: "اطلبه الآن",
+    "نختار لك أطباقاً من قوائم متاجرنا التجريبية — اضغط على أي طبق لاستكشافه في المتجر.",
+  dishesCta: "استكشف الطبق",
   dishBadge: "الأكثر طلباً",
   dishFull: "عرض التفاصيل في المطعم",
   howKicker: "كيف تعمل؟",
@@ -233,7 +235,7 @@ const AR: Copy = {
     {
       icon: ChefHat,
       title: "يصل الطلب مباشرة إلى المطبخ",
-      text: "يُجهَّز الطبق ويُسجَّل دفعه فوراً وتتابع طلبك لحظة بلحظة.",
+      text: "يصل الطلب إلى فريق المطعم لتأكيده، ويمكنك متابعة تحديثاته.",
     },
   ],
   featKicker: "لماذا سيريان كيو آر؟",
@@ -255,7 +257,7 @@ const AR: Copy = {
     {
       icon: ScanLine,
       title: "طلب فوري من الطاولة",
-      text: "يصل طلبك إلى المطبخ لحظياً دون انتظار ��رسون ولا رفع صوت.",
+      text: "يصل طلبك إلى فريق المطعم مباشرة، دون انتظار النادل أو رفع صوتك.",
     },
     {
       icon: Wallet,
@@ -274,20 +276,20 @@ const AR: Copy = {
     },
   ],
   demoKicker: "جرّب بنفسك",
-  demoTitle: "متاجر حية جاهزة للاستكشاف",
+  demoTitle: "متاجر تجريبية جاهزة للاستكشاف",
   demoSub: "لا تحتاج رمزاً ولا حساباً — اضغط وادخل إلى تجربة الطلب كاملة.",
-  demoBadge: "مثال مباشر",
+  demoBadge: "متجر تجريبي",
   demoNames: [
     { slug: "sufra", label: "سُفرة الشام" },
     { slug: "cozy", label: "Cozy Corner" },
   ],
   demoButton: (name) => `افتح متجر ${name}`,
   demoNote:
-    "هذه متاجر حية — جرّب تجربة الطلب الكاملة من أول طبق حتى إرسال الطلب.",
+    "هذه متاجر نموذجية لاستكشاف شكل القائمة وتجربة الطلب.",
   ctaScript: "ألف هنا وصحة",
   ctaTitle: "جاهز لقائمة رقمية تليق بمطبخك؟",
-  ctaSub: "ابدأ بمتجر تجريبي اليوم — مجاناً وبلا تعقيد.",
-  ctaBtn1: "جرّب سُفرة الشام",
+  ctaSub: "أدر مطعمك من لوحة واحدة، أو استكشف المتاجر التجريبية أولاً.",
+  ctaBtn1: "ابدأ لمطعمك",
   ctaBtn2: "جرّب Cozy Corner",
   ctaPrint: "منصة سورية، بيانات على خوادم سحابية، وتجربة عربية كاملة.",
   footerTag: PLATFORM_TAGLINE_AR,
@@ -310,40 +312,42 @@ const EN: Copy = {
   mobileNavAria: "Mobile navigation menu",
   langLabel: "عربي",
   adminLabel: PLATFORM_ADMIN_LABEL_EN,
-  staffLogin: "Staff login",
+  staffLogin: "For restaurants",
+  ownerStart: "Own a restaurant? Get started",
+  demoBrowse: "Explore demo stores",
   navLinks: [
     { href: "#dishes", label: "Menu" },
     { href: "#how", label: "How it works" },
     { href: "#features", label: "Features" },
-    { href: "#demos", label: "Live stores" },
+    { href: "#demos", label: "Demo stores" },
   ],
-  tryCta: "Try a live demo",
-  edition: "Vol. 01 · Damascus",
+  tryCta: "Restaurant dashboard",
+  edition: "From Damascus to every table",
   marquee: [
     "Order from the table",
     "No app needed",
     "Flexible local payments",
     "Bilingual digital menus",
   ],
-  heroEyebrow: "A Syrian platform for digital menus and table ordering",
-  heroScript: "Order from your seat",
-  heroTitleA: "Every restaurant & café gets its own",
-  heroTitleB: "digital storefront",
-  heroSub: PLATFORM_DESCRIPTION_EN,
-  heroCtaDemo: "Try a live demo",
+  heroEyebrow: "Menus, ordering, and restaurant operations in one experience",
+  heroScript: "From QR to kitchen",
+  heroTitleA: "A better menu",
+  heroTitleB: "for every table",
+  heroSub: "Turn your menu into a polished experience. Let guests browse and order from their phones, while your team runs everything from one dashboard.",
+  heroCtaDemo: "Explore the demo store",
   heroCtaHow: "How it works?",
   scanLabel: "Scan · Order · Enjoy",
   stats: [
-    { value: "3", unit: "steps", desc: "to order — from scan to kitchen" },
-    { value: "1", unit: "QR code", desc: "per table in your venue" },
-    { value: "0", unit: "apps", desc: "to install — everything runs in the browser" },
+    { value: "3", unit: "steps", desc: "from scan to kitchen" },
+    { value: "1", unit: "QR code", desc: "for every table" },
+    { value: "0", unit: "apps", desc: "no downloads needed" },
   ],
-  promoLive: "Live from our kitchen",
-  dishesKicker: "From our live menus",
+  promoLive: "From a sample menu",
+  dishesKicker: "From our demo menus",
   dishesTitle: "Dishes worthy of your table",
   dishesSub:
-    "Picked from our live demo kitchens — tap any dish to walk into the real store and order it.",
-  dishesCta: "Order it now",
+    "Picked from our sample menus — tap any dish to explore it in the demo store.",
+  dishesCta: "Explore this dish",
   dishBadge: "Bestseller",
   dishFull: "See it in the restaurant",
   howKicker: "How it works",
@@ -406,20 +410,20 @@ const EN: Copy = {
     },
   ],
   demoKicker: "Try it yourself",
-  demoTitle: "Live stores ready to explore",
+  demoTitle: "Demo stores ready to explore",
   demoSub: "No QR code and no account needed — just tap and step into a full ordering flow.",
-  demoBadge: "Live example",
+  demoBadge: "Demo store",
   demoNames: [
     { slug: "sufra", label: "Sufra Sham" },
     { slug: "cozy", label: "Cozy Corner" },
   ],
   demoButton: (name) => `Open ${name}`,
   demoNote:
-    "These are real working stores — experience the full ordering journey from your first dish to sending the order.",
+    "These sample stores let you explore the menu and ordering experience.",
   ctaScript: "Bon appétit",
   ctaTitle: "Ready for a digital menu that suits your kitchen?",
-  ctaSub: "Start with a free demo store today — no strings attached.",
-  ctaBtn1: "Try Sufra Sham",
+  ctaSub: "Manage your restaurant from one dashboard, or explore the demo stores first.",
+  ctaBtn1: "Get started for your restaurant",
   ctaBtn2: "Try Cozy Corner",
   ctaPrint:
     "A Syrian platform with cloud-hosted data and a fully Arabic experience.",
@@ -493,7 +497,7 @@ export default function LandingPage({
         <div className="lp-nav__inner">
           <a className="lp-brand" href="#top" aria-label={`${PLATFORM_NAME} — ${t.navSub}`}>
             <span className="lp-brand__mark" aria-hidden="true">
-              <Utensils size={20} strokeWidth={2.4} />
+              <QrCode size={20} strokeWidth={2.4} />
             </span>
             <span className="lp-brand__text">
               <strong className="lp-brand__name">{PLATFORM_NAME}</strong>
@@ -513,7 +517,7 @@ export default function LandingPage({
             <button
               type="button"
               className="lp-btn lp-btn--red lp-nav__demo"
-              onClick={() => openDemo("sufra")}
+              onClick={onOpenAdmin}
             >
               {t.tryCta}
               <ArrowRight className="lp-arrow" size={16} aria-hidden="true" />
@@ -576,7 +580,7 @@ export default function LandingPage({
               </button>
               <button type="button" onClick={() => openDemo("sufra")}>
                 <Utensils size={16} aria-hidden="true" />
-                {t.tryCta}
+                {t.demoBrowse}
               </button>
             </div>
           </nav>
@@ -607,30 +611,23 @@ export default function LandingPage({
                   <button
                     type="button"
                     className="lp-btn lp-btn--yellow"
+                    onClick={onOpenAdmin}
+                  >
+                    {t.ownerStart}
+                    <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="lp-btn lp-btn--ghost"
                     onClick={() => openDemo("sufra")}
                   >
-                    {t.heroCtaDemo}
-                    <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
+                    {t.demoBrowse}
                   </button>
                   <a href="#how" className="lp-btn lp-btn--ghost">
                     {t.heroCtaHow}
                   </a>
                 </div>
 
-                <dl className="lp-stats">
-                  {t.stats.map((stat, index) => (
-                    <div className="lp-stat" key={stat.unit + stat.value}>
-                      <dt>
-                        <span className="lp-stat__num" aria-hidden="true">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <span className="lp-stat__value">{stat.value}</span>
-                        <span className="lp-stat__unit">{stat.unit}</span>
-                      </dt>
-                      <dd>{stat.desc}</dd>
-                    </div>
-                  ))}
-                </dl>
               </div>
 
               <div className="lp-hero__stage">
@@ -675,6 +672,20 @@ export default function LandingPage({
                 </span>
               </div>
             </div>
+            <dl className="lp-stats lp-stats--wide">
+              {t.stats.map((stat, index) => (
+                <div className="lp-stat" key={stat.unit + stat.value}>
+                  <dt>
+                    <span className="lp-stat__num" aria-hidden="true">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="lp-stat__value">{stat.value}</span>
+                    <span className="lp-stat__unit">{stat.unit}</span>
+                  </dt>
+                  <dd>{stat.desc}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
 
@@ -934,7 +945,7 @@ export default function LandingPage({
                   <button
                     type="button"
                     className="lp-btn lp-btn--yellow"
-                    onClick={() => openDemo("sufra")}
+                    onClick={onOpenAdmin}
                   >
                     {t.ctaBtn1}
                     <ArrowRight className="lp-arrow" size={18} aria-hidden="true" />
@@ -967,7 +978,7 @@ export default function LandingPage({
         <div className="lp-inner lp-footer__grid">
           <div className="lp-footer__brand">
             <span className="lp-brand__mark" aria-hidden="true">
-              <Utensils size={18} strokeWidth={2.4} />
+              <QrCode size={18} strokeWidth={2.4} />
             </span>
             <div>
               <strong>{PLATFORM_NAME}</strong>

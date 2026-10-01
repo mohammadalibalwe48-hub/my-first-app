@@ -292,12 +292,15 @@ function AdmDialog({
    Staff authentication modal — entry-page dependency, presentation only.
    ========================================================================== */
 function StaffAuthModal({
+  language,
   onClose,
   onSuccess,
 }: {
+  language: "ar" | "en";
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const en = language === "en";
   const ownerEmail = "admin@qrcode-syria.com";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -317,7 +320,11 @@ function StaffAuthModal({
     const { error } = await supabase.rpc("bootstrap_initial_owner");
     if (!error) return true;
     if (error.message.includes("already been completed")) return true;
-    setMessage(`تم تسجيل الدخول، لكن تعذر تفعيل عضوية المالك: ${error.message}`);
+    setMessage(
+      en
+        ? `Signed in, but the owner membership could not be activated: ${error.message}`
+        : `تم تسجيل الدخول، لكن تعذر تفعيل عضوية المالك: ${error.message}`,
+    );
     return false;
   };
 
@@ -332,8 +339,12 @@ function StaffAuthModal({
       setLoading(false);
       setMessage(
         error.message.toLowerCase().includes("invalid login")
-          ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
-          : `تعذر تسجيل الدخول: ${error.message}`,
+          ? en
+            ? "The email or password is incorrect."
+            : "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+          : en
+            ? `Could not sign in: ${error.message}`
+            : `تعذر تسجيل الدخول: ${error.message}`,
       );
       return;
     }
@@ -344,7 +355,11 @@ function StaffAuthModal({
 
   const signUpInitialOwner = async () => {
     if (email.trim().toLowerCase() !== ownerEmail) {
-      setMessage(`التسجيل الأولي متاح فقط للبريد ${ownerEmail}.`);
+      setMessage(
+        en
+          ? `Initial registration is only available for ${ownerEmail}.`
+          : `التسجيل الأولي متاح فقط للبريد ${ownerEmail}.`,
+      );
       return;
     }
     setLoading(true);
@@ -359,13 +374,19 @@ function StaffAuthModal({
     });
     if (error) {
       setLoading(false);
-      setMessage(`تعذر إنشاء حساب المالك: ${error.message}`);
+      setMessage(
+        en
+          ? `Could not create the owner account: ${error.message}`
+          : `تعذر إنشاء حساب المالك: ${error.message}`,
+      );
       return;
     }
     if (!data.session) {
       setLoading(false);
       setMessage(
-        "تم إنشاء الحساب. افتح رسالة التأكيد في البريد الإلكتروني، ثم عد وسجّل الدخول لإكمال تفعيل عضوية المالك.",
+        en
+          ? "Account created. Open the confirmation email, then return and sign in to finish activating the owner membership."
+          : "تم إنشاء الحساب. افتح رسالة التأكيد في البريد الإلكتروني، ثم عد وسجّل الدخول لإكمال تفعيل عضوية المالك.",
       );
       return;
     }
@@ -376,7 +397,11 @@ function StaffAuthModal({
 
   const resetPassword = async () => {
     if (!email.trim()) {
-      setMessage("أدخل البريد الإلكتروني أولاً لإرسال رابط الاستعادة.");
+      setMessage(
+        en
+          ? "Enter your email address first so we can send a reset link."
+          : "أدخل البريد الإلكتروني أولاً لإرسال رابط الاستعادة.",
+      );
       return;
     }
     setLoading(true);
@@ -386,13 +411,17 @@ function StaffAuthModal({
     setLoading(false);
     setMessage(
       error
-        ? `تعذر إرسال الرابط: ${error.message}`
-        : "أُرسل رابط استعادة كلمة المرور إلى بريدك إن كان الحساب موجوداً.",
+        ? en
+          ? `Could not send the link: ${error.message}`
+          : `تعذر إرسال الرابط: ${error.message}`
+        : en
+          ? "If an account exists for that email, a password reset link has been sent."
+          : "أُرسل رابط استعادة كلمة المرور إلى بريدك إن كان الحساب موجوداً.",
     );
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <div className="modal-backdrop" dir={en ? "ltr" : "rtl"} lang={language} onMouseDown={onClose}>
       <div
         className="modal modal--narrow auth-card"
         role="dialog"
@@ -400,18 +429,20 @@ function StaffAuthModal({
         aria-labelledby="staff-auth-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className="modal__close" onClick={onClose} aria-label="إغلاق">
+        <button className="modal__close" onClick={onClose} aria-label={en ? "Close" : "إغلاق"}>
           <X />
         </button>
         <span
           className="section-kicker"
           style={{ justifyContent: "center", marginTop: "6px" }}
         >
-          دخول الموظفين
+          {en ? "Staff access" : "دخول الموظفين"}
         </span>
-        <h2 id="staff-auth-title">لوحة المطعم</h2>
+        <h2 id="staff-auth-title">{en ? "Restaurant dashboard" : "لوحة المطعم"}</h2>
         <p>
-          استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب.
+          {en
+            ? "Use the staff account provided by your restaurant owner. Guests do not need an account."
+            : "استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب."}
         </p>
         <form
           onSubmit={(event) => {
@@ -420,7 +451,7 @@ function StaffAuthModal({
           }}
         >
           <label className="form-field">
-            <span>البريد الإلكتروني</span>
+            <span>{en ? "Email address" : "البريد الإلكتروني"}</span>
             <input
               type="email"
               autoComplete="email"
@@ -431,7 +462,7 @@ function StaffAuthModal({
             />
           </label>
           <label className="form-field">
-            <span>كلمة المرور</span>
+            <span>{en ? "Password" : "كلمة المرور"}</span>
             <input
               type="password"
               autoComplete="current-password"
@@ -439,12 +470,18 @@ function StaffAuthModal({
               minLength={6}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="كلمة المرور"
+              placeholder={en ? "Password" : "كلمة المرور"}
             />
           </label>
           {message && <div className="auth-msg">{message}</div>}
           <button className="btn btn--gold" type="submit" disabled={loading}>
-            {loading ? "جارٍ تسجيل الدخول…" : "تسجيل الدخول"}
+            {loading
+              ? en
+                ? "Signing in…"
+                : "جارٍ تسجيل الدخول…"
+              : en
+                ? "Sign in"
+                : "تسجيل الدخول"}
           </button>
           {email.trim().toLowerCase() === ownerEmail && (
             <button
@@ -453,7 +490,7 @@ function StaffAuthModal({
               disabled={loading || password.length < 6}
               onClick={() => void signUpInitialOwner()}
             >
-              إنشاء حساب المالك لأول مرة
+              {en ? "Create the initial owner account" : "إنشاء حساب المالك لأول مرة"}
             </button>
           )}
           <button
@@ -462,11 +499,13 @@ function StaffAuthModal({
             disabled={loading}
             onClick={() => void resetPassword()}
           >
-            نسيت كلمة المرور؟
+            {en ? "Forgot password?" : "نسيت كلمة المرور؟"}
           </button>
         </form>
         <small>
-          الصلاحيات مرتبطة بعضوية المطعم وتُطبق في قاعدة البيانات.
+          {en
+            ? "Access is tied to restaurant membership and enforced by the database."
+            : "الصلاحيات مرتبطة بعضوية المطعم وتُطبق في قاعدة البيانات."}
         </small>
       </div>
     </div>

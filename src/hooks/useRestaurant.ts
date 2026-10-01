@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "../supabase";
 import { normalizeMenuDesign } from "../menuDesign";
 import {
@@ -125,10 +126,14 @@ export type RestaurantData = {
   menuItems: Item[];
   customerCategories: MenuCategory[];
   ready: boolean;
+  loadError: string | null;
+  retryLoad: () => void;
   tableContext: PublicMenuPayload["table"];
 };
 
 export function useRestaurant(slug: string): RestaurantData {
+  const location = useLocation();
+  const tableToken = new URLSearchParams(location.search).get("tableToken");
   seedFromStorage(slug);
   const [menuItems, setMenuItems] = useState<Item[]>(
     () => menuCache[slug] ?? findBase(slug).items,
@@ -150,6 +155,7 @@ export function useRestaurant(slug: string): RestaurantData {
   const [tableContext, setTableContext] =
     useState<PublicMenuPayload["table"]>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Cross-tab invalidation: refetch when the design is saved from the studio.
   useEffect(() => {
@@ -166,10 +172,12 @@ export function useRestaurant(slug: string): RestaurantData {
   useEffect(() => {
     let active = true;
     seedFromStorage(slug);
-    if (menuCache[slug]) {
+    setTableContext(null);
+    if (menuCache[slug] && !tableToken) {
       setMenuItems(menuCache[slug]);
       setCategories(categoryCache[slug]);
       setSettings(settingsCache[slug]);
+      setLoadError(null);
       setExtra({
         accent: accentCache[slug] ?? null,
         design: designCache[slug] ?? null,
@@ -178,21 +186,20 @@ export function useRestaurant(slug: string): RestaurantData {
       return;
     }
     setReady(false);
-    setTableContext(null);
+    setLoadError(null);
 
     const load = async () => {
-      const tableToken = new URLSearchParams(window.location.search).get(
-        "tableToken",
-      );
-      const { data, error } = await supabase.rpc("get_public_menu", {
-        p_slug: slug,
-        p_table_token: tableToken,
-      });
-      if (!active) return;
-      if (error || !data) {
-        setReady(false);
-        return;
-      }
+      try {
+        const { data, error } = await supabase.rpc("get_public_menu", {
+          p_slug: slug,
+          p_table_token: tableToken,
+        });
+        if (!active) return;
+        if (error || !data) {
+          setReady(false);
+          setLoadError("تعذر تحميل قائمة المطعم. تحقق من اتصالك وحاول مجدداً.");
+          return;
+        }
       const payload = data as PublicMenuPayload;
       setTableContext(payload.table);
       const fetchedAccent = payload.restaurant.accent ?? null;
@@ -282,21 +289,28 @@ export function useRestaurant(slug: string): RestaurantData {
         })),
       };
 
-      menuCache[slug] = items;
-      categoryCache[slug] = cats;
-      settingsCache[slug] = s;
-      if (active) {
-        setMenuItems(items);
-        setCategories(cats);
-        setSettings(s);
-        setReady(true);
+        menuCache[slug] = items;
+        categoryCache[slug] = cats;
+        settingsCache[slug] = s;
+        if (active) {
+          setMenuItems(items);
+          setCategories(cats);
+          setSettings(s);
+          setLoadError(null);
+          setReady(true);
+        }
+      } catch {
+        if (active) {
+          setReady(false);
+          setLoadError("تعذر تحميل قائمة المطعم. تحقق من اتصالك وحاول مجدداً.");
+        }
       }
     };
     void load();
     return () => {
       active = false;
     };
-  }, [slug, reloadNonce]);
+  }, [slug, reloadNonce, tableToken]);
 
   const base = useMemo(() => findBase(slug), [slug]);
   const resolvedSettings = settings ?? buildDefaultSettings(base);
@@ -323,6 +337,8 @@ export function useRestaurant(slug: string): RestaurantData {
     menuItems,
     customerCategories,
     ready,
+    loadError,
+    retryLoad: () => setReloadNonce((nonce) => nonce + 1),
     tableContext,
   };
 }

@@ -22,7 +22,9 @@ export default function StorefrontPage() {
       query={cafe.query}
       setQuery={cafe.setQuery}
       items={cafe.availableItems}
-      loading={!cafe.ready}
+      loading={!cafe.ready && !cafe.loadError}
+      loadError={cafe.loadError}
+      onRetry={cafe.retryMenu}
       onSelect={cafe.openItem}
       onQuickAdd={(item) => cafe.addToCart(item)}
     />

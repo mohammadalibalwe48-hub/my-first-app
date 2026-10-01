@@ -8,7 +8,11 @@ import {
 } from "react-router-dom";
 import {
   ArrowUp,
+  Check,
+  CircleAlert,
   Globe2,
+  Info,
+  LoaderCircle,
   LayoutDashboard,
   MapPin,
   ShoppingBasket,
@@ -45,6 +49,14 @@ export default function CafeLayout() {
 function CafeShell() {
   const cafe = useCafe();
   const { language, dir, toggleLanguage } = useUI();
+  const noticeText = cafe.notice?.message ?? "";
+  const NoticeIcon = cafe.notice?.kind === "success"
+    ? Check
+    : cafe.notice?.kind === "warning" || cafe.notice?.kind === "error"
+      ? CircleAlert
+      : cafe.notice?.kind === "loading"
+        ? LoaderCircle
+        : Info;
   const { staffEmail, memberships } = useAuth();
   const { slug, restaurant } = cafe;
   const navigate = useNavigate();
@@ -299,9 +311,19 @@ function CafeShell() {
       )}
 
       {cafe.notice && (
-        <div className="cx-toast" role="status">
-          <span aria-hidden="true">✦</span>
-          {cafe.notice}
+        <div className={`cx-toast cx-toast--${cafe.notice.kind}${showDock ? " cx-toast--above-dock" : ""}`} role="status" aria-live="polite" key={cafe.notice.message}>
+          <span className="cx-toast__icon" aria-hidden="true"><NoticeIcon size={19} strokeWidth={2.4} /></span>
+          <span className="cx-toast__content">
+            <strong className="cx-toast__title">
+              {language === "ar"
+                ? cafe.notice.kind === "success" ? "تمت الإضافة" : cafe.notice.kind === "error" ? "تعذّر إكمال الطلب" : cafe.notice.kind === "warning" ? "يرجى الانتباه" : cafe.notice.kind === "loading" ? "جارٍ التنفيذ" : "معلومة"
+                : cafe.notice.kind === "success" ? "Added to your order" : cafe.notice.kind === "error" ? "Something went wrong" : cafe.notice.kind === "warning" ? "Action needed" : cafe.notice.kind === "loading" ? "Working on it" : "Notice"}
+            </strong>
+            <span className="cx-toast__message">{noticeText}</span>
+          </span>
+          {cafe.notice.kind === "success" && (
+            <button type="button" className="cx-toast__action" onClick={cafe.openCart}>{language === "ar" ? "السلة" : "Cart"}</button>
+          )}
         </div>
       )}
 
