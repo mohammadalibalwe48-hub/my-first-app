@@ -5,16 +5,16 @@ import {
   Clock,
   Search,
   Wallet,
+  Package,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { useUI } from "../context/UI";
-import {
-  formatSyp,
-  type Item,
-  type Order,
-  type StaffRole,
-} from "../domain";
+import { formatSyp, type Item, type Order, type StaffRole } from "../domain";
+import { PageHead, AdminEmpty } from "./AdminPrimitives";
 import { supabase } from "../supabase";
-import "./workflows.css";
+import "./staff-workstation.css";
 
 export default function StaffWorkstation({
   view,
@@ -45,6 +45,7 @@ export default function StaffWorkstation({
     return () => window.clearInterval(timer);
   }, []);
   const patch = async (order: Order, values: Partial<Order>) => {
+    setMessage("");
     setBusy(order.id);
     try {
       if (!(await onPatch(order.id, values)))
@@ -73,6 +74,7 @@ export default function StaffWorkstation({
   const [stockItems, setStockItems] = useState(items);
   useEffect(() => setStockItems(items), [items]);
   const stock = async (item: Item) => {
+    setMessage("");
     setBusy(item.id);
     try {
       const { error } = await supabase.rpc("set_item_availability", {
@@ -95,134 +97,235 @@ export default function StaffWorkstation({
       setBusy(null);
     }
   };
+  const kitchen = view === "kitchen";
+  const statusText: Record<Order["status"], string> = {
+    received: t("جديد", "New"),
+    confirmed: t("مؤكد", "Confirmed"),
+    preparing: t("قيد التحضير", "Preparing"),
+    ready: t("جاهز", "Ready"),
+    "out-for-delivery": t("في الطريق", "Out for delivery"),
+    completed: t("مكتمل", "Completed"),
+    cancelled: t("ملغى", "Cancelled"),
+  };
+  const paymentText = (status: Order["paymentStatus"]) =>
+    ({
+      verified: t("تم استلام الدفع", "Payment received"),
+      pending: t("بانتظار الدفع", "Payment pending"),
+      rejected: t("الدفع مرفوض", "Payment rejected"),
+      refunded: t("مسترد", "Refunded"),
+    })[status ?? "pending"];
+  const filteredStock = stockItems.filter((item) =>
+    `${item.name} ${item.en}`.toLowerCase().includes(stockSearch.toLowerCase()),
+  );
   return (
-    <section className="wf-desk">
-      <header className="wf-head">
-        <div>
-          <span className="wf-eyebrow">
-            {t("غرفة العمليات", "LIVE OPERATIONS")}
+    <section
+      className="adm-workstation"
+      aria-label={
+        kitchen
+          ? t("شاشة المطبخ", "Kitchen display")
+          : t("شاشة الكاشير", "Cashier desk")
+      }
+    >
+      <PageHead
+        kicker={t("غرفة العمليات", "LIVE OPERATIONS")}
+        title={
+          kitchen
+            ? t("شاشة المطبخ", "Kitchen display")
+            : t("شاشة الكاشير", "Cashier desk")
+        }
+        lede={
+          kitchen
+            ? t(
+                "تابع التحضير وجهّز الطلبات للاستلام، مع تحديث توفر الأصناف.",
+                "Track preparation, mark orders ready, and manage item availability.",
+              )
+            : t(
+                "تابع المدفوعات وسلّم الطلبات من مكان واحد.",
+                "Track payments and complete order handoffs in one place.",
+              )
+        }
+        actions={
+          <span className="adm-chip adm-chip--brand">
+            <Package aria-hidden="true" />
+            <b className="adm-num">{visible.length}</b>{" "}
+            {t("طلب بالانتظار", "pending orders")}
           </span>
-          <h1>
-            {view === "kitchen"
-              ? t("شاشة المطبخ", "Kitchen display")
-              : t("شاشة الكاشير", "Cashier desk")}
-          </h1>
-          <p>
-            {t(
-              "تحديث مباشر مع إعادة المزامنة تلقائياً",
-              "Live updates with automatic resynchronization",
-            )}
-          </p>
-        </div>
-        <b className="wf-count">{visible.length}</b>
-      </header>
-      <div className="wf-toolbar">
-        <label>
-          <Search size={18} />
+        }
+      />
+      <div className="adm-toolbar">
+        <label className="adm-search">
+          <Search aria-hidden="true" />
           <input
+            type="search"
             aria-label={t("البحث عن طلب", "Search orders")}
             placeholder={t(
               "رقم الطلب أو الطاولة أو الاسم",
               "Order, table or customer",
             )}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-
+        <span className="adm-toolbar__meta">
+          <CheckCircle2 aria-hidden="true" />
+          {t(
+            "تحديث مباشر مع مزامنة تلقائية",
+            "Live updates with automatic sync",
+          )}
+        </span>
       </div>
-      <p role="status" aria-live="polite">
-        {message}
-      </p>
-      <div className="wf-tickets">
-        {visible.length === 0 && (
-          <p>{t("لا توجد طلبات معلقة", "No pending orders")}</p>
-        )}
-        {visible.map((order) => {
-          const minutes = Math.max(
-            0,
-            Math.floor((now - Date.parse(order.createdAt)) / 60000),
-          );
-          const target = Math.max(
-            1,
-            ...order.lines.map(
-              (line) =>
-                items.find((item) => item.id === line.item.id)
-                  ?.preparationMinutes ??
-                line.item.preparationMinutes ??
-                15,
-            ),
-          );
-          const next =
-            order.status === "received"
-              ? "confirmed"
-              : order.status === "confirmed"
-                ? "preparing"
-                : "ready";
-          const statusAr = {
-            received: "جديد",
-            confirmed: "مؤكد",
-            preparing: "قيد التحضير",
-            ready: "جاهز",
-            "out-for-delivery": "في الطريق",
-            completed: "مكتمل",
-            cancelled: "ملغى",
-          };
-          return (
-            <article
-              className={`wf-ticket${minutes > target && order.status !== "ready" ? " is-late" : ""}`}
-              key={order.id}
-            >
-              <header>
-                <strong>#{order.id}</strong>
-                <span>{order.table || t("طلب خارجي", "Off-premise")}</span>
-              </header>
-              <p>
-                <Clock size={15} />
-                {minutes} {t("دقيقة منذ الطلب", "min since ordered")} ·{" "}
-                {en
-                  ? order.status.replaceAll("-", " ")
-                  : statusAr[order.status]}
-              </p>
-              <h3>{order.customer}</h3>
-              <ul>
-                {order.lines.map((line) => (
-                  <li key={line.key}>
-                    <b>
-                      {line.qty} ×{" "}
-                      {en ? line.item.en || line.item.name : line.item.name}
-                    </b>
-                    {line.options.length > 0 && (
-                      <small>
-                        {line.options.map((o) => o.name).join(" · ")}
-                      </small>
-                    )}
-                    {line.note && <em>{line.note}</em>}
-                  </li>
-                ))}
-              </ul>
-              {view === "cashier" && (
-                <div className="wf-payment">
-                  <strong>{formatSyp(order.total)}</strong>
-                  <span>
-                    {order.payment} · {order.paymentStatus}
+      {message && (
+        <p className="adm-alert adm-alert--err" role="alert">
+          <AlertCircle aria-hidden="true" />
+          {message}
+        </p>
+      )}
+      {visible.length === 0 ? (
+        <section className="adm-card">
+          <AdminEmpty
+            icon={kitchen ? ChefHat : Wallet}
+            title={
+              query
+                ? t("لا توجد نتائج للبحث", "No matching orders")
+                : t("لا توجد طلبات معلقة", "No pending orders")
+            }
+            copy={
+              query
+                ? t(
+                    "جرّب رقم طلب أو اسماً مختلفاً.",
+                    "Try another order number or name.",
+                  )
+                : t(
+                    "الطلبات الجديدة رح تظهر هون تلقائياً.",
+                    "New orders will appear here automatically.",
+                  )
+            }
+          >
+            {query && (
+              <button
+                className="adm-btn adm-btn--soft adm-btn--sm"
+                onClick={() => setQuery("")}
+              >
+                {t("مسح البحث", "Clear search")}
+              </button>
+            )}
+          </AdminEmpty>
+        </section>
+      ) : (
+        <div className="adm-workstation__tickets">
+          {visible.map((order) => {
+            const minutes = Math.max(
+              0,
+              Math.floor((now - Date.parse(order.createdAt)) / 60000),
+            );
+            const target = Math.max(
+              1,
+              ...order.lines.map(
+                (line) =>
+                  items.find((item) => item.id === line.item.id)
+                    ?.preparationMinutes ??
+                  line.item.preparationMinutes ??
+                  15,
+              ),
+            );
+            const late =
+              kitchen && minutes > target && order.status !== "ready";
+            const next =
+              order.status === "received"
+                ? "confirmed"
+                : order.status === "confirmed"
+                  ? "preparing"
+                  : "ready";
+            return (
+              <article
+                className={`adm-card adm-work-ticket${late ? " is-late" : ""}`}
+                key={order.databaseId || order.id}
+                aria-busy={busy === order.id}
+              >
+                <header className="adm-card__hd">
+                  <strong className="adm-work-ticket__number adm-num">
+                    <bdi>#{order.id}</bdi>
+                  </strong>
+                  <span className={`adm-chip adm-chip--${order.status}`}>
+                    <i className="adm-chip__dot" aria-hidden="true" />
+                    {statusText[order.status]}
                   </span>
-                  {order.paymentReference && (
-                    <small>
-                      {t("المرجع", "Reference")}: {order.paymentReference}
-                    </small>
+                </header>
+                <div className="adm-card__bd">
+                  <div className="adm-work-ticket__who">
+                    <h3>{order.customer}</h3>
+                    <span>
+                      {order.table ||
+                        (order.mode === "delivery"
+                          ? t("توصيل", "Delivery")
+                          : t("استلام من المطعم", "Takeaway"))}
+                    </span>
+                  </div>
+                  <p
+                    className={`adm-work-ticket__time${late ? " is-late" : ""}`}
+                  >
+                    <Clock aria-hidden="true" />
+                    <span>
+                      {minutes} {t("دقيقة منذ الطلب", "min since ordered")}
+                      {late
+                        ? ` · ${t("متأخر عن وقت التحضير", "Past preparation target")}`
+                        : ""}
+                    </span>
+                  </p>
+                  <ul className="adm-work-ticket__lines">
+                    {order.lines.map((line) => (
+                      <li key={line.key}>
+                        <span className="adm-work-ticket__qty adm-num">
+                          {line.qty} ×
+                        </span>
+                        <div>
+                          <strong>
+                            {en
+                              ? line.item.en || line.item.name
+                              : line.item.name}
+                          </strong>
+                          {line.options.length > 0 && (
+                            <small>
+                              {line.options
+                                .map((option) => option.name)
+                                .join(" · ")}
+                            </small>
+                          )}
+                          {line.note && (
+                            <p className="adm-work-ticket__note">{line.note}</p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {!kitchen && (
+                    <div className="adm-work-ticket__payment">
+                      <strong className="adm-num">
+                        {formatSyp(order.total)}
+                      </strong>
+                      <span
+                        className={`adm-chip adm-chip--${order.paymentStatus ?? "pending"}`}
+                      >
+                        {paymentText(order.paymentStatus)}
+                      </span>
+                      <small>{order.payment}</small>
+                      {order.paymentReference && (
+                        <small>
+                          {t("المرجع", "Reference")}:{" "}
+                          <bdi>{order.paymentReference}</bdi>
+                        </small>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-              <footer>
-                {view === "kitchen" &&
-                  canKitchen &&
-                  order.status !== "ready" && (
+                <footer className="adm-work-ticket__actions">
+                  {kitchen && canKitchen && order.status !== "ready" && (
                     <button
+                      className="adm-btn adm-btn--teal"
                       disabled={!!busy}
                       onClick={() => void patch(order, { status: next })}
                     >
-                      <ChefHat />
+                      <ChefHat aria-hidden="true" />
                       {next === "confirmed"
                         ? t("قبول الطلب", "Accept order")
                         : next === "preparing"
@@ -230,71 +333,98 @@ export default function StaffWorkstation({
                           : t("جاهز للاستلام", "Mark ready")}
                     </button>
                   )}
-                {view === "cashier" && canCashier && (
-                  <>
-                    {order.paymentStatus !== "verified" && (
-                      <button
-                        disabled={!!busy}
-                        onClick={() =>
-                          void patch(order, { paymentStatus: "verified" })
-                        }
-                      >
-                        <Wallet />
-                        {t("تأكيد استلام الدفع", "Confirm payment received")}
-                      </button>
-                    )}
-                    {["ready", "out-for-delivery"].includes(order.status) && (
-                      <button
-                        disabled={!!busy || order.paymentStatus !== "verified"}
-                        onClick={() =>
-                          void patch(order, { status: "completed" })
-                        }
-                      >
-                        <Check />
-                        {t("تسليم وإغلاق", "Complete handoff")}
-                      </button>
-                    )}
-                    {order.mode === "delivery" && order.status === "ready" && (
-                      <button
-                        disabled={!!busy}
-                        onClick={() =>
-                          void patch(order, { status: "out-for-delivery" })
-                        }
-                      >
-                        {t("خرج للتوصيل", "Dispatch delivery")}
-                      </button>
-                    )}
-                  </>
+                  {kitchen && order.status === "ready" && (
+                    <span className="adm-work-ticket__ready">
+                      <CheckCircle2 aria-hidden="true" />
+                      {t("بانتظار التسليم", "Awaiting handoff")}
+                    </span>
+                  )}
+                  {!kitchen && canCashier && (
+                    <>
+                      {order.paymentStatus !== "verified" && (
+                        <button
+                          className="adm-btn adm-btn--teal"
+                          disabled={!!busy}
+                          onClick={() =>
+                            void patch(order, { paymentStatus: "verified" })
+                          }
+                        >
+                          <Wallet aria-hidden="true" />
+                          {t("تأكيد استلام الدفع", "Confirm payment received")}
+                        </button>
+                      )}
+                      {["ready", "out-for-delivery"].includes(order.status) && (
+                        <button
+                          className="adm-btn adm-btn--accent"
+                          disabled={
+                            !!busy || order.paymentStatus !== "verified"
+                          }
+                          onClick={() =>
+                            void patch(order, { status: "completed" })
+                          }
+                        >
+                          <Check aria-hidden="true" />
+                          {t("تسليم وإغلاق", "Complete handoff")}
+                        </button>
+                      )}
+                      {order.mode === "delivery" &&
+                        order.status === "ready" && (
+                          <button
+                            className="adm-btn adm-btn--soft"
+                            disabled={!!busy}
+                            onClick={() =>
+                              void patch(order, { status: "out-for-delivery" })
+                            }
+                          >
+                            <ArrowRight aria-hidden="true" />
+                            {t("خرج للتوصيل", "Dispatch delivery")}
+                          </button>
+                        )}
+                    </>
+                  )}
+                </footer>
+              </article>
+            );
+          })}
+        </div>
+      )}
+      {kitchen && canKitchen && (
+        <section className="adm-card adm-work-stock">
+          <header className="adm-card__hd">
+            <div>
+              <h3>{t("توفر الأصناف", "Item availability")}</h3>
+              <p>
+                {t(
+                  "حدّث التوفر حتى يشوف الزبون الأصناف المتاحة فقط.",
+                  "Keep availability current for customer ordering.",
                 )}
-              </footer>
-            </article>
-          );
-        })}
-      </div>
-      {view === "kitchen" && canKitchen && (
-        <section className="wf-stock">
-          <h2>{t("توفر الأصناف", "Item availability")}</h2>
-          <input
-            aria-label={t("بحث الأصناف", "Search items")}
-            placeholder={t("ابحث عن صنف", "Search items")}
-            value={stockSearch}
-            onChange={(e) => setStockSearch(e.target.value)}
-          />
-          <div>
-            {stockItems
-              .filter((i) =>
-                `${i.name} ${i.en}`
-                  .toLowerCase()
-                  .includes(stockSearch.toLowerCase()),
-              )
-              .map((item) => (
+              </p>
+            </div>
+            <span className="adm-chip adm-chip--mode">
+              {filteredStock.length} {t("صنف", "items")}
+            </span>
+          </header>
+          <div className="adm-card__bd">
+            <label className="adm-search">
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                aria-label={t("بحث الأصناف", "Search items")}
+                placeholder={t("ابحث عن صنف", "Search items")}
+                value={stockSearch}
+                onChange={(event) => setStockSearch(event.target.value)}
+              />
+            </label>
+            <div className="adm-work-stock__items">
+              {filteredStock.map((item) => (
                 <button
+                  className="adm-work-stock__item"
                   aria-pressed={item.available}
                   disabled={!!busy}
                   key={item.id}
                   onClick={() => void stock(item)}
                 >
-                  {en ? item.en || item.name : item.name}
+                  <span>{en ? item.en || item.name : item.name}</span>
                   <b>
                     {item.available
                       ? t("متاح", "Available")
@@ -302,6 +432,12 @@ export default function StaffWorkstation({
                   </b>
                 </button>
               ))}
+            </div>
+            {filteredStock.length === 0 && (
+              <p className="adm-work-stock__empty">
+                {t("لا توجد أصناف مطابقة.", "No matching items.")}
+              </p>
+            )}
           </div>
         </section>
       )}

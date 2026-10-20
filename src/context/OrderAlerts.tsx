@@ -294,23 +294,31 @@ export function OrderAlertsPanel() {
             : t("اختبار الإشعار", "Test notification")}
         </button>
       </div>
-      <small>
-        {subscriptionId
-          ? t(
-              "هذا الجهاز مسجّل لاستقبال الإشعارات بعد إغلاق التطبيق.",
-              "This device is registered for notifications after closing the app.",
-            )
-          : t(
-              "فعّل الإشعارات على كل جهاز. على الآيفون: أضف للشاشة الرئيسية وافتح من الأيقونة.",
-              "Enable notifications on each device. On iPhone: Add to Home Screen, then open the app icon.",
-            )}
-      </small>
-      <small>
-        {t(
-          "الصوت داخل الصفحة يحتاج تفعيل بكل جلسة. صوت شاشة القفل يتبع إعدادات جهازك وعدم الإزعاج.",
-          "In-page sound needs activation each session. Lock-screen sound follows your device and Do Not Disturb settings.",
-        )}
-      </small>
+      <details className="order-alerts__help">
+        <summary>
+          {t(
+            "طريقة التفعيل والصوت على الموبايل",
+            "Device setup and sound help",
+          )}
+        </summary>
+        <small>
+          {subscriptionId
+            ? t(
+                "هذا الجهاز مسجّل لاستقبال الإشعارات بعد إغلاق التطبيق.",
+                "This device is registered for notifications after closing the app.",
+              )
+            : t(
+                "فعّل الإشعارات على كل جهاز. على الآيفون: أضف للشاشة الرئيسية وافتح من الأيقونة.",
+                "Enable notifications on each device. On iPhone: Add to Home Screen, then open the app icon.",
+              )}
+        </small>
+        <small>
+          {t(
+            "الصوت داخل الصفحة يحتاج تفعيل بكل جلسة. صوت شاشة القفل يتبع إعدادات جهازك وعدم الإزعاج.",
+            "In-page sound needs activation each session. Lock-screen sound follows your device and Do Not Disturb settings.",
+          )}
+        </small>
+      </details>
       <p role="status" aria-live="polite">
         {message}
       </p>

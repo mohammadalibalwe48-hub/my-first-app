@@ -18,7 +18,7 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { useRestaurant } from "../../hooks/useRestaurant";
 import { AdminView } from "../../features/AdminUI";
-import { OrderAlertsProvider, OrderAlertsPanel } from "../../context/OrderAlerts";
+import { OrderAlertsProvider } from "../../context/OrderAlerts";
 import StaffWorkstation from "../../features/StaffWorkstation";
 import { allowedWorkspaceTabs } from "../../staffPermissions";
 import { invalidateRestaurantCache } from "../../hooks/useRestaurant";
@@ -442,6 +442,7 @@ export default function AdminWorkspacePage() {
                 <button
                   type="button"
                   className="adm-bar__link"
+                  aria-label="لوحة المنصة"
                   onClick={() => navigate("/platform")}
                 >
                   <LayoutDashboard aria-hidden="true" />
@@ -451,6 +452,7 @@ export default function AdminWorkspacePage() {
               <button
                 type="button"
                 className="adm-bar__link"
+                aria-label="الرئيسية"
                 onClick={() => navigate("/")}
               >
                 <Home aria-hidden="true" />
@@ -459,6 +461,7 @@ export default function AdminWorkspacePage() {
               <button
                 type="button"
                 className="adm-bar__link"
+                aria-label="عرض المتجر"
                 onClick={() => navigate(`/c/${slug}`)}
               >
                 <Store aria-hidden="true" />
@@ -473,6 +476,7 @@ export default function AdminWorkspacePage() {
             <button
               type="button"
               className="adm-bar__signout"
+              aria-label="تسجيل الخروج"
               onClick={() => void signOut()}
             >
               <LogOut aria-hidden="true" />
@@ -480,79 +484,63 @@ export default function AdminWorkspacePage() {
             </button>
           </div>
         </header>
-        <OrderAlertsPanel />
-        {tab === "kitchen" || tab === "cashier" ? (
-          <>
-            <nav className="wf-nav" aria-label="Workspace">
-              {allowed.map((entry) => (
-                <button
-                  key={entry}
-                  aria-current={tab === entry ? "page" : undefined}
-                  onClick={() => goTab(entry)}
+        <AdminView
+          restaurant={restaurantForView}
+          settings={settings}
+          categories={categories}
+          tab={tab}
+          setTab={goTab}
+          orders={orders}
+          restaurantDatabaseId={restaurantDatabaseId}
+          workstation={
+            tab === "kitchen" || tab === "cashier" ? (
+              !ordersReady ? (
+                <section
+                  className="adm-card adm-workstation-loading"
+                  role="status"
+                  aria-live="polite"
                 >
+                  <span className="sk" aria-hidden="true" />
                   {language === "en"
-                    ? entry
-                    : {
-                        overview: "نظرة عامة",
-                        orders: "الطلبات",
-                        kitchen: "المطبخ",
-                        cashier: "الكاشير",
-                        menu: "القائمة",
-                        tables: "الطاولات",
-                        reports: "التقارير",
-                        operations: "الفريق والتشغيل",
-                        design: "التصميم",
-                        settings: "الإعدادات",
-                      }[entry]}
-                </button>
-              ))}
-            </nav>
-            {!ordersReady ? (
-              <p role="status">جارٍ تحميل الطلبات…</p>
-            ) : (
-              <StaffWorkstation
-                view={tab}
-                orders={orders}
-                role={membership.role}
-                items={data.menuItems}
-                restaurantId={restaurantDatabaseId}
-                onPatch={persistOrderPatch}
-                onStock={(id, available) => {
-                  setItems((current) =>
-                    current.map((item) =>
-                      item.id === id ? { ...item, available } : item,
-                    ),
-                  );
-                  invalidateRestaurantCache(slug);
-                  data.retryLoad();
-                }}
-              />
-            )}
-          </>
-        ) : (
-          <AdminView
-            restaurant={restaurantForView}
-            settings={settings}
-            categories={categories}
-            tab={tab}
-            setTab={goTab}
-            orders={orders}
-            restaurantDatabaseId={restaurantDatabaseId}
-            onStatus={updateOrderStatus}
-            onWhatsApp={(o) => void openWhatsApp(o)}
-            onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
-            onSwitch={(id) => navigate(`/admin/${id}`)}
-            memberships={memberships}
-            staffEmail={staffEmail}
-            onSignOut={async () => {
-              await signOut();
-              navigate("/");
-            }}
-            onItemsChange={setItems}
-            onCategoriesChange={setCategories}
-            onSettingsChange={onSettingsChange}
-          />
-        )}
+                    ? "Loading orders…"
+                    : "جارٍ تحميل الطلبات…"}
+                </section>
+              ) : (
+                <StaffWorkstation
+                  key={tab}
+                  view={tab}
+                  orders={orders}
+                  role={membership.role}
+                  items={items}
+                  restaurantId={restaurantDatabaseId}
+                  onPatch={persistOrderPatch}
+                  onStock={(id, available) => {
+                    setItems((current) =>
+                      current.map((item) =>
+                        item.id === id ? { ...item, available } : item,
+                      ),
+                    );
+                    invalidateRestaurantCache(slug);
+                    data.retryLoad();
+                  }}
+                />
+              )
+            ) : undefined
+          }
+          onStatus={updateOrderStatus}
+          onWhatsApp={(o) => void openWhatsApp(o)}
+          onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
+          onSwitch={(id) => navigate(`/admin/${id}`)}
+          memberships={memberships}
+          staffEmail={staffEmail}
+          onSignOut={async () => {
+            await signOut();
+            navigate("/");
+          }}
+          onItemsChange={setItems}
+          onCategoriesChange={setCategories}
+          onSettingsChange={onSettingsChange}
+        />
       </div>
     </OrderAlertsProvider>
   );
