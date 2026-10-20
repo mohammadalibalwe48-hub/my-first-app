@@ -4,8 +4,6 @@ import "./onboarding.css";
 import "./admin-redesign.css";
 import "./workflows.css";
 import {
-  lazy,
-  Suspense,
   useEffect,
   useRef,
   useState,
@@ -38,7 +36,6 @@ import {
   MessageCircle,
   Navigation,
   Package,
-  Palette,
   Pencil,
   Plus,
   Printer,
@@ -100,8 +97,6 @@ import {
 /* ============================================================================
    Shared local atoms & helpers (presentation only)
    ========================================================================== */
-
-const MenuDesignStudio = lazy(() => import("./MenuDesignStudio"));
 
 const MODE_ICON: Record<Mode, LucideIcon> = {
   "dine-in": Utensils,
@@ -259,7 +254,6 @@ type AdminTab =
   | "tables"
   | "reports"
   | "operations"
-  | "design"
   | "settings";
 
 const TAB_ITEMS: {
@@ -275,7 +269,6 @@ const TAB_ITEMS: {
   { id: "tables", label: "الطاولات و QR", icon: QrCode },
   { id: "reports", label: "التقارير", icon: BarChart3 },
   { id: "operations", label: "الفريق والتشغيل", icon: Users },
-  { id: "design", label: "استوديو التصميم", icon: Palette },
   { id: "settings", label: "الإعدادات", icon: Settings },
 ];
 
@@ -433,8 +426,6 @@ function AdminView({
     };
   }, [tab]);
   const allowedTabs = allowedWorkspaceTabs(membership?.role ?? "kitchen");
-  const canDesign =
-    membership?.role === "owner" || membership?.role === "manager";
   const activeOrdersCount = orders.filter(
     (o) => !["completed", "cancelled"].includes(o.status),
   ).length;
@@ -844,19 +835,6 @@ function AdminView({
               restaurantId={restaurant.id}
               restaurantDatabaseId={restaurantDatabaseId}
             />
-          )}
-
-          {tab === "design" && (
-            <Suspense
-              fallback={<p role="status">جارٍ تحميل استوديو التصميم…</p>}
-            >
-              <MenuDesignStudio
-                restaurant={restaurant}
-                restaurantDatabaseId={restaurantDatabaseId}
-                categories={categories}
-                canEdit={canDesign}
-              />
-            </Suspense>
           )}
 
           {tab === "settings" && (

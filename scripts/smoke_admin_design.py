@@ -15,7 +15,7 @@ menu['hours'] = [{'weekday': i, 'open': '10:00', 'close': '23:00', 'enabled': Tr
 order['customer_name'] = 'اسم زبون طويل للتأكد من التفاف النص وعدم خروجه من البطاقة'
 order['order_lines'][0]['note'] = 'A_long_unbroken_preparation_note_' * 6
 order['payment_reference'] = 'reference-' * 12
-routes = ['overview','orders','kitchen','cashier','menu','tables','reports','operations','settings','design']
+routes = ['overview','orders','kitchen','cashier','menu','tables','reports','operations','settings']
 ARTIFACTS = Path('/tmp/admin-design-review')
 ARTIFACTS.mkdir(exist_ok=True)
 
@@ -42,7 +42,7 @@ with sync_playwright() as p:
             if tab=='settings': page.locator('.adm-hours-policy').wait_for()
             assert page.locator('.adm--workspace').count()==1,tab
             nav=page.locator('.adm-nav')
-            assert nav.get_by_role('button').count()==10
+            assert nav.get_by_role('button').count()==9
             selected=nav.locator('[aria-current=page]');assert selected.count()==1
             if width<=900: page.wait_for_function('''()=>{const n=document.querySelector('.adm-nav').getBoundingClientRect(),a=document.querySelector('.adm-nav [aria-current=page]').getBoundingClientRect();return a.left>=n.left-2&&a.right<=n.right+2}''',timeout=2000)
             r=selected.bounding_box();n=nav.bounding_box()
@@ -73,7 +73,7 @@ with sync_playwright() as p:
                 assert modal.evaluate('e=>e.scrollWidth<=e.clientWidth+1'),'item editor overflows on mobile'
                 page.get_by_role('button',name='إغلاق',exact=True).click()
         context.close()
-        print('PASS all 10 admin tabs:',width,lang,flush=True)
+        print('PASS all 9 admin tabs:',width,lang,flush=True)
     for role in ['kitchen','cashier']:
         context=browser.new_context(viewport={'width':390,'height':844});context.route('**/*',fixtures['handler']);fixtures['seed_staff'](context,role)
         page=context.new_page();page.goto(BASE+'/admin/sufra/'+role);page.locator('.adm-workstation').wait_for()

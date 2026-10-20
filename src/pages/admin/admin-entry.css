@@ -601,3 +601,33 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* White and olive entry surface, matching the ordering app. */
+.entry { --entry-ink:#35422b;--entry-muted:#707963;--entry-line:#e8eedf;--entry-red:#566631;--entry-yellow:#748a4f;--font-display:"Tajawal","Inter",sans-serif;color:var(--entry-ink);background:#fbfcf8;font-family:"Inter","Tajawal",sans-serif; }
+.entry[dir="rtl"]{font-family:"Tajawal","Inter",sans-serif}
+.entry::before,.entry::after{display:none}
+.entry-top{background:#fff;border-bottom:1px solid #edf0e8}
+.entry-top__mark{background:#edf3e1;box-shadow:none;border:0;color:#71854b}
+.entry-top__name b{color:#35422b;font-family:inherit;letter-spacing:0}
+.entry-top__name small{color:#707963}
+.entry .entry-pill{border-color:#e6ecdc;background:white;color:#6b7d4e}
+.entry .entry-pill:hover{background:#f2f6e9;border-color:#cad7b1}
+.entry-kicker{color:#71854b}
+.entry-kicker__dot{background:#a1b87a;box-shadow:none}
+.entry-hero__title{font-family:inherit;letter-spacing:0;color:#3e4e2d;font-size:clamp(2rem,4vw,3.1rem);line-height:1.4}
+.entry-hero__lead{color:#707963;font-size:.95rem}
+.entry-points span{color:#707963;border-color:#e7eddc;background:#f5f8ef}
+.entry-points svg{color:#81975f}
+.entry-login-card{background:#fff;border:1px solid #e6ecdc;border-radius:24px;box-shadow:0 12px 60px #56663108}
+.entry-login-card__mark{background:#eef4e2;color:#71854b;border-radius:16px}
+.entry-login-card__eyebrow{color:#71854b;letter-spacing:0;font-weight:600}
+.entry-login-card h2{font-family:inherit;color:#3e4e2d;font-weight:700}
+.entry-login-card>p:not(.entry-sec),.entry-sec{color:#707963}
+.entry .entry-cta{background:#566631!important;box-shadow:0 6px 20px #56663112;font-weight:650!important}
+.entry .entry-cta:hover{background:#455326!important;box-shadow:0 9px 24px #56663118}
+.entry .entry-option{border-color:#e6ecdc!important;background:white!important;box-shadow:0 7px 30px #56663106}
+.entry-option__mono{background:#edf3e1;color:#71854b}
+.entry-option__body b{color:#3e4e2d}
+.entry-email{background:#eff4e4;color:#566631;border-color:#e1e9d3}
+.entry-foot{border-color:#e8eedf;color:#707963}
+.entry .auth-card{--teal:#566631;--red:#566631;--red-deep:#435326;--line:#e6ecdc;--font-display:"Tajawal","Inter",sans-serif;border-radius:24px;}

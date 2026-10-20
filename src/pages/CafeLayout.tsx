@@ -1,12 +1,5 @@
 import { useCustomerText } from "../features/customerText";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Outlet,
   useLocation,
@@ -30,12 +23,6 @@ import {
 import { useUI } from "../context/UI";
 import { useAuth } from "../context/Auth";
 import { CafeProvider, useCafe } from "../context/Cafe";
-import {
-  DEFAULT_MENU_DESIGN,
-  ensureGoogleFonts,
-  menuDesignAttrs,
-  menuDesignCssVars,
-} from "../menuDesign";
 import { formatSyp, formatUsd } from "../domain";
 import {
   CartDrawer,
@@ -73,28 +60,13 @@ function CafeShell() {
   const location = useLocation();
 
   const [scrolled, setScrolled] = useState(false);
-  const [headerHidden, setHeaderHidden] = useState(false);
-  const [compactMenuTools, setCompactMenuTools] = useState(false);
   const [showTop, setShowTop] = useState(false);
-  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
-      const delta = currentY - lastScrollY.current;
-      const isMobile = window.matchMedia("(max-width: 900px)").matches;
       setScrolled(currentY > 8);
-      setCompactMenuTools(isMobile && currentY > 120);
       setShowTop(currentY > 600);
-
-      if (!isMobile || currentY < 80) {
-        setHeaderHidden(false);
-      } else if (delta > 6) {
-        setHeaderHidden(true);
-      } else if (delta < -6) {
-        setHeaderHidden(false);
-      }
-      lastScrollY.current = currentY;
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -121,18 +93,7 @@ function CafeShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const ds = restaurant.design ?? DEFAULT_MENU_DESIGN;
-  const designStyle = useMemo(
-    () =>
-      menuDesignCssVars(ds, restaurant.design ? undefined : restaurant.accent),
-    [ds, restaurant.design, restaurant.accent],
-  );
-  const designAttrs = useMemo(() => menuDesignAttrs(ds), [ds]);
-  const logoIsImage = Boolean(ds.content.logoUrl);
-
-  useEffect(() => {
-    ensureGoogleFonts(ds);
-  }, [ds.type.display, ds.type.body]);
+  const logoUrl = restaurant.design?.content.logoUrl || "";
 
   const overlays: ReactNode = (
     <>
@@ -185,20 +146,13 @@ function CafeShell() {
   );
 
   return (
-    <div
-      className={`cx${headerHidden ? " cx--header-hidden" : ""}${compactMenuTools ? " cx--tools-compact" : ""}`}
-      dir={dir}
-      style={designStyle as CSSProperties}
-      {...designAttrs}
-    >
+    <div className="cx cx--fresh" dir={dir}>
       {/* Skip link for keyboard users */}
       <a className="cx-skip" href="#cx-main">
         {tx("تخطَّ إلى المحتوى")}
       </a>
 
-      <header
-        className={`cx-head${scrolled ? " is-scrolled" : ""}${headerHidden ? " is-hidden" : ""}`}
-      >
+      <header className={`cx-head${scrolled ? " is-scrolled" : ""}`}>
         <div className="cx-head__in">
           <button
             type="button"
@@ -211,11 +165,7 @@ function CafeShell() {
             }
           >
             <span className="cx-brand__seal" aria-hidden="true">
-              {logoIsImage ? (
-                <img src={ds.content.logoUrl} alt="" />
-              ) : (
-                restaurant.logo || "م"
-              )}
+              {logoUrl ? <img src={logoUrl} alt="" /> : restaurant.logo || "م"}
             </span>
             <span className="cx-brand__id">
               <b>{restaurant.name}</b>
@@ -256,11 +206,12 @@ function CafeShell() {
           </nav>
 
           <div className="cx-head__tools">
-            <span className={`cx-live${cafe.isOnline ? "" : " is-off"}`}>
-              <i aria-hidden="true" />
-              {cafe.isOnline ? tx("متصل") : tx("دون اتصال")}
-              {cafe.tableContext ? ` · ${cafe.tableContext.labelAr}` : ""}
-            </span>
+            {(!cafe.isOnline || cafe.tableContext) && (
+              <span className={`cx-live${cafe.isOnline ? "" : " is-off"}`}>
+                <i aria-hidden="true" />
+                {cafe.isOnline ? cafe.tableContext?.labelAr : tx("دون اتصال")}
+              </span>
+            )}
             <button
               type="button"
               className="cx-lang"
