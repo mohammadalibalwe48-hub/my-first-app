@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
-import { StaffAuthModal } from "../../features/AdminUI";
+import StaffAuthModal from "../../features/StaffAuthModal";
 import "./admin-entry.css";
 
 const COPY = {
