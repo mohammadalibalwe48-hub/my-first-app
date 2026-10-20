@@ -58,6 +58,8 @@ import {
   Wallet,
   X,
   type LucideIcon,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { GeolocationError, getPrecisePosition } from "../geolocation";
 import QRCode from "qrcode";
