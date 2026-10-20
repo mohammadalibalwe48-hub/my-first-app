@@ -8,7 +8,6 @@ export type WorkspaceTab =
   | "tables"
   | "reports"
   | "operations"
-  | "design"
   | "settings";
 export function allowedWorkspaceTabs(role: StaffRole): WorkspaceTab[] {
   if (role === "owner" || role === "manager")
@@ -21,7 +20,6 @@ export function allowedWorkspaceTabs(role: StaffRole): WorkspaceTab[] {
       "tables",
       "reports",
       "operations",
-      "design",
       "settings",
     ];
   if (role === "kitchen") return ["kitchen"];

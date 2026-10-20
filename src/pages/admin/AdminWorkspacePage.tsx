@@ -44,7 +44,6 @@ const TABS = [
   "tables",
   "reports",
   "operations",
-  "design",
   "settings",
 ] as const;
 type AdminTab = (typeof TABS)[number];

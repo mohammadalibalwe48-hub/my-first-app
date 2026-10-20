@@ -18,12 +18,13 @@ import {
   ShieldCheck,
   ShoppingBasket,
   Smartphone,
-  Star,
   Store,
   Truck,
   Utensils,
   Wallet,
   X,
+  Trash2,
+  Leaf,
 } from "lucide-react";
 import { bumpCart, flyToCart } from "./motion";
 import {
@@ -57,6 +58,7 @@ import {
 import "./customer.css";
 import "./customer-mobile.css";
 import "./workflows.css";
+import "./customer-refresh.css";
 
 /* ---------------- shared helpers ---------------- */
 
@@ -65,14 +67,54 @@ function useOverlay(onClose: () => void) {
   closeRef.current = onClose;
   useEffect(() => {
     const previous = document.body.style.overflow;
+    const trigger =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
+    const dialog = () =>
+      [...document.querySelectorAll<HTMLElement>('.cx [role="dialog"]')].at(-1);
+    const focusable = () =>
+      [
+        ...(dialog()?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]',
+        ) ?? []),
+      ].filter((el) => el.getClientRects().length > 0);
+    const frame = requestAnimationFrame(() =>
+      focusable()[0]?.focus({ preventScroll: true }),
+    );
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeRef.current();
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      if (!elements.length) {
+        event.preventDefault();
+        return;
+      }
+      const first = elements[0],
+        last = elements[elements.length - 1];
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !dialog()?.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !dialog()?.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      cancelAnimationFrame(frame);
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKey);
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, []);
 }
@@ -247,12 +289,6 @@ function MenuView({
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const jumpToCategory = (entry: string) => {
-    setCategory(entry);
-    scrollToMenu();
-  };
-
-  const quickCats = categories.slice(0, 4);
   const digits = new Intl.NumberFormat(language === "en" ? "en" : "ar-SY");
 
   return (
@@ -264,109 +300,39 @@ function MenuView({
         </div>
       )}
 
-      {/* ---- Editorial campaign hero ---- */}
-      <section className="cx-hero">
-        <span className="cx-hero__grain" aria-hidden="true" />
-        <span className="cx-hero__ring" aria-hidden="true" />
-        <span className="cx-hero__ring cx-hero__ring--b" aria-hidden="true" />
-        <div className="cx-hero__inner">
-          <div className="cx-hero__copy">
-            <div className="cx-hero__topline">
-              <span className="cx-eyebrow cx-eyebrow--light">
-                <i aria-hidden="true" />
-                {restaurant.neighborhood
-                  ? restaurant.neighborhood
-                  : tx("المطعم")}
-                {restaurant.city ? ` · ${restaurant.city}` : ""}
-              </span>
-            </div>
-            <h1 className="cx-hero__name">
-              {language === "en"
-                ? restaurant.nameEn || restaurant.name
-                : restaurant.name}
-            </h1>
-            <p className="cx-hero__sub">
-              {language === "en"
-                ? restaurant.subtitleEn || restaurant.subtitle
-                : restaurant.subtitle}
-            </p>
-
-            <div className="cx-hero__facts">
-              <span className="cx-hero__fact">
-                <b className="mono-num">
-                  {digits.format(itemCount || restaurant.items.length)}
-                </b>
-                <small>{tx("صنفاً في القائمة")}</small>
-              </span>
-              <span className="cx-hero__fact">
-                <b>{tx("طازج")}</b>
-                <small>{tx("يحضَّر عند الطلب")}</small>
-              </span>
-            </div>
-
-            {dc?.rating && (
-              <div className="cx-hero__rating">
-                <Star size={15} aria-hidden="true" />
-                <b>{dc.ratingValue.toFixed(1)}</b>
-                <small>{tx("تقييم الزبائن")}</small>
-              </div>
-            )}
-
-            <div className="cx-hero__ctas">
-              <button
-                type="button"
-                className="cx-btn cx-btn--red cx-btn--lg"
-                onClick={scrollToMenu}
-              >
-                <ShoppingBasket size={19} aria-hidden="true" />
-                {tx("تصفح الأطباق")}
-                <ChevronDown
-                  size={18}
-                  className="cx-motiondown"
-                  aria-hidden="true"
-                />
-              </button>
-              {quickCats.length > 0 && (
-                <nav
-                  className="cx-hero__cats"
-                  aria-label={tx("اختصارات الأقسام")}
-                >
-                  {quickCats.map((entry, index) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => jumpToCategory(entry.name)}
-                    >
-                      <i className="mono-num">
-                        {String(index + 1).padStart(2, "0")}
-                      </i>
-                      {language === "en" ? entry.en || entry.name : entry.name}
-                    </button>
-                  ))}
-                </nav>
-              )}
-            </div>
-          </div>
-
-          <div className="cx-hero__art">
-            <figure className="cx-hero__plate">
-              <img
-                src={heroImage}
-                alt={`من قائمة ${language === "en" ? restaurant.nameEn || restaurant.name : restaurant.name}`}
-              />
-              <span className="cx-hero__plate-tag" aria-hidden="true">
-                <i />
-                {tx("أطباق تحضَّر بشغف")}
-              </span>
-            </figure>
-            <span className="cx-hero__seal" aria-hidden="true">
-              {designLogoUrl ? (
-                <img src={designLogoUrl} alt="" />
-              ) : (
-                restaurant.logo || "م"
-              )}
-            </span>
-          </div>
+      <section
+        className="cx-welcome"
+        aria-label={
+          language === "en" ? "Welcome to our menu" : "أهلاً في قائمتنا"
+        }
+      >
+        <div className="cx-welcome__copy">
+          <span className="cx-welcome__eyebrow">
+            <Leaf size={14} aria-hidden="true" />
+            {language === "en"
+              ? "A little moment of delicious"
+              : "لحظة حلوة، وأكلة أطيب"}
+          </span>
+          <h1>
+            {language === "en" ? "What sounds good today?" : "شو عبالك اليوم؟"}
+          </h1>
+          <p>
+            {language === "en"
+              ? restaurant.subtitleEn || restaurant.subtitle
+              : restaurant.subtitle}
+          </p>
+          <button
+            className="cx-welcome__link"
+            type="button"
+            onClick={scrollToMenu}
+          >
+            {tx("تصفح الأطباق")}
+            <ArrowRight className="cx-arrow" size={16} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="cx-welcome__art">
+          <span aria-hidden="true" />
+          <img src={heroImage} alt="" fetchPriority="high" />
         </div>
       </section>
 
@@ -489,9 +455,6 @@ function MenuView({
                   ? categories.find((c) => c.name === heading)?.en || heading
                   : heading,
               )}
-              <em className="mono-num">
-                /{String(catEntries.indexOf(category) + 1).padStart(2, "0")}
-              </em>
             </h2>
             <p className="cx-catalog__lead">
               {tx("اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.")}
@@ -587,7 +550,6 @@ function MenuView({
                           onClick={() => go(item)}
                         >
                           {language === "en" ? item.en || item.name : item.name}
-                          {item.en && <i lang="en">{item.en}</i>}
                         </button>
                         {item.desc && (
                           <p className="cx-dish__desc">
@@ -841,6 +803,9 @@ function ItemModal({
         aria-label={language === "en" ? item.en || item.name : item.name}
       >
         <div className="cx-item">
+          <header className="cx-item__bar">
+            <span>{language === "en" ? "Dish details" : "تفاصيل الصنف"}</span>
+          </header>
           <div className="cx-item__media">
             <img
               src={item.image}
@@ -1004,7 +969,9 @@ function ItemModal({
               >
                 <Plus size={20} aria-hidden="true" />
                 {valid
-                  ? `أضف إلى الطلب · ${qty}`
+                  ? language === "en"
+                    ? `Add to order · ${qty}`
+                    : `أضف إلى الطلب · ${qty}`
                   : tx("أكمل الاختيارات المطلوبة")}
               </button>
             </footer>
@@ -1068,6 +1035,8 @@ function CartDrawer({
                   <b className="mono-num">{itemCount}</b>
                   {tx("صنفاً بانتظار التأكيد")}
                 </>
+              ) : language === "en" ? (
+                "Nothing here yet"
               ) : (
                 "لا شيء فيها بعد"
               )}
@@ -1126,6 +1095,18 @@ function CartDrawer({
                       </b>
                     </div>
                     <div className="cx-cline__end">
+                      <button
+                        className="cx-cline__remove"
+                        type="button"
+                        onClick={() => onQty(line.key, -line.qty)}
+                        aria-label={
+                          language === "en"
+                            ? `Remove ${line.item.en || line.item.name}`
+                            : `حذف ${line.item.name}`
+                        }
+                      >
+                        <Trash2 size={17} aria-hidden="true" />
+                      </button>
                       <Stepper
                         qty={line.qty}
                         onDec={() => onQty(line.key, -1)}
@@ -1148,9 +1129,9 @@ function CartDrawer({
                   <strong>{money(total, currency, rate, language)}</strong>
                 </div>
                 <small className="cx-cart__note">
-                  {tx(
-                    "غير شامل رسوم التوصيل — يُحتسب النهائي من المطعم عند التأكيد.",
-                  )}
+                  {language === "en"
+                    ? "Discounts, service charges and delivery are calculated at checkout."
+                    : "الخصم ورسوم الخدمة والتوصيل تُحسب عند إتمام الطلب."}
                 </small>
                 {currency === "usd" && (
                   <small className="cx-cart__usd">
@@ -1407,13 +1388,13 @@ function CheckoutModal({
                   const on = mode === m;
                   const unavailable = Boolean(
                     settings &&
-                      !settings[
-                        m === "dine-in"
-                          ? "dineIn"
-                          : m === "takeaway"
-                            ? "takeaway"
-                            : "delivery"
-                      ],
+                    !settings[
+                      m === "dine-in"
+                        ? "dineIn"
+                        : m === "takeaway"
+                          ? "takeaway"
+                          : "delivery"
+                    ],
                   );
                   return (
                     <button
@@ -2051,7 +2032,7 @@ function OrdersView({
             {tx("دفتر طلباتك")}
           </span>
           <h1>
-            {tx("حكاية طلباتك")}
+            {tx("طلباتي")}
             <em className="mono-num">
               /{String(orders.length).padStart(2, "0")}
             </em>
@@ -2069,7 +2050,7 @@ function OrdersView({
           <span className="cx-empty__art" aria-hidden="true">
             <ClipboardList size={27} />
           </span>
-          <h3>{tx("لم تُكتب أول حكاية بعد")}</h3>
+          <h3>{language === "en" ? "No orders yet" : "ما في طلبات بعد"}</h3>
           <p>{tx("ابدأ بتصفح القائمة واختر ما ترغب أن يصل إلى مائدتك.")}</p>
           <button type="button" className="cx-btn cx-btn--red" onClick={onMenu}>
             {tx("افتح القائمة")}
