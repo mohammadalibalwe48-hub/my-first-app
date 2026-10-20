@@ -1,0 +1,20 @@
+{
+  "id": "/admin",
+  "name": "SYRIAN QR — إدارة المطعم",
+  "short_name": "SYRIAN QR",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#063239",
+  "theme_color": "#063239",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "https://xgkpoxyirycravtxfyes.supabase.co/storage/v1/object/public/syrianqr-site-assets/1790820314871-b5118f17-bb8e-41b3-99b2-49873f88a180-FDC86B7B-9BCD-46EB-A120-9D5D9E286960.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
