@@ -1,6 +1,6 @@
 /* Auto-extracted shared domain: types, seed data, helpers. */
 
-export const readStored = <T,>(key: string, fallback: T): T => {
+export const readStored = <T>(key: string, fallback: T): T => {
   try {
     const value = localStorage.getItem(key);
     return value ? (JSON.parse(value) as T) : fallback;
@@ -29,10 +29,13 @@ export type MenuCategory = {
   archived: boolean;
 };
 
-export type Option = { id: string; name: string; price: number };
+export type Option = { id: string; name: string; en?: string; price: number };
 export type OptionGroup = {
   id: string;
   name: string;
+  en?: string;
+  minSelections?: number;
+  maxSelections?: number;
   required?: boolean;
   options: Option[];
 };
@@ -59,7 +62,9 @@ export type BusinessHour = {
 };
 export type RestaurantSettings = {
   name: string;
+  nameEn?: string;
   subtitle: string;
+  subtitleEn?: string;
   city: string;
   neighborhood: string;
   phone: string;
@@ -68,6 +73,10 @@ export type RestaurantSettings = {
   syriatelCash: string;
   shamCash: string;
   mtnCash: string;
+  isOpen?: boolean;
+  discountPercent?: number;
+  enforceHours?: boolean;
+  timezone?: string;
   taxPercent: number;
   servicePercent: number;
   dineIn: boolean;
@@ -104,12 +113,16 @@ export type Item = {
   name: string;
   en: string;
   desc: string;
+  descEn?: string;
   price: number;
   category: Category;
   tags: Tag[];
   image: string;
   popular?: boolean;
   available: boolean;
+  availableFrom?: string | null;
+  availableUntil?: string | null;
+  preparationMinutes?: number;
   options?: OptionGroup[];
 };
 
@@ -226,7 +239,8 @@ export type MenuDesign = {
     hours: boolean;
     socials: boolean;
     footer: boolean;
-    bannerText: string;bannerOn: boolean;
+    bannerText: string;
+    bannerOn: boolean;
     bannerTone: BannerTone;
     logoUrl: string;
     coverUrl: string;
@@ -242,7 +256,9 @@ export type MenuDesign = {
 export type Restaurant = {
   id: string;
   name: string;
+  nameEn?: string;
   subtitle: string;
+  subtitleEn?: string;
   city: string;
   neighborhood: string;
   logo: string;
@@ -268,13 +284,13 @@ export type Order = {
   publicToken?: string;
   mode: Mode;
   status:
-  | "received"
-  | "confirmed"
-  | "preparing"
-  | "ready"
-  | "out-for-delivery"
-  | "completed"
-  | "cancelled";
+    | "received"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "out-for-delivery"
+    | "completed"
+    | "cancelled";
   lines: CartLine[];
   customer: string;
   phone: string;
@@ -335,7 +351,10 @@ export type AdminOrderRow = {
   }>;
 };
 
-export const mapAdminOrder = (row: AdminOrderRow, restaurantSlug: string): Order => ({
+export const mapAdminOrder = (
+  row: AdminOrderRow,
+  restaurantSlug: string,
+): Order => ({
   id: String(row.order_number),
   databaseId: row.id,
   restaurantId: restaurantSlug,
@@ -351,7 +370,12 @@ export const mapAdminOrder = (row: AdminOrderRow, restaurantSlug: string): Order
       name: line.item_name_ar,
       en: line.item_name_en,
       desc: "",
-      price: Number(line.unit_price_syp),
+      price:
+        Number(line.unit_price_syp) -
+        (line.order_line_options ?? []).reduce(
+          (sum, option) => sum + Number(option.price_delta_syp),
+          0,
+        ),
       category: "",
       tags: [],
       image: images.mezze,
@@ -367,7 +391,8 @@ export const mapAdminOrder = (row: AdminOrderRow, restaurantSlug: string): Order
   customer: row.customer_name ?? "زبون المطعم",
   phone: row.customer_phone ?? "",
   address: row.delivery_address ?? "",
-  table: row.restaurant_tables?.label_ar ?? row.restaurant_tables?.table_code ?? "",
+  table:
+    row.restaurant_tables?.label_ar ?? row.restaurant_tables?.table_code ?? "",
   total: Number(row.total_syp),
   payment: row.payment_method,
   paymentStatus: row.payment_status,
@@ -389,6 +414,8 @@ export type PublicMenuPayload = {
   restaurant: {
     slug: string;
     nameAr: string;
+    nameEn?: string;
+    subtitleEn?: string;
     subtitleAr: string;
     accent: string;
     phone: string;
@@ -399,6 +426,10 @@ export type PublicMenuPayload = {
     dineIn: boolean;
     takeaway: boolean;
     delivery: boolean;
+    isOpen?: boolean;
+    discountPercent?: number;
+    enforceHours?: boolean;
+    timezone?: string;
     taxPercent: number;
     servicePercent: number;
     usdEstimateEnabled: boolean;
@@ -418,16 +449,28 @@ export type PublicMenuPayload = {
     nameAr: string;
     nameEn: string;
     descriptionAr: string;
+    descriptionEn?: string;
     imageUrl: string;
     price: number;
     tags: string[];
     popular: boolean;
     available: boolean;
+    availableFrom?: string | null;
+    availableUntil?: string | null;
+    preparationMinutes?: number;
     optionGroups: Array<{
       id: string;
       nameAr: string;
+      nameEn?: string;
+      minSelections?: number;
+      maxSelections?: number;
       required: boolean;
-      options: Array<{ id: string; nameAr: string; price: number }>;
+      options: Array<{
+        id: string;
+        nameAr: string;
+        nameEn?: string;
+        price: number;
+      }>;
     }>;
   }>;
   zones: Array<{

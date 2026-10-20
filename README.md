@@ -31,7 +31,7 @@ Routes and the menu design studio load on demand, so visitors do not download al
 
 ## Database setup
 
-`supabase/migrations` includes the 29 original migrations recovered from the project's migration history, the site-asset bucket migration, and the table-token access fix. The original migration versions and SQL are preserved. The historical seed migration creates the `sufra` and `cozy` demo menus; it contains no production orders or user accounts.
+`supabase/migrations` includes the 29 original migrations recovered from the project's migration history, the site-asset bucket migration, the table-token access fix, and the restaurant-workflow migration. The original migration versions and SQL are preserved. The historical seed migration creates the `sufra` and `cozy` demo menus; it contains no production orders or user accounts.
 
 For a new **local development** database, install the Supabase CLI and Docker, then run:
 
@@ -60,6 +60,39 @@ psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/table_token_acce
 The test rolls back its fixtures. It checks anonymous access denial, staff access, cross-restaurant isolation, nonmember isolation, and scanned-token resolution. Never run test fixtures against production.
 
 The initial owner onboarding currently targets `admin@qrcode-syria.com`; create and verify that account through Supabase Auth before onboarding. For another installation, review the onboarding migrations and the login UI's owner address together. Do not derive permissions from user-editable metadata.
+
+## Customer ordering and staff workspaces
+
+Customers can save checkout contact details on their own device with an explicit opt-in and remove them by unchecking the preference. Language choice persists. Order history refreshes active receipts every 15 seconds while the page is visible. Reordering rebuilds a basket at current prices; unavailable items or changed options are skipped and reported before checkout.
+
+Checkout displays delivery fees, discounts, tax and service charges. The database independently calculates the final total; discounts apply to menu items before tax/service and exclude delivery. Repeated submissions reuse an idempotency key. Unconfigured wallet methods are hidden. Payments are still verified manually by staff; no payment processor is introduced.
+
+- `/admin/:slug/kitchen` — incoming orders, preparation progress, elapsed-time warnings, and item stock controls.
+- `/admin/:slug/cashier` — payment verification, delivery dispatch, and completed handoffs.
+- Owners/managers retain menu, table, reporting, team and settings screens. Kitchen and cashier roles are routed to their dedicated workspaces; viewers receive a read-only kitchen view.
+
+The database enforces restaurant membership, role-specific order changes, and staff-editable columns. Cashiers must verify payment before completing an order. Stale updates are rejected. Staff membership changes use the guarded management RPC.
+
+Sound must be enabled by a click in each browser session. Browser notifications need permission and a running page; these are not push notifications for a closed app. Order desks keep Realtime subscriptions and refresh every 15 seconds as a fallback.
+
+Menu items support start/end availability dates, English descriptions and preparation targets. Dates are entered in the operator device's local time and stored as UTC. Settings support a percentage discount and optional automatic opening-hours enforcement, including overnight shifts in the restaurant's configured timezone. Both default to inactive, so the upgrade does not change current prices or opening behavior. Delivery zones, team permissions and sales reports remain available in their existing management screens.
+
+To check the backend in a disposable PostgreSQL 17 container:
+
+```sh
+python scripts/test_database.py
+```
+
+This replays every migration and runs the SQL regression checks with minimal Auth/Storage schema stubs. It does not replace testing a full Supabase stack. For browser checks, install Playwright for Python and Chromium, then run:
+
+```sh
+npm run build
+npm run preview -- --port 4174
+# In a second terminal:
+python scripts/smoke_workflows.py
+```
+
+The browser script uses mocked API responses and sends no production orders. The SQL tests cover actual database pricing, schedules, overnight hours, idempotency, stock permissions, staff role limits and stale-update rejection. English UI is supplied; restaurant-authored content falls back to its original text when no English version has been provided.
 
 ## Restaurant locations
 

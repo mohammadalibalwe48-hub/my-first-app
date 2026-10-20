@@ -1,3 +1,4 @@
+import { useCustomerText } from "./customerText";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -31,6 +32,9 @@ import {
   type PresenceResult,
 } from "../geolocation";
 import { supabase } from "../supabase";
+import { calculateTotals } from "../ordering";
+import { useUI } from "../context/UI";
+import { readStored, writeStored } from "../domain";
 import {
   formatSyp,
   formatUsd,
@@ -52,6 +56,7 @@ import {
 } from "../domain";
 import "./customer.css";
 import "./customer-mobile.css";
+import "./workflows.css";
 
 /* ---------------- shared helpers ---------------- */
 
@@ -72,12 +77,28 @@ function useOverlay(onClose: () => void) {
   }, []);
 }
 
-function money(value: number, currency: "syp" | "usd", rate: number) {
-  return currency === "usd" ? formatUsd(value, rate) : formatSyp(value);
+function money(
+  value: number,
+  currency: "syp" | "usd",
+  rate: number,
+  language: "ar" | "en" = "ar",
+) {
+  return currency === "usd"
+    ? formatUsd(value, rate)
+    : language === "en"
+      ? `${new Intl.NumberFormat("en").format(value)} SYP`
+      : formatSyp(value);
 }
 
-function moneySecondary(value: number, currency: "syp" | "usd", rate: number) {
-  return currency === "usd" ? formatSyp(value) : `≈ ${formatUsd(value, rate)}`;
+function moneySecondary(
+  value: number,
+  currency: "syp" | "usd",
+  rate: number,
+  language: "ar" | "en" = "ar",
+) {
+  return currency === "usd"
+    ? money(value, "syp", rate, language)
+    : `≈ ${formatUsd(value, rate)}`;
 }
 
 const statusTone = (status: Order["status"]) => {
@@ -100,11 +121,7 @@ const modeIcon = (mode: Mode) =>
   mode === "dine-in" ? Store : mode === "takeaway" ? ShoppingBasket : Truck;
 
 const modeIconBig = (mode: Mode) =>
-  mode === "dine-in"
-    ? "على الطاولة"
-    : mode === "takeaway"
-      ? "سفري"
-      : "توصيل";
+  mode === "dine-in" ? "على الطاولة" : mode === "takeaway" ? "سفري" : "توصيل";
 
 function Stepper({
   qty,
@@ -117,13 +134,14 @@ function Stepper({
   onInc: () => void;
   labels?: { dec: string; inc: string };
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   return (
     <div className="cx-stepper">
       <button
         type="button"
         className="cx-stepper__btn"
         onClick={onDec}
-        aria-label={labels?.dec ?? "إنقاص الكمية"}
+        aria-label={labels?.dec ?? tx("إنقاص الكمية")}
       >
         <Minus size={17} aria-hidden="true" />
       </button>
@@ -134,7 +152,7 @@ function Stepper({
         type="button"
         className="cx-stepper__btn cx-stepper__btn--plus"
         onClick={onInc}
-        aria-label={labels?.inc ?? "زيادة الكمية"}
+        aria-label={labels?.inc ?? tx("زيادة الكمية")}
       >
         <Plus size={17} aria-hidden="true" />
       </button>
@@ -180,6 +198,7 @@ function MenuView({
   onSelect: (i: Item) => void;
   onQuickAdd: (i: Item) => void;
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   const rate = restaurant.rate;
   const designCover = restaurant.design?.content.coverUrl || "";
   const heroImage =
@@ -211,9 +230,9 @@ function MenuView({
 
   const heading =
     category === "كل الأصناف"
-      ? "كل الأطباق"
+      ? tx("كل الأطباق")
       : category === "الأكثر طلباً"
-        ? "الأكثر طلباً"
+        ? tx("الأكثر طلباً")
         : category;
 
   const go = (item: Item) => {
@@ -234,7 +253,7 @@ function MenuView({
   };
 
   const quickCats = categories.slice(0, 4);
-  const digits = new Intl.NumberFormat("ar-SY");
+  const digits = new Intl.NumberFormat(language === "en" ? "en" : "ar-SY");
 
   return (
     <div className="cx-store">
@@ -255,21 +274,33 @@ function MenuView({
             <div className="cx-hero__topline">
               <span className="cx-eyebrow cx-eyebrow--light">
                 <i aria-hidden="true" />
-                {restaurant.neighborhood ? restaurant.neighborhood : "المطعم"}
+                {restaurant.neighborhood
+                  ? restaurant.neighborhood
+                  : tx("المطعم")}
                 {restaurant.city ? ` · ${restaurant.city}` : ""}
               </span>
             </div>
-            <h1 className="cx-hero__name">{restaurant.name}</h1>
-            <p className="cx-hero__sub">{restaurant.subtitle}</p>
+            <h1 className="cx-hero__name">
+              {language === "en"
+                ? restaurant.nameEn || restaurant.name
+                : restaurant.name}
+            </h1>
+            <p className="cx-hero__sub">
+              {language === "en"
+                ? restaurant.subtitleEn || restaurant.subtitle
+                : restaurant.subtitle}
+            </p>
 
             <div className="cx-hero__facts">
               <span className="cx-hero__fact">
-                <b className="mono-num">{digits.format(itemCount || restaurant.items.length)}</b>
-                <small>صنفاً في القائمة</small>
+                <b className="mono-num">
+                  {digits.format(itemCount || restaurant.items.length)}
+                </b>
+                <small>{tx("صنفاً في القائمة")}</small>
               </span>
               <span className="cx-hero__fact">
-                <b>طازج</b>
-                <small>يحضَّر عند الطلب</small>
+                <b>{tx("طازج")}</b>
+                <small>{tx("يحضَّر عند الطلب")}</small>
               </span>
             </div>
 
@@ -277,7 +308,7 @@ function MenuView({
               <div className="cx-hero__rating">
                 <Star size={15} aria-hidden="true" />
                 <b>{dc.ratingValue.toFixed(1)}</b>
-                <small>تقييم الزبائن</small>
+                <small>{tx("تقييم الزبائن")}</small>
               </div>
             )}
 
@@ -288,11 +319,18 @@ function MenuView({
                 onClick={scrollToMenu}
               >
                 <ShoppingBasket size={19} aria-hidden="true" />
-                تصفح الأطباق
-                <ChevronDown size={18} className="cx-motiondown" aria-hidden="true" />
+                {tx("تصفح الأطباق")}
+                <ChevronDown
+                  size={18}
+                  className="cx-motiondown"
+                  aria-hidden="true"
+                />
               </button>
               {quickCats.length > 0 && (
-                <nav className="cx-hero__cats" aria-label="اختصارات الأقسام">
+                <nav
+                  className="cx-hero__cats"
+                  aria-label={tx("اختصارات الأقسام")}
+                >
                   {quickCats.map((entry, index) => (
                     <button
                       key={entry.id}
@@ -302,7 +340,7 @@ function MenuView({
                       <i className="mono-num">
                         {String(index + 1).padStart(2, "0")}
                       </i>
-                      {entry.name}
+                      {language === "en" ? entry.en || entry.name : entry.name}
                     </button>
                   ))}
                 </nav>
@@ -312,10 +350,13 @@ function MenuView({
 
           <div className="cx-hero__art">
             <figure className="cx-hero__plate">
-              <img src={heroImage} alt={`من قائمة ${restaurant.name}`} />
+              <img
+                src={heroImage}
+                alt={`من قائمة ${language === "en" ? restaurant.nameEn || restaurant.name : restaurant.name}`}
+              />
               <span className="cx-hero__plate-tag" aria-hidden="true">
                 <i />
-                أطباق تحضَّر بشغف
+                {tx("أطباق تحضَّر بشغف")}
               </span>
             </figure>
             <span className="cx-hero__seal" aria-hidden="true">
@@ -331,22 +372,22 @@ function MenuView({
 
       {/* ---- Sticky search / filters / category rail ---- */}
       <div className="cx-stick">
-        <section className="cx-tools" aria-label="البحث والتصفية">
+        <section className="cx-tools" aria-label={tx("البحث والتصفية")}>
           <label className="cx-search">
             <Search size={19} aria-hidden="true" />
             <span className="cx-search__bar">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="ابحث عن طبق أو مكوّن…"
-                aria-label="ابحث في القائمة"
+                placeholder={tx("ابحث عن طبق أو مكوّن…")}
+                aria-label={tx("ابحث في القائمة")}
               />
               {query && (
                 <button
                   type="button"
                   className="cx-search__clear"
                   onClick={() => setQuery("")}
-                  aria-label="مسح البحث"
+                  aria-label={tx("مسح البحث")}
                 >
                   <X size={16} aria-hidden="true" />
                 </button>
@@ -358,13 +399,17 @@ function MenuView({
           </label>
 
           <div className="cx-tools__row">
-            <div className="cx-tagchips" role="group" aria-label="تصفية الأطباق">
+            <div
+              className="cx-tagchips"
+              role="group"
+              aria-label={tx("تصفية الأطباق")}
+            >
               <button
                 type="button"
                 className={`cx-chip${tag === "all" ? " is-on" : ""}`}
                 onClick={() => setTag("all")}
               >
-                الكل
+                {tx("الكل")}
               </button>
               {(["vegetarian", "chef"] as Tag[]).map((entry) => (
                 <button
@@ -376,21 +421,17 @@ function MenuView({
                   {tag === entry ? (
                     <Check size={13} aria-hidden="true" />
                   ) : null}
-                  {tagLabels[entry]}
+                  {tx(tagLabels[entry])}
                 </button>
               ))}
             </div>
-            <div
-              className="cx-cur"
-              role="group"
-              aria-label="العملة"
-            >
+            <div className="cx-cur" role="group" aria-label={tx("العملة")}>
               <button
                 type="button"
                 className={currency === "syp" ? "is-on" : ""}
                 onClick={() => setCurrency("syp")}
               >
-                ل.س
+                {tx("ل.س")}
               </button>
               <button
                 type="button"
@@ -403,7 +444,7 @@ function MenuView({
           </div>
         </section>
 
-        <nav className="cx-cats" aria-label="تصفح أقسام القائمة">
+        <nav className="cx-cats" aria-label={tx("تصفح أقسام القائمة")}>
           {catEntries.map((entry, index) => {
             const on = category === entry;
             const n = countFor(entry);
@@ -418,7 +459,13 @@ function MenuView({
                 <i className="mono-num" aria-hidden="true">
                   {on ? "" : String(index + 1).padStart(2, "0")}
                 </i>
-                <span>{entry}</span>
+                <span>
+                  {tx(
+                    language === "en"
+                      ? categories.find((c) => c.name === entry)?.en || entry
+                      : entry,
+                  )}
+                </span>
                 <b className="mono-num">{digits.format(n)}</b>
               </button>
             );
@@ -432,22 +479,28 @@ function MenuView({
           <div>
             <span className="cx-eyebrow">
               <i aria-hidden="true" />
-              {restaurant.name}
+              {language === "en"
+                ? restaurant.nameEn || restaurant.name
+                : restaurant.name}
             </span>
             <h2 className="cx-catalog__title">
-              {heading}
+              {tx(
+                language === "en"
+                  ? categories.find((c) => c.name === heading)?.en || heading
+                  : heading,
+              )}
               <em className="mono-num">
                 /{String(catEntries.indexOf(category) + 1).padStart(2, "0")}
               </em>
             </h2>
             <p className="cx-catalog__lead">
-              اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.
+              {tx("اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.")}
             </p>
           </div>
           {itemCount > 0 && (
             <span className="cx-catalog__stamp">
               <b className="mono-num">{digits.format(itemCount)}</b>
-              صنفاً متاحاً
+              {tx("صنفاً متاحاً")}
             </span>
           )}
         </header>
@@ -455,7 +508,11 @@ function MenuView({
         <div className="cx-grid">
           {loading
             ? Array.from({ length: 6 }).map((_, index) => (
-                <div className="cx-dish cx-dish--sk" key={index} aria-hidden="true">
+                <div
+                  className="cx-dish cx-dish--sk"
+                  key={index}
+                  aria-hidden="true"
+                >
                   <span className="cx-dish__media sk" />
                   <div className="cx-dish__body">
                     <span className="cx-skline sk" style={{ width: "38%" }} />
@@ -467,94 +524,122 @@ function MenuView({
             : loadError
               ? null
               : items.map((item) => {
-                const price = money(item.price, currency, rate);
-                const secondary =
-                  currency === "usd" ? formatSyp(item.price) : "";
-                const customisable = Boolean(item.options?.length);
-                const configurable = needsChoices(item);
-                return (
-                  <article className="cx-dish" key={item.id}>
-                    <button
-                      type="button"
-                      className="cx-dish__media"
-                      onClick={() => go(item)}
-                      aria-label={`تفاصيل ${item.name}`}
-                    >
-                      <span className="cx-dish__imgwrap">
-                        <img src={item.image} alt={item.name} loading="lazy" />
-                      </span>
-                      {item.popular && (
-                        <span className="cx-dish__flag">
-                          <b>الأكثر طلباً</b>
-                        </span>
-                      )}
-                      {customisable && (
-                        <span className="cx-dish__gear" aria-hidden="true">
-                          <i />
-                          <i />
-                          <i />
-                        </span>
-                      )}
-                    </button>
-                    <div className="cx-dish__body">
-                      <div className="cx-dish__topline">
-                        <span className="cx-dish__cat">{item.category}</span>
-                        {item.tags.length > 0 && (
-                          <span className="cx-dish__tags">
-                            {item.tags.map((t) => (
-                              <span key={t}>{tagLabels[t]}</span>
-                            ))}
-                          </span>
-                        )}
-                      </div>
+                  const price = money(item.price, currency, rate, language);
+                  const secondary =
+                    currency === "usd" ? formatSyp(item.price) : "";
+                  const customisable = Boolean(item.options?.length);
+                  const configurable = needsChoices(item);
+                  return (
+                    <article className="cx-dish" key={item.id}>
                       <button
                         type="button"
-                        className="cx-dish__name"
+                        className="cx-dish__media"
                         onClick={() => go(item)}
+                        aria-label={
+                          language === "en"
+                            ? `Details for ${item.en || item.name}`
+                            : `تفاصيل ${item.name}`
+                        }
                       >
-                        {item.name}
-                        {item.en && <i lang="en">{item.en}</i>}
-                      </button>
-                      {item.desc && <p className="cx-dish__desc">{item.desc}</p>}
-
-                      <div className="cx-dish__foot">
-                        <div className="cx-price">
-                          <b>{price}</b>
-                          {secondary && <small>{secondary}</small>}
-                        </div>
-                        {!configurable ? (
-                           <button
-                             type="button"
-                             className="cx-add"
-                             onClick={(e) => {
-                               const dish = e.currentTarget.closest(".cx-dish");
-                               flyToCart(
-                                 dish?.querySelector<HTMLElement>(
-                                   ".cx-dish__imgwrap img"
-                                 )
-                               );
-                               onQuickAdd(item);
-                             }}
-                             aria-label={`أضف ${item.name} إلى الطلب`}
-                           >
-                            <Plus size={20} aria-hidden="true" />
-                            <span>أضف</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="cx-add cx-add--ghost"
-                            onClick={() => go(item)}
-                          >
-                            <span>تخصيص</span>
-                            <ChevronDown size={16} aria-hidden="true" />
-                          </button>
+                        <span className="cx-dish__imgwrap">
+                          <img
+                            src={item.image}
+                            alt={
+                              language === "en"
+                                ? item.en || item.name
+                                : item.name
+                            }
+                            loading="lazy"
+                          />
+                        </span>
+                        {item.popular && (
+                          <span className="cx-dish__flag">
+                            <b>{tx("الأكثر طلباً")}</b>
+                          </span>
                         )}
+                        {customisable && (
+                          <span className="cx-dish__gear" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                        )}
+                      </button>
+                      <div className="cx-dish__body">
+                        <div className="cx-dish__topline">
+                          <span className="cx-dish__cat">
+                            {language === "en"
+                              ? categories.find((c) => c.name === item.category)
+                                  ?.en || item.category
+                              : item.category}
+                          </span>
+                          {item.tags.length > 0 && (
+                            <span className="cx-dish__tags">
+                              {item.tags.map((t) => (
+                                <span key={t}>{tx(tagLabels[t])}</span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="cx-dish__name"
+                          onClick={() => go(item)}
+                        >
+                          {language === "en" ? item.en || item.name : item.name}
+                          {item.en && <i lang="en">{item.en}</i>}
+                        </button>
+                        {item.desc && (
+                          <p className="cx-dish__desc">
+                            {language === "en"
+                              ? item.descEn || item.desc
+                              : item.desc}
+                          </p>
+                        )}
+
+                        <div className="cx-dish__foot">
+                          <div className="cx-price">
+                            <b>{price}</b>
+                            {secondary && <small>{secondary}</small>}
+                          </div>
+                          {!configurable ? (
+                            <button
+                              type="button"
+                              className="cx-add"
+                              onClick={(e) => {
+                                const dish =
+                                  e.currentTarget.closest(".cx-dish");
+                                flyToCart(
+                                  dish?.querySelector<HTMLElement>(
+                                    ".cx-dish__imgwrap img",
+                                  ),
+                                );
+                                onQuickAdd(item);
+                              }}
+                              aria-label={
+                                language === "en"
+                                  ? `Add ${item.en || item.name} to order`
+                                  : `أضف ${item.name} إلى الطلب`
+                              }
+                            >
+                              <Plus size={20} aria-hidden="true" />
+                              <span>{tx("أضف")}</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="cx-add cx-add--ghost"
+                              onClick={() => go(item)}
+                            >
+                              <span>{tx("تخصيص")}</span>
+                              <ChevronDown size={16} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
         </div>
 
         {!loading && loadError && (
@@ -562,11 +647,15 @@ function MenuView({
             <span className="cx-empty__art" aria-hidden="true">
               <Store size={26} />
             </span>
-            <h3>تعذر تحميل القائمة</h3>
+            <h3>{tx("تعذر تحميل القائمة")}</h3>
             <p>{loadError}</p>
-            <button type="button" className="cx-btn cx-btn--red" onClick={onRetry}>
+            <button
+              type="button"
+              className="cx-btn cx-btn--red"
+              onClick={onRetry}
+            >
               <RefreshCw size={17} aria-hidden="true" />
-              حاول مرة أخرى
+              {tx("حاول مرة أخرى")}
             </button>
           </div>
         )}
@@ -576,8 +665,8 @@ function MenuView({
             <span className="cx-empty__art" aria-hidden="true">
               <Search size={26} />
             </span>
-            <h3>لم نجد صنفاً مطابقاً</h3>
-            <p>جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً من القائمة.</p>
+            <h3>{tx("لم نجد صنفاً مطابقاً")}</h3>
+            <p>{tx("جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً من القائمة.")}</p>
             <button
               type="button"
               className="cx-btn cx-btn--red"
@@ -587,7 +676,7 @@ function MenuView({
                 setCategory("كل الأصناف");
               }}
             >
-              عرض كل الأصناف
+              {tx("عرض كل الأصناف")}
             </button>
           </div>
         )}
@@ -595,7 +684,11 @@ function MenuView({
         {!loading && items.length > 0 && (
           <p className="cx-catalog__foot">
             <span aria-hidden="true">✦</span>
-            كل أطباق {restaurant.name} تحضَّر طازجة عند الطلب — بالهناء والشفاء.
+            {tx("كل أطباق")}{" "}
+            {language === "en"
+              ? restaurant.nameEn || restaurant.name
+              : restaurant.name}{" "}
+            {tx("تحضَّر طازجة عند الطلب — بالهناء والشفاء.")}
           </p>
         )}
       </section>
@@ -612,7 +705,9 @@ function MenuView({
                 )}
               </span>
               <span>
-                {restaurant.name}
+                {language === "en"
+                  ? restaurant.nameEn || restaurant.name
+                  : restaurant.name}
                 {dc.footerText ? "" : null}
               </span>
             </div>
@@ -623,14 +718,14 @@ function MenuView({
 
           {dc.hours && (
             <div className="cx-sitefoot__col">
-              <h3>ساعات العمل</h3>
+              <h3>{tx("ساعات العمل")}</h3>
               <p className="cx-sitefoot__note">{dc.hoursText}</p>
             </div>
           )}
 
           {dc.socials && (
             <div className="cx-sitefoot__col">
-              <h3>تواصل معنا</h3>
+              <h3>{tx("تواصل معنا")}</h3>
               <div className="cx-sitefoot__socials">
                 {dc.instagram && (
                   <a
@@ -640,7 +735,7 @@ function MenuView({
                     rel="noreferrer"
                   >
                     <AtSign size={16} aria-hidden="true" />
-                    إنستغرام
+                    {tx("إنستغرام")}
                   </a>
                 )}
                 {dc.facebook && (
@@ -651,7 +746,7 @@ function MenuView({
                     rel="noreferrer"
                   >
                     <Share2 size={16} aria-hidden="true" />
-                    فيسبوك
+                    {tx("فيسبوك")}
                   </a>
                 )}
                 {restaurant.whatsapp && (
@@ -690,19 +785,25 @@ function ItemModal({
   onClose: () => void;
   onAdd: (i: Item, o: Option[], n: string, qty: number) => void;
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   useOverlay(onClose);
   const [selected, setSelected] = useState<Record<string, Option[]>>({});
   const [note, setNote] = useState("");
   const [qty, setQty] = useState(1);
 
-  const hasRequired =
-    item.options?.some((group) => group.required) ?? false;
-  const missingRequired = hasRequired
-    ? item.options!.some(
-        (group) => group.required && !selected[group.id]?.length,
-      )
-    : false;
-  const valid = !missingRequired;
+  const missingRequired =
+    item.options?.some(
+      (group) =>
+        (selected[group.id]?.length ?? 0) <
+        (group.minSelections ?? (group.required ? 1 : 0)),
+    ) ?? false;
+  const tooMany =
+    item.options?.some(
+      (group) =>
+        (selected[group.id]?.length ?? 0) >
+        (group.maxSelections ?? group.options.length),
+    ) ?? false;
+  const valid = !missingRequired && !tooMany;
   const extra = Object.values(selected)
     .flat()
     .reduce((sum, option) => sum + option.price, 0);
@@ -737,20 +838,25 @@ function ItemModal({
         className="cx-sheet cx-sheet--item"
         role="dialog"
         aria-modal="true"
-        aria-label={item.name}
+        aria-label={language === "en" ? item.en || item.name : item.name}
       >
         <div className="cx-item">
           <div className="cx-item__media">
-            <img src={item.image} alt={item.name} />
+            <img
+              src={item.image}
+              alt={language === "en" ? item.en || item.name : item.name}
+            />
             <span className="cx-item__cat">{item.category}</span>
-            {item.popular && <span className="cx-item__flag">الأكثر طلباً</span>}
+            {item.popular && (
+              <span className="cx-item__flag">{tx("الأكثر طلباً")}</span>
+            )}
           </div>
 
           <div className="cx-item__panel">
             <button
               className="cx-close"
               onClick={onClose}
-              aria-label="إغلاق"
+              aria-label={tx("إغلاق")}
             >
               <X size={20} aria-hidden="true" />
             </button>
@@ -762,14 +868,20 @@ function ItemModal({
                     {item.en}
                   </span>
                 )}
-                <h2>{item.name}</h2>
-                {item.desc && <p className="cx-item__desc">{item.desc}</p>}
+                <h2>{language === "en" ? item.en || item.name : item.name}</h2>
+                {item.desc && (
+                  <p className="cx-item__desc">
+                    {language === "en" ? item.descEn || item.desc : item.desc}
+                  </p>
+                )}
                 <div className="cx-item__price">
-                  <strong>{money(price, currency, rate)}</strong>
+                  <strong>{money(price, currency, rate, language)}</strong>
                   {currency === "usd" ? (
                     <small>{formatSyp(price)}</small>
                   ) : (
-                    <small>{moneySecondary(price, currency, rate)}</small>
+                    <small>
+                      {moneySecondary(price, currency, rate, language)}
+                    </small>
                   )}
                 </div>
               </header>
@@ -777,20 +889,22 @@ function ItemModal({
               {groups.length > 0 && (
                 <div className="cx-groups">
                   {groups.map((group) => {
-                    const single = Boolean(group.required);
+                    const single =
+                      (group.maxSelections ??
+                        (group.required ? 1 : group.options.length)) === 1;
                     const chosen = selected[group.id] ?? [];
                     const isMissing = group.required && chosen.length === 0;
                     return (
-                      <fieldset
-                        key={group.id}
-                        className="cx-group"
-                      >
+                      <fieldset key={group.id} className="cx-group">
                         <legend className="cx-group__head">
                           <span className="cx-group__title">
-                            {group.name}
+                            {language === "en"
+                              ? group.en || group.name
+                              : group.name}
                             {isMissing && (
                               <b className="cx-req">
-                                <i aria-hidden="true" /> اختيار مطلوب
+                                <i aria-hidden="true" />
+                                {tx("اختيار مطلوب")}
                               </b>
                             )}
                           </span>
@@ -800,10 +914,10 @@ function ItemModal({
                             }`}
                           >
                             {group.required
-                              ? "مطلوب · اختر واحداً"
+                              ? tx("مطلوب · اختر واحداً")
                               : chosen.length
                                 ? `اخترت ${chosen.length}`
-                                : "اختياري · يمكنك اختيار أكثر من واحد"}
+                                : tx("اختياري · يمكنك اختيار أكثر من واحد")}
                           </span>
                         </legend>
                         <div className="cx-opts">
@@ -826,19 +940,24 @@ function ItemModal({
                                     toggle(group.id, option, single)
                                   }
                                 />
-                                <span className="cx-pick__dot" aria-hidden="true">
+                                <span
+                                  className="cx-pick__dot"
+                                  aria-hidden="true"
+                                >
                                   <Check size={13} />
                                 </span>
                                 <span className="cx-pick__name">
-                                  {option.name}
+                                  {language === "en"
+                                    ? option.en || option.name
+                                    : option.name}
                                   {single && checked && (
-                                    <small>الاختيار الحالي</small>
+                                    <small>{tx("الاختيار الحالي")}</small>
                                   )}
                                 </span>
                                 <span className="cx-pick__price">
                                   {option.price
-                                    ? `+${money(option.price, currency, rate)}`
-                                    : "بلا رسوم"}
+                                    ? `+${money(option.price, currency, rate, language)}`
+                                    : tx("بلا رسوم")}
                                 </span>
                               </label>
                             );
@@ -852,21 +971,21 @@ function ItemModal({
 
               <label className="cx-field">
                 <span className="cx-field__label">
-                  ملاحظة للمطبخ
+                  {tx("ملاحظة للمطبخ")}
                   <small className="mono-num">{note.length}/200</small>
                 </span>
                 <textarea
                   value={note}
                   maxLength={200}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="مثلاً: بدون بصل، الصوص جانباً…"
+                  placeholder={tx("مثلاً: بدون بصل، الصوص جانباً…")}
                 />
               </label>
             </div>
 
             <footer className="cx-item__foot">
               <div className="cx-item__qty">
-                <small>الكمية</small>
+                <small>{tx("الكمية")}</small>
                 <Stepper
                   qty={qty}
                   onDec={() => setQty((q) => Math.max(1, q - 1))}
@@ -874,8 +993,8 @@ function ItemModal({
                 />
               </div>
               <div className="cx-item__total">
-                <small>الإجمالي</small>
-                <strong>{money(price * qty, currency, rate)}</strong>
+                <small>{tx("الإجمالي")}</small>
+                <strong>{money(price * qty, currency, rate, language)}</strong>
               </div>
               <button
                 type="button"
@@ -886,7 +1005,7 @@ function ItemModal({
                 <Plus size={20} aria-hidden="true" />
                 {valid
                   ? `أضف إلى الطلب · ${qty}`
-                  : "أكمل الاختيارات المطلوبة"}
+                  : tx("أكمل الاختيارات المطلوبة")}
               </button>
             </footer>
           </div>
@@ -916,6 +1035,7 @@ function CartDrawer({
   onQty: (key: string, d: number) => void;
   onCheckout: () => void;
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   useOverlay(onClose);
   const itemCount = cart.reduce((a, l) => a + l.qty, 0);
 
@@ -933,26 +1053,31 @@ function CartDrawer({
         className="cx-cart"
         role="dialog"
         aria-modal="true"
-        aria-label="سلة الطلب"
+        aria-label={tx("سلة الطلب")}
       >
         <header className="cx-cart__head">
           <div>
             <span className="cx-eyebrow">
               <i aria-hidden="true" />
-              طلبك
+              {tx("طلبك")}
             </span>
-            <h2>سلة طلبك</h2>
+            <h2>{tx("سلة طلبك")}</h2>
             <p>
               {itemCount > 0 ? (
                 <>
-                  <b className="mono-num">{itemCount}</b> صنفاً بانتظار التأكيد
+                  <b className="mono-num">{itemCount}</b>
+                  {tx("صنفاً بانتظار التأكيد")}
                 </>
               ) : (
                 "لا شيء فيها بعد"
               )}
             </p>
           </div>
-          <button className="cx-close" onClick={onClose} aria-label="إغلاق السلة">
+          <button
+            className="cx-close"
+            onClick={onClose}
+            aria-label={tx("إغلاق السلة")}
+          >
             <X size={20} aria-hidden="true" />
           </button>
         </header>
@@ -962,10 +1087,14 @@ function CartDrawer({
             <span className="cx-empty__art" aria-hidden="true">
               <ShoppingBasket size={26} />
             </span>
-            <h3>سلتك ما زالت فارغة</h3>
-            <p>اختر أطباقاً من القائمة وستجدها هنا بانتظار التأكيد.</p>
-            <button type="button" className="cx-btn cx-btn--red" onClick={onClose}>
-              تصفح القائمة
+            <h3>{tx("سلتك ما زالت فارغة")}</h3>
+            <p>{tx("اختر أطباقاً من القائمة وستجدها هنا بانتظار التأكيد.")}</p>
+            <button
+              type="button"
+              className="cx-btn cx-btn--red"
+              onClick={onClose}
+            >
+              {tx("تصفح القائمة")}
             </button>
           </div>
         ) : (
@@ -981,15 +1110,19 @@ function CartDrawer({
                       <img src={line.item.image} alt="" loading="lazy" />
                     </span>
                     <div className="cx-cline__main">
-                      <strong>{line.item.name}</strong>
+                      <strong>
+                        {language === "en"
+                          ? line.item.en || line.item.name
+                          : line.item.name}
+                      </strong>
                       <small>
                         {line.options.length
                           ? line.options.map((o) => o.name).join(" · ")
-                          : "بدون إضافات"}
+                          : tx("بدون إضافات")}
                         {line.note ? ` — ${line.note}` : ""}
                       </small>
                       <b className="cx-cline__price">
-                        {money(unit * line.qty, currency, rate)}
+                        {money(unit * line.qty, currency, rate, language)}
                       </b>
                     </div>
                     <div className="cx-cline__end">
@@ -998,8 +1131,8 @@ function CartDrawer({
                         onDec={() => onQty(line.key, -1)}
                         onInc={() => onQty(line.key, 1)}
                         labels={{
-                          dec: `إنقاص ${line.item.name}`,
-                          inc: `زيادة ${line.item.name}`,
+                          dec: `إنقاص ${language === "en" ? line.item.en || line.item.name : line.item.name}`,
+                          inc: `زيادة ${language === "en" ? line.item.en || line.item.name : line.item.name}`,
                         }}
                       />
                     </div>
@@ -1011,15 +1144,20 @@ function CartDrawer({
             <footer className="cx-cart__foot">
               <div className="cx-cart__totals">
                 <div className="cx-cart__row">
-                  <span>الإجمالي</span>
-                  <strong>{money(total, currency, rate)}</strong>
+                  <span>{tx("الإجمالي")}</span>
+                  <strong>{money(total, currency, rate, language)}</strong>
                 </div>
                 <small className="cx-cart__note">
-                  غير شامل رسوم التوصيل — يُحتسب النهائي من المطعم عند التأكيد.
+                  {tx(
+                    "غير شامل رسوم التوصيل — يُحتسب النهائي من المطعم عند التأكيد.",
+                  )}
                 </small>
                 {currency === "usd" && (
                   <small className="cx-cart__usd">
-                    {moneySecondary(total, currency, rate)} · سعر صرف تقديري
+                    {moneySecondary(total, currency, rate, language)}
+                    {language === "en"
+                      ? " · Estimated exchange rate"
+                      : " · سعر صرف تقديري"}
                   </small>
                 )}
               </div>
@@ -1028,7 +1166,7 @@ function CartDrawer({
                 className="cx-btn cx-btn--red cx-btn--lg cx-btn--block"
                 onClick={proceed}
               >
-                متابعة تفاصيل الطلب
+                {tx("متابعة تفاصيل الطلب")}
                 <ArrowRight className="cx-arrow" size={19} aria-hidden="true" />
               </button>
             </footer>
@@ -1048,6 +1186,7 @@ const PAY_WALLETS = ["Syriatel Cash", "Sham Cash / BEMO", "MTN Cash"] as const;
 
 function CheckoutModal({
   total,
+  restaurantSlug,
   mode,
   setMode,
   onClose,
@@ -1060,10 +1199,14 @@ function CheckoutModal({
   lines,
 }: {
   total: number;
+  restaurantSlug: string;
   mode: Mode;
   setMode: (m: Mode) => void;
   onClose: () => void;
-  onSubmit: (form: HTMLFormElement, fix?: GeoFix | null) => boolean | Promise<boolean>;
+  onSubmit: (
+    form: HTMLFormElement,
+    fix?: GeoFix | null,
+  ) => boolean | Promise<boolean>;
   settings?: RestaurantSettings;
   tableContext: PublicMenuPayload["table"];
   backendReady: boolean;
@@ -1071,15 +1214,39 @@ function CheckoutModal({
   rate: number;
   lines?: CartLine[];
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   useOverlay(onClose);
+  const preferenceKey = `syrianqr-checkout-v1-${restaurantSlug}`;
+  const [savedDetails] = useState(() =>
+    readStored<{
+      customer?: string;
+      phone?: string;
+      address?: string;
+      zone?: string;
+    } | null>(preferenceKey, null),
+  );
+  const [remember, setRemember] = useState(Boolean(savedDetails));
+  const [zoneId, setZoneId] = useState(
+    savedDetails?.zone ?? settings?.zones.find((z) => z.active)?.id ?? "",
+  );
+  const zone = settings?.zones.find((z) => z.id === zoneId && z.active);
+  useEffect(() => {
+    if (!settings?.zones.some((z) => z.id === zoneId && z.active))
+      setZoneId(settings?.zones.find((z) => z.active)?.id ?? "");
+  }, [settings?.zones, zoneId]);
+  const totals = calculateTotals(
+    total,
+    settings,
+    mode === "delivery" ? (zone?.fee ?? 0) : 0,
+  );
+
   const cashValue = mode === "delivery" ? PAY_CASH_DELIVERY : PAY_CASH_DINE;
   const [pay, setPay] = useState<string>(cashValue);
   const [orderBusy, setOrderBusy] = useState(false);
   const [submitError, setSubmitError] = useState(false);
 
   const missingDineInContext = mode === "dine-in" && !tableContext;
-  const hasCoords =
-    settings?.latitude != null && settings?.longitude != null;
+  const hasCoords = settings?.latitude != null && settings?.longitude != null;
   const gpsRequired = mode === "dine-in" && hasCoords;
   const [presence, setPresence] = useState<PresenceResult | null>(null);
   const [presenceBusy, setPresenceBusy] = useState(false);
@@ -1110,13 +1277,17 @@ function CheckoutModal({
   const presenceOk = presence?.ok === true;
   const submitDisabled =
     !backendReady ||
+    settings?.isOpen === false ||
     missingDineInContext ||
     disabledBySettings ||
+    !lines?.length ||
+    (mode === "delivery" && (!zone || total < zone.minimum)) ||
     orderBusy ||
     presenceBusy ||
     (gpsRequired && !presenceOk);
 
-  const cashLabel = mode === "delivery" ? "نقداً عند الاستلام" : "نقداً";
+  const cashLabel =
+    mode === "delivery" ? tx("نقداً عند الاستلام") : tx("نقداً");
   const itemCount = (lines ?? []).reduce((a, l) => a + l.qty, 0);
 
   // Keep the cash option in sync when switching between dine / delivery.
@@ -1132,7 +1303,18 @@ function CheckoutModal({
     setOrderBusy(true);
     setSubmitError(false);
     try {
-      const submitted = await onSubmit(form, presence?.ok ? presence.fix : null);
+      const fields = new FormData(form);
+      const details = Object.fromEntries(
+        ["customer", "phone", "address", "zone"].map((key) => [
+          key,
+          String(fields.get(key) ?? ""),
+        ]),
+      );
+      const submitted = await onSubmit(
+        form,
+        presence?.ok ? presence.fix : null,
+      );
+      if (submitted && remember) writeStored(preferenceKey, details);
       if (!submitted) setSubmitError(true);
     } catch {
       setSubmitError(true);
@@ -1143,7 +1325,20 @@ function CheckoutModal({
 
   const summaryLines = lines ?? [];
   const isUsd = currency === "usd";
-  const payOptions = [cashValue, ...PAY_WALLETS] as string[];
+  const payOptions = [
+    cashValue,
+    ...PAY_WALLETS.filter((provider) =>
+      provider === "Syriatel Cash"
+        ? settings?.syriatelCash
+        : provider === "MTN Cash"
+          ? settings?.mtnCash
+          : settings?.shamCash,
+    ),
+  ] as string[];
+
+  useEffect(() => {
+    if (!payOptions.includes(pay)) setPay(cashValue);
+  }, [payOptions.join("|"), pay, cashValue]);
 
   return (
     <div
@@ -1154,36 +1349,36 @@ function CheckoutModal({
         className="cx-checkout"
         role="dialog"
         aria-modal="true"
-        aria-label="إتمام الطلب"
+        aria-label={tx("إتمام الطلب")}
       >
         <header className="cx-checkout__top">
           <button
             className="cx-close"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={tx("إغلاق")}
           >
             <X size={20} aria-hidden="true" />
           </button>
           <div className="cx-checkout__kicker">
             <span className="cx-eyebrow">
               <i aria-hidden="true" />
-              إتمام الطلب
+              {tx("إتمام الطلب")}
             </span>
-            <h2>لنضع اللمسات الأخيرة</h2>
-            <p>أكمل البيانات ثم أرسل — يصل طلبك مباشرة إلى المطبخ.</p>
+            <h2>{tx("لنضع اللمسات الأخيرة")}</h2>
+            <p>{tx("أكمل البيانات ثم أرسل — يصل طلبك مباشرة إلى المطبخ.")}</p>
           </div>
           <div className="cx-progress" aria-hidden="true">
             <span className="is-on">
               <i>1</i>
-              طريقة الطلب
+              {tx("طريقة الطلب")}
             </span>
             <span>
               <i>2</i>
-              البيانات
+              {tx("البيانات")}
             </span>
             <span>
               <i>3</i>
-              الدفع
+              {tx("الدفع")}
             </span>
           </div>
         </header>
@@ -1202,8 +1397,8 @@ function CheckoutModal({
               <div className="cx-step__label">
                 <em className="mono-num">01</em>
                 <div>
-                  <strong>كيف تريد طلبك؟</strong>
-                  <small>اختر طريقة الاستلام المناسبة لك</small>
+                  <strong>{tx("كيف تريد طلبك؟")}</strong>
+                  <small>{tx("اختر طريقة الاستلام المناسبة لك")}</small>
                 </div>
               </div>
               <div className="cx-modes">
@@ -1211,7 +1406,14 @@ function CheckoutModal({
                   const Icon = modeIcon(m);
                   const on = mode === m;
                   const unavailable = Boolean(
-                    settings && !settings[m === "dine-in" ? "dineIn" : m === "takeaway" ? "takeaway" : "delivery"],
+                    settings &&
+                      !settings[
+                        m === "dine-in"
+                          ? "dineIn"
+                          : m === "takeaway"
+                            ? "takeaway"
+                            : "delivery"
+                      ],
                   );
                   return (
                     <button
@@ -1228,8 +1430,8 @@ function CheckoutModal({
                         <Icon size={22} aria-hidden="true" />
                       </span>
                       <span className="cx-mode__txt">
-                        <b>{modeLabels[m]}</b>
-                        <small>{modeIconBig(m)}</small>
+                        <b>{tx(modeLabels[m])}</b>
+                        <small>{tx(modeIconBig(m))}</small>
                       </span>
                       <span className="cx-mode__tick" aria-hidden="true">
                         <Check size={13} />
@@ -1240,7 +1442,7 @@ function CheckoutModal({
               </div>
               {disabledBySettings && (
                 <p className="cx-note cx-note--warn">
-                  هذا النوع من الطلبات غير متاح حالياً في هذا المطعم.
+                  {tx("هذا النوع من الطلبات غير متاح حالياً في هذا المطعم.")}
                 </p>
               )}
             </section>
@@ -1250,23 +1452,36 @@ function CheckoutModal({
               <div className="cx-step__label">
                 <em className="mono-num">02</em>
                 <div>
-                  <strong>إلى من نجهّزها؟</strong>
-                  <small>نستخدم البيانات لتسليم طلبك فقط</small>
+                  <strong>{tx("إلى من نجهّزها؟")}</strong>
+                  <small>{tx("نستخدم البيانات لتسليم طلبك فقط")}</small>
                 </div>
               </div>
               <div className="cx-fields">
                 <label className="cx-field">
                   <span className="cx-field__label">
-                    الاسم <i aria-hidden="true">*</i>
+                    {tx("الاسم")}
+                    <i aria-hidden="true">*</i>
                   </span>
-                  <input name="customer" required placeholder="اسمك الكريم" />
+                  <input
+                    name="customer"
+                    required
+                    maxLength={120}
+                    autoComplete="name"
+                    defaultValue={savedDetails?.customer ?? ""}
+                    placeholder={tx("اسمك الكريم")}
+                  />
                 </label>
                 <label className="cx-field">
                   <span className="cx-field__label">
-                    رقم الهاتف {mode !== "dine-in" && <i aria-hidden="true">*</i>}
+                    {tx("رقم الهاتف")}
+                    {mode !== "dine-in" && <i aria-hidden="true">*</i>}
                   </span>
                   <input
                     name="phone"
+                    type="tel"
+                    maxLength={40}
+                    autoComplete="tel"
+                    defaultValue={savedDetails?.phone ?? ""}
                     required={mode !== "dine-in"}
                     placeholder="09XXXXXXXX"
                     inputMode="tel"
@@ -1280,15 +1495,21 @@ function CheckoutModal({
                         <Store size={18} />
                       </span>
                       <span>
-                        الطاولة: <strong>{tableContext.labelAr}</strong>
+                        {tx("الطاولة:")}
+                        <strong>
+                          {language === "en"
+                            ? tableContext.labelEn || tableContext.labelAr
+                            : tableContext.labelAr}
+                        </strong>
                         {tableContext.area ? ` — ${tableContext.area}` : ""}
                       </span>
                       <b aria-hidden="true">✓</b>
                     </div>
                   ) : (
                     <p className="cx-note cx-note--danger cx-field--full">
-                      امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل
-                      المطعم.
+                      {tx(
+                        "امسح رمز QR الصحيح الموجود على الطاولة لتفعيل الطلب داخل المطعم.",
+                      )}
                     </p>
                   ))}
 
@@ -1315,45 +1536,55 @@ function CheckoutModal({
                     </span>
                     <span className="cx-geo__txt">
                       {presenceBusy ? (
-                        <b>جارٍ التحقق من وجودك داخل المطعم…</b>
+                        <b>{tx("جارٍ التحقق من وجودك داخل المطعم…")}</b>
                       ) : presence?.ok ? (
                         <>
-                          <b>تم تأكيد وجودك داخل المطعم ✓</b>
+                          <b>{tx("تم تأكيد وجودك داخل المطعم ✓")}</b>
                           <small className="mono-num">
                             {presence.distance > 0
                               ? `البعد عن المطعم ≈ ${Math.round(presence.distance)} م`
-                              : "تم التحقق من الموقع"}
+                              : tx("تم التحقق من الموقع")}
                           </small>
                         </>
                       ) : presence ? (
                         <>
                           <b>
                             {presence.reason === "far"
-                              ? "أنت خارج نطاق المطعم"
+                              ? tx("أنت خارج نطاق المطعم")
                               : presence.reason === "denied"
-                                ? "لم يُسمح بالوصول إلى الموقع"
+                                ? tx("لم يُسمح بالوصول إلى الموقع")
                                 : presence.reason === "timeout"
-                                  ? "تأخر تحديد الموقع"
+                                  ? tx("تأخر تحديد الموقع")
                                   : presence.reason === "unsupported"
-                                    ? "جهازك لا يدعم تحديد الموقع"
-                                    : "تعذر تحديد موقعك الآن"}
+                                    ? tx("جهازك لا يدعم تحديد الموقع")
+                                    : tx("تعذر تحديد موقعك الآن")}
                           </b>
                           {presence.reason === "far" &&
                           presence.distance != null ? (
                             <small className="mono-num">
-                              بعدك ≈ {Math.round(presence.distance)} م — المسموح{" "}
-                              {presence.radius} م
+                              {tx("بعدك ≈")}
+                              {Math.round(presence.distance)}
+                              {tx("م — المسموح")} {presence.radius}
+                              {tx("م")}
                             </small>
                           ) : (
                             <small>
                               {presence.reason === "denied"
-                                ? "فعّل إذن الموقع من إعدادات المتصفح ثم أعد المحاولة."
-                                : "اقترب من المطعم وانتظر لحظات ثم أعد المحاولة."}
+                                ? tx(
+                                    "فعّل إذن الموقع من إعدادات المتصفح ثم أعد المحاولة.",
+                                  )
+                                : tx(
+                                    "اقترب من المطعم وانتظر لحظات ثم أعد المحاولة.",
+                                  )}
                             </small>
                           )}
                         </>
                       ) : (
-                        <b>لابد من تأكيد وجودك داخل المطعم للطلب داخل الصالة</b>
+                        <b>
+                          {tx(
+                            "لابد من تأكيد وجودك داخل المطعم للطلب داخل الصالة",
+                          )}
+                        </b>
                       )}
                     </span>
                     {(presence && !presence.ok) || !presenceBusy ? (
@@ -1363,7 +1594,7 @@ function CheckoutModal({
                         onClick={() => void verifyPresence()}
                         disabled={presenceBusy}
                       >
-                        {presence ? "إعادة التحقق" : "تحقق من موقعي"}
+                        {presence ? tx("إعادة التحقق") : tx("تحقق من موقعي")}
                       </button>
                     ) : null}
                   </div>
@@ -1373,27 +1604,41 @@ function CheckoutModal({
                   <>
                     <label className="cx-field cx-field--full">
                       <span className="cx-field__label">
-                        العنوان بالتفصيل <i aria-hidden="true">*</i>
+                        {tx("العنوان بالتفصيل")}
+                        <i aria-hidden="true">*</i>
                       </span>
                       <textarea
                         name="address"
+                        maxLength={500}
+                        autoComplete="street-address"
+                        defaultValue={savedDetails?.address ?? ""}
                         required
-                        placeholder="الحي، الشارع، البناء، أقرب نقطة دالة…"
+                        placeholder={tx(
+                          "الحي، الشارع، البناء، أقرب نقطة دالة…",
+                        )}
                       />
                     </label>
                     {settings && settings.zones.length > 0 && (
                       <label className="cx-field cx-field--full">
                         <span className="cx-field__label">
-                          منطقة التوصيل <i aria-hidden="true">*</i>
+                          {tx("منطقة التوصيل")}
+                          <i aria-hidden="true">*</i>
                         </span>
                         <span className="cx-select">
-                          <select name="zone">
+                          <select
+                            name="zone"
+                            value={zoneId}
+                            onChange={(e) => setZoneId(e.target.value)}
+                          >
                             {settings.zones
                               .filter((zone) => zone.active)
                               .map((zone) => (
                                 <option key={zone.id} value={zone.id}>
-                                  {zone.name} — رسوم {formatSyp(zone.fee)} · حد
-                                  أدنى {formatSyp(zone.minimum)}
+                                  {zone.name}
+                                  {tx("— رسوم")}
+                                  {formatSyp(zone.fee)}
+                                  {tx("· حد أدنى")}
+                                  {formatSyp(zone.minimum)}
                                 </option>
                               ))}
                           </select>
@@ -1406,12 +1651,14 @@ function CheckoutModal({
 
                 {mode === "takeaway" && (
                   <label className="cx-field">
-                    <span className="cx-field__label">وقت الاستلام</span>
+                    <span className="cx-field__label">
+                      {tx("وقت الاستلام")}
+                    </span>
                     <span className="cx-select">
                       <select name="pickup">
-                        <option>الآن (٢٥ - ٣٥ دقيقة)</option>
-                        <option>بعد ساعة</option>
-                        <option>بعد ساعتين</option>
+                        <option>{tx("الآن (٢٥ - ٣٥ دقيقة)")}</option>
+                        <option>{tx("بعد ساعة")}</option>
+                        <option>{tx("بعد ساعتين")}</option>
                       </select>
                       <ChevronDown size={17} aria-hidden="true" />
                     </span>
@@ -1420,16 +1667,43 @@ function CheckoutModal({
               </div>
             </section>
 
+            <label className="cx-remember">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => {
+                  setRemember(e.target.checked);
+                  if (!e.target.checked) {
+                    try {
+                      localStorage.removeItem(preferenceKey);
+                    } catch {
+                      /* unavailable storage */
+                    }
+                  }
+                }}
+              />
+              {tx("حفظ الاسم والهاتف والعنوان على هذا الجهاز فقط")}
+            </label>
+            {mode === "delivery" && zone && total < zone.minimum && (
+              <p className="cx-note cx-note--warn" role="alert">
+                {tx("الحد الأدنى للتوصيل:")}
+                {formatSyp(zone.minimum)}
+              </p>
+            )}
             {/* Step 3 — payment */}
             <section className="cx-step">
               <div className="cx-step__label">
                 <em className="mono-num">03</em>
                 <div>
-                  <strong>طريقة الدفع</strong>
-                  <small>اختر وسيلة الدفع المفضلة لديك</small>
+                  <strong>{tx("طريقة الدفع")}</strong>
+                  <small>{tx("اختر وسيلة الدفع المفضلة لديك")}</small>
                 </div>
               </div>
-              <div className="cx-pays" role="radiogroup" aria-label="طريقة الدفع">
+              <div
+                className="cx-pays"
+                role="radiogroup"
+                aria-label={tx("طريقة الدفع")}
+              >
                 {payOptions.map((option) => {
                   const Icon =
                     option === cashValue
@@ -1456,12 +1730,12 @@ function CheckoutModal({
                         <Icon size={19} />
                       </span>
                       <span className="cx-pay__txt">
-                        <b>{option}</b>
+                        <b>{tx(option)}</b>
                         {option === cashValue && (
                           <small>
                             {mode === "delivery"
-                              ? "ادفع للطيّار عند الاستلام"
-                              : "ادفع نقداً عند الاستلام أو في المطعم"}
+                              ? tx("ادفع للطيّار عند الاستلام")
+                              : tx("ادفع نقداً عند الاستلام أو في المطعم")}
                           </small>
                         )}
                       </span>
@@ -1475,10 +1749,13 @@ function CheckoutModal({
 
               <label className="cx-field">
                 <span className="cx-field__label">
-                  مرجع الحوالة
-                  <small>اختياري للمحافظ</small>
+                  {tx("مرجع الحوالة")}
+                  <small>{tx("اختياري للمحافظ")}</small>
                 </span>
-                <input name="paymentReference" placeholder="رقم العملية" />
+                <input
+                  name="paymentReference"
+                  placeholder={tx("رقم العملية")}
+                />
               </label>
             </section>
           </div>
@@ -1486,17 +1763,19 @@ function CheckoutModal({
           {/* ---- Order slip (summary) ---- */}
           <aside className="cx-slip">
             <div className="cx-slip__stamp" aria-hidden="true">
-              <span>طلب</span>
-              <b>جديد</b>
+              <span>{tx("طلب")}</span>
+              <b>{tx("جديد")}</b>
             </div>
-            <h3 className="cx-slip__title">ملخص طلبك</h3>
+            <h3 className="cx-slip__title">{tx("ملخص طلبك")}</h3>
             <p className="cx-slip__note">
-              السعر النهائي يُحتسب من المطعم عند تأكيد الطلب.
+              {tx("الأسعار والرسوم تُراجع آلياً قبل إرسال الطلب.")}
             </p>
 
             <div className="cx-slip__items">
               {summaryLines.length === 0 && (
-                <p className="cx-slip__empty">سلتك فارغة — عد وأضف أطباقاً.</p>
+                <p className="cx-slip__empty">
+                  {tx("سلتك فارغة — عد وأضف أطباقاً.")}
+                </p>
               )}
               {summaryLines.map((line) => {
                 const unit =
@@ -1509,7 +1788,11 @@ function CheckoutModal({
                       <b className="mono-num">{line.qty}</b>
                     </span>
                     <span className="cx-slip__mid">
-                      <strong>{line.item.name}</strong>
+                      <strong>
+                        {language === "en"
+                          ? line.item.en || line.item.name
+                          : line.item.name}
+                      </strong>
                       <small>
                         {line.options.length
                           ? line.options.map((o) => o.name).join(" · ")
@@ -1517,7 +1800,7 @@ function CheckoutModal({
                       </small>
                     </span>
                     <b className="cx-slip__price">
-                      {money(unit * line.qty, currency, rate)}
+                      {money(unit * line.qty, currency, rate, language)}
                     </b>
                   </div>
                 );
@@ -1526,14 +1809,47 @@ function CheckoutModal({
 
             <div className="cx-slip__totals">
               <div className="cx-slip__row">
+                <span>{tx("المجموع الفرعي")}</span>
+                <b>{money(total, currency, rate, language)}</b>
+              </div>
+              {totals.discount > 0 && (
+                <div className="cx-slip__row">
+                  <span>{tx("الخصم")}</span>
+                  <b>−{money(totals.discount, currency, rate, language)}</b>
+                </div>
+              )}
+              {totals.service > 0 && (
+                <div className="cx-slip__row">
+                  <span>{tx("رسوم الخدمة")}</span>
+                  <b>{money(totals.service, currency, rate, language)}</b>
+                </div>
+              )}
+              {totals.tax > 0 && (
+                <div className="cx-slip__row">
+                  <span>{tx("الضريبة")}</span>
+                  <b>{money(totals.tax, currency, rate, language)}</b>
+                </div>
+              )}
+              {mode === "delivery" && (
+                <div className="cx-slip__row">
+                  <span>{tx("رسوم التوصيل")}</span>
+                  <b>{money(totals.delivery, currency, rate, language)}</b>
+                </div>
+              )}
+              <div className="cx-slip__row">
                 <span>
-                  الإجمالي · <b className="mono-num">{itemCount}</b> صنفاً
+                  {tx("الإجمالي ·")}
+                  <b className="mono-num">{itemCount}</b>
+                  {tx("صنفاً")}
                 </span>
-                <strong>{money(total, currency, rate)}</strong>
+                <strong>{money(totals.total, currency, rate, language)}</strong>
               </div>
               {isUsd && (
                 <small className="cx-slip__usd">
-                  {moneySecondary(total, currency, rate)} · سعر صرف تقديري
+                  {moneySecondary(totals.total, currency, rate, language)}
+                  {language === "en"
+                    ? " · Estimated exchange rate"
+                    : " · سعر صرف تقديري"}
                 </small>
               )}
             </div>
@@ -1543,8 +1859,8 @@ function CheckoutModal({
                 <ShieldCheck size={19} />
               </span>
               <span>
-                <b>إرسال آمن وموثوق</b>
-                <small>تأكيد نهائي قبل الإرسال مباشرة إلى المطبخ</small>
+                <b>{tx("إرسال آمن وموثوق")}</b>
+                <small>{tx("تأكيد نهائي قبل الإرسال مباشرة إلى المطبخ")}</small>
               </span>
             </div>
           </aside>
@@ -1552,18 +1868,29 @@ function CheckoutModal({
 
         <footer className="cx-checkout__foot">
           <div className="cx-checkout__sum">
-            <small>الإجمالي النهائي</small>
-            <strong>{money(total, currency, rate)}</strong>
-            {isUsd && <em>{moneySecondary(total, currency, rate)}</em>}
+            <small>{tx("الإجمالي النهائي")}</small>
+            <strong>{money(totals.total, currency, rate, language)}</strong>
+            {isUsd && (
+              <em>{moneySecondary(totals.total, currency, rate, language)}</em>
+            )}
           </div>
+          {settings?.isOpen === false && (
+            <p className="cx-note cx-note--warn" role="status">
+              {language === "en"
+                ? "The restaurant is not accepting orders right now."
+                : "المطعم لا يستقبل الطلبات حالياً."}
+            </p>
+          )}
           {submitError && (
             <p className="cx-note cx-note--danger" role="alert">
-              لم يصلنا تأكيد الطلب. بقيت سلتك وبياناتك كما هي؛ راجع التنبيه ثم أعد المحاولة.
+              {tx(
+                "لم يصلنا تأكيد الطلب. بقيت سلتك وبياناتك كما هي؛ راجع التنبيه ثم أعد المحاولة.",
+              )}
             </p>
           )}
           {!backendReady ? (
             <p className="cx-note cx-note--danger">
-              أنت دون اتصال — تحقق من الشبكة ثم أعد المحاولة.
+              {tx("أنت دون اتصال — تحقق من الشبكة ثم أعد المحاولة.")}
             </p>
           ) : (
             <button
@@ -1573,12 +1900,12 @@ function CheckoutModal({
               disabled={submitDisabled}
             >
               {missingDineInContext
-                ? "امسح رمز الطاولة أولاً"
+                ? tx("امسح رمز الطاولة أولاً")
                 : orderBusy
-                  ? "جارٍ إرسال طلبك…"
+                  ? tx("جارٍ إرسال طلبك…")
                   : submitError
-                    ? "أعد محاولة الإرسال"
-                    : "تأكيد الطلب وإرساله"}
+                    ? tx("أعد محاولة الإرسال")
+                    : tx("تأكيد الطلب وإرساله")}
               <ArrowRight className="cx-arrow" size={19} aria-hidden="true" />
             </button>
           )}
@@ -1593,31 +1920,36 @@ function CheckoutModal({
    ============================================================ */
 function OrdersView({
   orders,
+  onReorder,
   onTrack,
   onMenu,
 }: {
   orders: Order[];
+  onReorder?: (order: Order) => void;
   onTrack: (o: Order) => void;
   onMenu: () => void;
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   const activeOrders = orders.filter(
     (order) => !["completed", "cancelled"].includes(order.status),
   );
   const archiveOrders = orders.filter((order) =>
     ["completed", "cancelled"].includes(order.status),
   );
-  const digits = new Intl.NumberFormat("ar-SY");
+  const digits = new Intl.NumberFormat(language === "en" ? "en" : "ar-SY");
 
   const when = (order: Order) =>
-    new Date(order.createdAt).toLocaleDateString("ar-SY", {
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    new Date(order.createdAt).toLocaleDateString(
+      language === "en" ? "en" : "ar-SY",
+      {
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    );
 
-  const totalQty = (order: Order) =>
-    order.lines.reduce((a, l) => a + l.qty, 0);
+  const totalQty = (order: Order) => order.lines.reduce((a, l) => a + l.qty, 0);
 
   const renderLive = (order: Order) => {
     const Icon = modeIcon(order.mode);
@@ -1635,18 +1967,17 @@ function OrdersView({
             <i className="mono-num">#{order.id}</i>
             <small>{when(order)}</small>
           </span>
-          <span
-            className={`cx-status cx-status--${statusTone(order.status)}`}
-          >
-            {statusLabels[order.status]}
+          <span className={`cx-status cx-status--${statusTone(order.status)}`}>
+            {tx(statusLabels[order.status])}
           </span>
         </span>
         <span className="cx-livecard__mid">
           <b>{order.customer}</b>
           <small>
             <Icon size={14} aria-hidden="true" />
-            {modeLabels[order.mode]}
-            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)} أصناف
+            {tx(modeLabels[order.mode])}
+            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)}
+            {tx("أصناف")}
           </small>
         </span>
         <span className="cx-livecard__bottom">
@@ -1665,7 +1996,7 @@ function OrdersView({
           <span className="cx-livecard__right">
             <b className="cx-livecard__total">{formatSyp(order.total)}</b>
             <span className="cx-livecard__go">
-              تتبع الطلب
+              {tx("تتبع الطلب")}
               <ArrowRight className="cx-arrow" size={16} aria-hidden="true" />
             </span>
           </span>
@@ -1690,8 +2021,9 @@ function OrdersView({
         <span className="cx-ordercard__mid">
           <strong className="mono-num">#{order.id}</strong>
           <span>
-            {modeLabels[order.mode]}
-            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)} أصناف
+            {tx(modeLabels[order.mode])}
+            {order.table ? ` · ${order.table}` : ""} · {totalQty(order)}
+            {tx("أصناف")}
           </span>
           <small>{when(order)}</small>
         </span>
@@ -1700,7 +2032,7 @@ function OrdersView({
             {formatSyp(order.total)}
           </strong>
           <span className={`cx-status cx-status--${statusTone(order.status)}`}>
-            {statusLabels[order.status]}
+            {tx(statusLabels[order.status])}
           </span>
         </span>
         <span className="cx-ordercard__go" aria-hidden="true">
@@ -1716,19 +2048,19 @@ function OrdersView({
         <div className="cx-orders__mast-txt">
           <span className="cx-eyebrow">
             <i aria-hidden="true" />
-            دفتر طلباتك
+            {tx("دفتر طلباتك")}
           </span>
           <h1>
-            حكاية طلباتك
+            {tx("حكاية طلباتك")}
             <em className="mono-num">
               /{String(orders.length).padStart(2, "0")}
             </em>
           </h1>
-          <p>كل طلب يحتفظ بوقته وتفاصيله وحالته حتى يصل إليك.</p>
+          <p>{tx("كل طلب يحتفظ بوقته وتفاصيله وحالته حتى يصل إليك.")}</p>
         </div>
         <button type="button" className="cx-btn cx-btn--red" onClick={onMenu}>
           <Plus size={18} aria-hidden="true" />
-          طلب جديد
+          {tx("طلب جديد")}
         </button>
       </header>
 
@@ -1737,14 +2069,10 @@ function OrdersView({
           <span className="cx-empty__art" aria-hidden="true">
             <ClipboardList size={27} />
           </span>
-          <h3>لم تُكتب أول حكاية بعد</h3>
-          <p>ابدأ بتصفح القائمة واختر ما ترغب أن يصل إلى مائدتك.</p>
-          <button
-            type="button"
-            className="cx-btn cx-btn--red"
-            onClick={onMenu}
-          >
-            افتح القائمة
+          <h3>{tx("لم تُكتب أول حكاية بعد")}</h3>
+          <p>{tx("ابدأ بتصفح القائمة واختر ما ترغب أن يصل إلى مائدتك.")}</p>
+          <button type="button" className="cx-btn cx-btn--red" onClick={onMenu}>
+            {tx("افتح القائمة")}
             <ArrowRight className="cx-arrow" size={18} aria-hidden="true" />
           </button>
         </div>
@@ -1754,12 +2082,12 @@ function OrdersView({
             <section className="cx-orders__block">
               <header className="cx-orders__group">
                 <h2>
-                  قيد التنفيذ الآن
+                  {tx("قيد التنفيذ الآن")}
                   <span className="cx-orders__count mono-num">
                     {digits.format(activeOrders.length)}
                   </span>
                 </h2>
-                <p>تحديثات المطبخ تظهر هنا لحظة بلحظة.</p>
+                <p>{tx("تحديثات المطبخ تظهر هنا لحظة بلحظة.")}</p>
               </header>
               <div className="cx-orders__live">
                 {activeOrders.map(renderLive)}
@@ -1771,14 +2099,30 @@ function OrdersView({
             <section className="cx-orders__block">
               <header className="cx-orders__group">
                 <h2>
-                  الطلبات السابقة
+                  {tx("الطلبات السابقة")}
                   <span className="cx-orders__count mono-num">
                     {digits.format(archiveOrders.length)}
                   </span>
                 </h2>
-                <p>اضغط على أي طلب لمراجعة تفاصيله وحالته.</p>
+                <p>{tx("اضغط على أي طلب لمراجعة تفاصيله وحالته.")}</p>
               </header>
-              <div className="cx-orders__rows">{archiveOrders.map(renderRow)}</div>
+              <div className="cx-orders__rows">
+                {archiveOrders.map((order) => (
+                  <div key={order.id}>
+                    {renderRow(order)}
+                    {onReorder && (
+                      <button
+                        className="cx-btn cx-btn--outline cx-reorder"
+                        type="button"
+                        onClick={() => onReorder(order)}
+                      >
+                        <RefreshCw size={16} />
+                        {tx("إعادة الطلب بالأسعار الحالية")}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </section>
           )}
         </div>
@@ -1799,10 +2143,11 @@ function TrackingModal({
   onClose: () => void;
   onWhatsApp: (o: Order) => void;
 }) {
+  const { t: tx, language, syp: formatSyp } = useCustomerText();
   useOverlay(onClose);
   const [trackedOrder, setTrackedOrder] = useState(order);
   const [trackingMessage, setTrackingMessage] = useState("");
-  const digits = new Intl.NumberFormat("ar-SY");
+  const digits = new Intl.NumberFormat(language === "en" ? "en" : "ar-SY");
 
   useEffect(() => {
     setTrackedOrder(order);
@@ -1815,7 +2160,9 @@ function TrackingModal({
       });
       if (!active) return;
       if (error || !data) {
-        setTrackingMessage("تعذّر تحديث الحالة الآن — سنحاول مجدداً تلقائياً.");
+        setTrackingMessage(
+          tx("تعذّر تحديث الحالة الآن — سنحاول مجدداً تلقائياً."),
+        );
         return;
       }
       const payload = data as {
@@ -1834,7 +2181,7 @@ function TrackingModal({
         createdAt: payload.createdAt ?? current.createdAt,
         updatedAt: new Date().toISOString(),
       }));
-      setTrackingMessage("تم تحديث الحالة مباشرة من المطعم.");
+      setTrackingMessage(tx("تم تحديث الحالة مباشرة من المطعم."));
     };
 
     void refresh();
@@ -1872,14 +2219,14 @@ function TrackingModal({
   );
 
   const bannerLine = cancelled
-    ? "تم إلغاء الطلب من قبل المطعم."
+    ? tx("تم إلغاء الطلب من قبل المطعم.")
     : displayOrder.status === "received"
-      ? "تم إرسال طلبك إلى المطعم وسيُؤكد قريباً."
+      ? tx("تم إرسال طلبك إلى المطعم وسيُؤكد قريباً.")
       : displayOrder.status === "completed"
-        ? "صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك."
-        : "فريقنا يعمل على تجهيز طلبك الآن.";
+        ? tx("صحة وعافية! نتمنى أن تكون التجربة نالت إعجابك.")
+        : tx("فريقنا يعمل على تجهيز طلبك الآن.");
 
-  const fmtSyp = (n: number) => `ل.س ${digits.format(n)}`;
+  const fmtSyp = formatSyp;
 
   return (
     <div
@@ -1890,7 +2237,11 @@ function TrackingModal({
         className="cx-sheet cx-track"
         role="dialog"
         aria-modal="true"
-        aria-label={`تتبع الطلب رقم ${displayOrder.id}`}
+        aria-label={
+          language === "en"
+            ? `Track order ${displayOrder.id}`
+            : `تتبع الطلب رقم ${displayOrder.id}`
+        }
       >
         <div className="cx-track__hero">
           <span className="cx-track__medallion" aria-hidden="true">
@@ -1899,20 +2250,22 @@ function TrackingModal({
           <div className="cx-track__title">
             <span className="cx-eyebrow cx-eyebrow--light">
               <i aria-hidden="true" />
-              {modeLabels[displayOrder.mode]} · طلب رقم {displayOrder.id}
+              {tx(modeLabels[displayOrder.mode])}
+              {tx("· طلب رقم")}
+              {displayOrder.id}
             </span>
-            <h2>{statusLabels[displayOrder.status]}</h2>
+            <h2>{tx(statusLabels[displayOrder.status])}</h2>
             <p>{bannerLine}</p>
           </div>
           <button
             className="cx-close cx-close--light"
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={tx("إغلاق")}
           >
             <X size={20} aria-hidden="true" />
           </button>
           <span className="cx-track__total">
-            <small>الإجمالي</small>
+            <small>{tx("الإجمالي")}</small>
             <b>{fmtSyp(displayOrder.total)}</b>
           </span>
         </div>
@@ -1932,16 +2285,20 @@ function TrackingModal({
                     aria-current={now ? "step" : undefined}
                   >
                     <span className="cx-tl__dot" aria-hidden="true">
-                      {done ? <Check size={14} /> : <i className="mono-num">{i + 1}</i>}
+                      {done ? (
+                        <Check size={14} />
+                      ) : (
+                        <i className="mono-num">{i + 1}</i>
+                      )}
                     </span>
                     <span className="cx-tl__txt">
-                      <b>{statusLabels[step]}</b>
+                      <b>{tx(statusLabels[step])}</b>
                       <small>
                         {now
-                          ? "نحن هنا الآن"
+                          ? tx("نحن هنا الآن")
                           : done
-                            ? "تم"
-                            : "الخطوة التالية"}
+                            ? tx("تم")
+                            : tx("الخطوة التالية")}
                       </small>
                     </span>
                   </li>
@@ -1956,7 +2313,7 @@ function TrackingModal({
                 <X size={20} />
               </span>
               <div>
-                <b>طلب ملغى</b>
+                <b>{tx("طلب ملغى")}</b>
                 <p>
                   {displayOrder.cancellationReason ||
                     "تم إلغاء الطلب من قبل المطعم. تواصل معنا عبر واتساب لأي استفسار."}
@@ -1967,8 +2324,11 @@ function TrackingModal({
 
           <section className="cx-track__lines">
             <header className="cx-track__sub">
-              <h3>محتويات الطلب</h3>
-              <span className="mono-num">{displayOrder.lines.length} أطباق</span>
+              <h3>{tx("محتويات الطلب")}</h3>
+              <span className="mono-num">
+                {displayOrder.lines.length}
+                {tx("أطباق")}
+              </span>
             </header>
             {displayOrder.lines.map((line) => {
               const lineTotal =
@@ -1982,17 +2342,19 @@ function TrackingModal({
                     <b className="mono-num">{line.qty}</b>
                   </span>
                   <span className="cx-track__mid">
-                    <strong>{line.item.name}</strong>
+                    <strong>
+                      {language === "en"
+                        ? line.item.en || line.item.name
+                        : line.item.name}
+                    </strong>
                     <small>
                       {line.options.length
                         ? line.options.map((o) => o.name).join(" · ")
-                        : "بدون إضافات"}
+                        : tx("بدون إضافات")}
                       {line.note ? ` — ${line.note}` : ""}
                     </small>
                   </span>
-                  <b className="cx-track__amt mono-num">
-                    {fmtSyp(lineTotal)}
-                  </b>
+                  <b className="cx-track__amt mono-num">{fmtSyp(lineTotal)}</b>
                 </div>
               );
             })}
@@ -2003,7 +2365,7 @@ function TrackingModal({
           {trackingMessage && (
             <span className="cx-track__live">
               <i aria-hidden="true" />
-              {trackingMessage}
+              {tx(trackingMessage)}
             </span>
           )}
           <button
@@ -2012,7 +2374,7 @@ function TrackingModal({
             onClick={() => onWhatsApp(displayOrder)}
           >
             <MessageCircle size={19} aria-hidden="true" />
-            تواصل مع المطعم عبر واتساب
+            {tx("تواصل مع المطعم عبر واتساب")}
           </button>
         </footer>
       </section>
@@ -2020,4 +2382,11 @@ function TrackingModal({
   );
 }
 
-export { MenuView, ItemModal, CartDrawer, CheckoutModal, OrdersView, TrackingModal };
+export {
+  MenuView,
+  ItemModal,
+  CartDrawer,
+  CheckoutModal,
+  OrdersView,
+  TrackingModal,
+};
