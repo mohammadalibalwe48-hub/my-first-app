@@ -108,3 +108,26 @@ Geofencing remains unconfigured for both demo restaurants. Dine-in requires a va
 - `/platform` and `/platform/assets` — platform administration.
 
 Legacy `?restaurant=<slug>` links redirect to the restaurant storefront. Vercel's SPA rewrite is configured in `vercel.json`.
+
+
+### Staff device notifications
+
+New orders create a transactional `order_push_jobs` record. The `order-push` Edge Function sends encrypted Web Push using VAPID; `pg_net` starts delivery immediately and `pg_cron` retries pending jobs each minute, for up to 24 hours. Queue records are removed after two days. Successful devices are recorded separately, expired subscriptions are deleted, and active restaurant membership is rechecked at delivery. Push payloads include only the order number and staff route, not customer details.
+
+On every staff device, open the restaurant workspace, choose **Enable device notifications**, allow the browser permission, and choose **Test notification**. This registers the current restaurant only. On iPhone/iPad (iOS/iPadOS 16.4+), first add the site to the Home Screen and open that installed app. Lock-screen sound follows operating-system notification and Focus settings. In-page audio requires **Enable sound** once per browser session. Signing out removes this account's device subscriptions and unsubscribes the browser.
+
+Deployment: apply both push migrations, deploy `supabase/functions/order-push` with JWT gateway verification disabled (the handler verifies its dispatcher secret or the test sender's user JWT), and provision `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, and `ORDER_PUSH_DISPATCH_SECRET` as Edge secrets. Store the same dispatcher secret in Vault as `order_push_dispatch_secret`. The public key in `src/pushConfig.ts` must match; private keys and dispatcher secrets must never enter the repository. For another Supabase project or domain, update the fixed dispatcher URL, CORS origin and VAPID subject before deployment. Production secrets are already provisioned for this project.
+
+Validation:
+
+```sh
+python scripts/test_database.py
+npx --yes deno check --node-modules-dir=none supabase/functions/order-push/index.ts
+npx --yes deno run --node-modules-dir=none --allow-env --allow-read scripts/test_web_push.ts
+npm run build
+# With npm run preview -- --port 4174 running:
+python scripts/smoke_order_alerts.py
+python scripts/smoke_workflows.py
+```
+
+The disposable PostgreSQL runner tests subscription isolation, endpoint restrictions, active-member delivery, transactional enqueueing, and job leases. Hosted `pg_net`/`pg_cron` infrastructure is checked separately on Supabase. Browser tests exercise actual audio and the service worker's notification handler with mocked order APIs. The dispatcher test checks actual payload encryption/decryption and VAPID signatures against a local simulated push provider. Real phone delivery still needs the device's notification permission and a successful device test; browser restrictions and OS settings cannot be bypassed by the application.

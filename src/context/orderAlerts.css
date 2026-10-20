@@ -1,0 +1,39 @@
+.order-alerts {
+  max-width: 1440px;
+  margin: 12px auto;
+  padding: 12px 20px;
+  border: 1px solid var(--line, #dce5e2);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  color: var(--ink, #173b34);
+}
+.order-alerts__buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.order-alerts small {
+  display: block;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+.order-alerts p {
+  margin: 6px 0 0;
+  min-height: 1.4em;
+  font-size: 0.85rem;
+}
+.order-alerts svg {
+  width: 16px;
+  height: 16px;
+}
+@media (max-width: 600px) {
+  .order-alerts {
+    margin: 8px;
+    padding: 12px;
+  }
+  .order-alerts__buttons strong {
+    width: 100%;
+  }
+}

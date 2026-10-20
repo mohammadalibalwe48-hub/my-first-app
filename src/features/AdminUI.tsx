@@ -55,8 +55,6 @@ import {
   Users,
   Utensils,
   UtensilsCrossed,
-  Volume2,
-  VolumeX,
   Wallet,
   X,
   type LucideIcon,
@@ -423,17 +421,10 @@ function AdminView({
   );
   const [orderQuery, setOrderQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(
-    () => localStorage.getItem("sufra-order-sound") !== "off",
-  );
-  const [operationState, setOperationState] = useState<OperationsState | null>(
-    null,
-  );
   const [onboarding, setOnboarding] = useState<OnboardingState>(() =>
     loadOnboarding(restaurant.id),
   );
   const onboardingStorageKey = onboardingKey(restaurant.id);
-  const previousOrderCount = useRef(orders.length);
 
   useEffect(() => {
     setOnboarding(loadOnboarding(restaurant.id));
@@ -454,59 +445,6 @@ function AdminView({
   const onboardingProgress = FIRST_RUN_STEPS.filter((step) =>
     onboarding.completed.includes(step.id),
   ).length;
-
-  useEffect(
-    () =>
-      localStorage.setItem("sufra-order-sound", soundEnabled ? "on" : "off"),
-    [soundEnabled],
-  );
-
-  useEffect(() => {
-    setOperationState(
-      readStored<OperationsState | null>(
-        `sufra-operations-${restaurant.id}`,
-        null,
-      ),
-    );
-  }, [restaurant.id]);
-
-  useEffect(() => {
-    if (orders.length > previousOrderCount.current) {
-      const newest = orders[0];
-      if (newest && operationState?.notifications && "Notification" in window) {
-        if (Notification.permission === "granted") {
-          new Notification("طلب جديد", {
-            body: `${newest.id} · ${formatSyp(newest.total)}`,
-          });
-        }
-      }
-      if (newest && operationState?.sound) {
-        const AudioContextClass =
-          window.AudioContext ||
-          (
-            window as typeof window & {
-              webkitAudioContext?: typeof AudioContext;
-            }
-          ).webkitAudioContext;
-        if (AudioContextClass) {
-          const context = new AudioContextClass();
-          const oscillator = context.createOscillator();
-          const gain = context.createGain();
-          oscillator.frequency.value = 760;
-          gain.gain.setValueAtTime(0.08, context.currentTime);
-          gain.gain.exponentialRampToValueAtTime(
-            0.001,
-            context.currentTime + 0.35,
-          );
-          oscillator.connect(gain);
-          gain.connect(context.destination);
-          oscillator.start();
-          oscillator.stop(context.currentTime + 0.35);
-        }
-      }
-    }
-    previousOrderCount.current = orders.length;
-  }, [orders, operationState]);
 
   const membership = memberships.find(
     (entry) => entry.restaurantSlug === restaurant.id,
@@ -788,17 +726,7 @@ function AdminView({
                   </select>
                 </label>
 
-                <button
-                  className="adm-btn adm-btn--soft adm-btn--sm"
-                  onClick={() => setSoundEnabled((value) => !value)}
-                >
-                  {soundEnabled ? (
-                    <Volume2 aria-hidden="true" />
-                  ) : (
-                    <VolumeX aria-hidden="true" />
-                  )}
-                  {soundEnabled ? "التنبيهات مفعلة" : "التنبيهات متوقفة"}
-                </button>
+
               </div>
 
               <div className="adm-kb">
@@ -3537,56 +3465,7 @@ function OperationsPanel({
               </label>
             </div>
 
-            <div className="adm-togglecard">
-              <span className="adm-toggle__lbl">
-                <strong>إشعارات المتصفح</strong>
-                <small>إظهار إشعار عند وصول طلب</small>
-              </span>
-              <label className="adm-toggle">
-                <input
-                  type="checkbox"
-                  checked={state.notifications}
-                  onChange={async (event) => {
-                    const enabled = event.target.checked;
-                    if (enabled && "Notification" in window) {
-                      const permission = await Notification.requestPermission();
-                      if (permission !== "granted") {
-                        void update(
-                          { notifications: false },
-                          "رفض إذن إشعارات المتصفح",
-                        );
-                        return;
-                      }
-                    }
-                    await update(
-                      { notifications: enabled },
-                      "تغيير إعداد إشعارات المتصفح",
-                    );
-                  }}
-                />
-                <span className="adm-toggle__track" aria-hidden="true" />
-              </label>
-            </div>
-
-            <div className="adm-togglecard">
-              <span className="adm-toggle__lbl">
-                <strong>التنبيه الصوتي</strong>
-                <small>صوت عند وصول طلب جديد</small>
-              </span>
-              <label className="adm-toggle">
-                <input
-                  type="checkbox"
-                  checked={state.sound}
-                  onChange={(event) =>
-                    void update(
-                      { sound: event.target.checked },
-                      "تغيير إعداد صوت الطلبات",
-                    )
-                  }
-                />
-                <span className="adm-toggle__track" aria-hidden="true" />
-              </label>
-            </div>
+            <p>إشعارات الجهاز والصوت تُفعّل من شريط «تنبيهات الطلبات» أعلى الصفحة. الإعداد خاص بكل جهاز، ويشمل شاشة المطبخ والكاشير.</p>
           </div>
         </section>
 

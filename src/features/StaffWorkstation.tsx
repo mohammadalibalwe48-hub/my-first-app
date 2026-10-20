@@ -1,20 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Bell,
-  BellOff,
   ChefHat,
   Check,
   Clock,
   Search,
-  Volume2,
-  VolumeX,
   Wallet,
 } from "lucide-react";
 import { useUI } from "../context/UI";
 import {
   formatSyp,
-  readStored,
-  writeStored,
   type Item,
   type Order,
   type StaffRole,
@@ -46,116 +40,10 @@ export default function StaffWorkstation({
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [sound, setSound] = useState(false);
-  const [notifying, setNotifying] = useState(
-    typeof Notification !== "undefined" &&
-      Notification.permission === "granted",
-  );
-  const audio = useRef<AudioContext | null>(null);
-  const known = useRef<Set<string> | null>(null);
-  const soundKey = `syrianqr-alerts-${restaurantId}`;
-  useEffect(() => {
-    setSound(false);
-    known.current = null;
-    if (readStored(soundKey, false))
-      setMessage(
-        t(
-          "اضغط زر الصوت لتفعيل التنبيهات في هذه الجلسة",
-          "Enable sound for alerts in this session",
-        ),
-      );
-  }, [soundKey]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(
-    () => () => {
-      void audio.current?.close();
-    },
-    [],
-  );
-  useEffect(() => {
-    const fresh = known.current
-      ? orders.filter(
-          (o) => !known.current!.has(o.id) && o.status === "received",
-        )
-      : [];
-    known.current = new Set(orders.map((o) => o.id));
-    if (!fresh.length) return;
-    setMessage(
-      t(
-        `وصل ${fresh.length} طلب جديد`,
-        `${fresh.length} new order(s) received`,
-      ),
-    );
-    if (sound && audio.current?.state === "running") {
-      const oscillator = audio.current.createOscillator(),
-        gain = audio.current.createGain();
-      oscillator.connect(gain);
-      gain.connect(audio.current.destination);
-      oscillator.frequency.value = 760;
-      gain.gain.setValueAtTime(0.08, audio.current.currentTime);
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        audio.current.currentTime + 0.4,
-      );
-      oscillator.start();
-      oscillator.stop(audio.current.currentTime + 0.4);
-      oscillator.onended = () => {
-        oscillator.disconnect();
-        gain.disconnect();
-      };
-    }
-    if (
-      notifying &&
-      typeof Notification !== "undefined" &&
-      Notification.permission === "granted"
-    )
-      new Notification(t("طلب جديد", "New order"), {
-        body: `${fresh[0].id} · ${fresh.length}`,
-        tag: `orders-${restaurantId}`,
-      });
-  }, [orders, sound, notifying, restaurantId, en]);
-  const enableSound = async () => {
-    try {
-      if (!audio.current) audio.current = new AudioContext();
-      await audio.current.resume();
-    } catch {
-      setMessage(
-        t(
-          "تعذر تفعيل الصوت في هذا المتصفح",
-          "Sound is unavailable in this browser",
-        ),
-      );
-      return;
-    }
-    setSound((current) => {
-      writeStored(soundKey, !current);
-      return !current;
-    });
-  };
-  const enableNotifications = async () => {
-    if (typeof Notification === "undefined") {
-      setMessage(
-        t("المتصفح لا يدعم التنبيهات", "Browser notifications are unavailable"),
-      );
-      return;
-    }
-    if (notifying) {
-      setNotifying(false);
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    setNotifying(permission === "granted");
-    if (permission !== "granted")
-      setMessage(
-        t(
-          "اسمح بالتنبيهات من إعدادات المتصفح",
-          "Allow notifications in browser settings",
-        ),
-      );
-  };
   const patch = async (order: Order, values: Partial<Order>) => {
     setBusy(order.id);
     try {
@@ -241,17 +129,7 @@ export default function StaffWorkstation({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <button onClick={() => void enableSound()} aria-pressed={sound}>
-          {sound ? <Volume2 /> : <VolumeX />}
-          {t("الصوت", "Sound")}
-        </button>
-        <button
-          onClick={() => void enableNotifications()}
-          aria-pressed={notifying}
-        >
-          {notifying ? <Bell /> : <BellOff />}
-          {t("التنبيهات", "Notifications")}
-        </button>
+
       </div>
       <p role="status" aria-live="polite">
         {message}

@@ -18,6 +18,7 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { useRestaurant } from "../../hooks/useRestaurant";
 import { AdminView } from "../../features/AdminUI";
+import { OrderAlertsProvider, OrderAlertsPanel } from "../../context/OrderAlerts";
 import StaffWorkstation from "../../features/StaffWorkstation";
 import { allowedWorkspaceTabs } from "../../staffPermissions";
 import { invalidateRestaurantCache } from "../../hooks/useRestaurant";
@@ -97,8 +98,12 @@ export default function AdminWorkspacePage() {
     let active = true;
     setOrdersReady(false);
     let loading = false;
+    let reloadRequested = false;
     const loadAdminOrders = async () => {
-      if (loading) return;
+      if (loading) {
+        reloadRequested = true;
+        return;
+      }
       loading = true;
       const { data, error } = await supabase
         .from("orders")
@@ -109,6 +114,10 @@ export default function AdminWorkspacePage() {
         .order("created_at", { ascending: false })
         .limit(250);
       loading = false;
+      if (active && reloadRequested) {
+        reloadRequested = false;
+        void loadAdminOrders();
+      }
       if (!active) return;
       if (error) {
         window.alert(`تعذر تحميل طلبات المطعم: ${error.message}`);
@@ -220,7 +229,7 @@ export default function AdminWorkspacePage() {
       .subscribe();
 
     const refresh = () => {
-      if (document.visibilityState === "visible") void loadAdminOrders();
+      void loadAdminOrders();
     };
     const timer = window.setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);
@@ -400,143 +409,151 @@ export default function AdminWorkspacePage() {
     navigate(t === "overview" ? `/admin/${slug}` : `/admin/${slug}/${t}`);
 
   return (
-    <div
-      className="app-root adm-root"
-      dir={dir}
-      style={cafeThemeVars(slug) as CSSProperties}
+    <OrderAlertsProvider
+      key={restaurantDatabaseId}
+      restaurantId={restaurantDatabaseId}
+      orders={orders}
+      ready={ordersReady}
     >
-      <header className="adm-bar">
-        <div className="adm-bar__in">
-          <button
-            type="button"
-            className="adm-bar__brand"
-            onClick={() => navigate("/")}
-            aria-label="الرجوع إلى الموقع العام"
-          >
-            <span className="adm-bar__seal">
-              <Utensils aria-hidden="true" />
-            </span>
-            <span className="adm-bar__word">
-              SYRIAN QR
-              <small>غرفة عمليات المطاعم</small>
-            </span>
-          </button>
-          <span className="adm-bar__sep" aria-hidden="true" />
-          <nav className="adm-bar__quick" aria-label="روابط سريعة">
-            {platformAdmin && (
+      <div
+        className="app-root adm-root"
+        dir={dir}
+        style={cafeThemeVars(slug) as CSSProperties}
+      >
+        <header className="adm-bar">
+          <div className="adm-bar__in">
+            <button
+              type="button"
+              className="adm-bar__brand"
+              onClick={() => navigate("/")}
+              aria-label="الرجوع إلى الموقع العام"
+            >
+              <span className="adm-bar__seal">
+                <Utensils aria-hidden="true" />
+              </span>
+              <span className="adm-bar__word">
+                SYRIAN QR
+                <small>غرفة عمليات المطاعم</small>
+              </span>
+            </button>
+            <span className="adm-bar__sep" aria-hidden="true" />
+            <nav className="adm-bar__quick" aria-label="روابط سريعة">
+              {platformAdmin && (
+                <button
+                  type="button"
+                  className="adm-bar__link"
+                  onClick={() => navigate("/platform")}
+                >
+                  <LayoutDashboard aria-hidden="true" />
+                  <span className="adm-linklabel">لوحة المنصة</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="adm-bar__link"
-                onClick={() => navigate("/platform")}
+                onClick={() => navigate("/")}
               >
-                <LayoutDashboard aria-hidden="true" />
-                <span className="adm-linklabel">لوحة المنصة</span>
+                <Home aria-hidden="true" />
+                <span className="adm-linklabel">الرئيسية</span>
               </button>
-            )}
-            <button
-              type="button"
-              className="adm-bar__link"
-              onClick={() => navigate("/")}
-            >
-              <Home aria-hidden="true" />
-              <span className="adm-linklabel">الرئيسية</span>
-            </button>
-            <button
-              type="button"
-              className="adm-bar__link"
-              onClick={() => navigate(`/c/${slug}`)}
-            >
-              <Store aria-hidden="true" />
-              <span className="adm-linklabel">عرض المتجر</span>
-              <ExternalLink
-                aria-hidden="true"
-                style={{ width: 13, height: 13 }}
-              />
-            </button>
-          </nav>
-          <span className="adm-bar__spacer" aria-hidden="true" />
-          <button
-            type="button"
-            className="adm-bar__signout"
-            onClick={() => void signOut()}
-          >
-            <LogOut aria-hidden="true" />
-            <span className="adm-linklabel">تسجيل الخروج</span>
-          </button>
-        </div>
-      </header>
-      {tab === "kitchen" || tab === "cashier" ? (
-        <>
-          <nav className="wf-nav" aria-label="Workspace">
-            {allowed.map((entry) => (
               <button
-                key={entry}
-                aria-current={tab === entry ? "page" : undefined}
-                onClick={() => goTab(entry)}
+                type="button"
+                className="adm-bar__link"
+                onClick={() => navigate(`/c/${slug}`)}
               >
-                {language === "en"
-                  ? entry
-                  : {
-                      overview: "نظرة عامة",
-                      orders: "الطلبات",
-                      kitchen: "المطبخ",
-                      cashier: "الكاشير",
-                      menu: "القائمة",
-                      tables: "الطاولات",
-                      reports: "التقارير",
-                      operations: "الفريق والتشغيل",
-                      design: "التصميم",
-                      settings: "الإعدادات",
-                    }[entry]}
+                <Store aria-hidden="true" />
+                <span className="adm-linklabel">عرض المتجر</span>
+                <ExternalLink
+                  aria-hidden="true"
+                  style={{ width: 13, height: 13 }}
+                />
               </button>
-            ))}
-          </nav>
-          {!ordersReady ? (
-            <p role="status">جارٍ تحميل الطلبات…</p>
-          ) : (
-            <StaffWorkstation
-              view={tab}
-              orders={orders}
-              role={membership.role}
-              items={data.menuItems}
-              restaurantId={restaurantDatabaseId}
-              onPatch={persistOrderPatch}
-              onStock={(id, available) => {
-                setItems((current) =>
-                  current.map((item) =>
-                    item.id === id ? { ...item, available } : item,
-                  ),
-                );
-                invalidateRestaurantCache(slug);
-                data.retryLoad();
-              }}
-            />
-          )}
-        </>
-      ) : (
-        <AdminView
-          restaurant={restaurantForView}
-          settings={settings}
-          categories={categories}
-          tab={tab}
-          setTab={goTab}
-          orders={orders}
-          restaurantDatabaseId={restaurantDatabaseId}
-          onStatus={updateOrderStatus}
-          onWhatsApp={(o) => void openWhatsApp(o)}
-          onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
-          onSwitch={(id) => navigate(`/admin/${id}`)}
-          memberships={memberships}
-          staffEmail={staffEmail}
-          onSignOut={async () => {
-            await signOut();
-            navigate("/");
-          }}
-          onItemsChange={setItems}
-          onCategoriesChange={setCategories}
-          onSettingsChange={onSettingsChange}
-        />
-      )}
-    </div>
+            </nav>
+            <span className="adm-bar__spacer" aria-hidden="true" />
+            <button
+              type="button"
+              className="adm-bar__signout"
+              onClick={() => void signOut()}
+            >
+              <LogOut aria-hidden="true" />
+              <span className="adm-linklabel">تسجيل الخروج</span>
+            </button>
+          </div>
+        </header>
+        <OrderAlertsPanel />
+        {tab === "kitchen" || tab === "cashier" ? (
+          <>
+            <nav className="wf-nav" aria-label="Workspace">
+              {allowed.map((entry) => (
+                <button
+                  key={entry}
+                  aria-current={tab === entry ? "page" : undefined}
+                  onClick={() => goTab(entry)}
+                >
+                  {language === "en"
+                    ? entry
+                    : {
+                        overview: "نظرة عامة",
+                        orders: "الطلبات",
+                        kitchen: "المطبخ",
+                        cashier: "الكاشير",
+                        menu: "القائمة",
+                        tables: "الطاولات",
+                        reports: "التقارير",
+                        operations: "الفريق والتشغيل",
+                        design: "التصميم",
+                        settings: "الإعدادات",
+                      }[entry]}
+                </button>
+              ))}
+            </nav>
+            {!ordersReady ? (
+              <p role="status">جارٍ تحميل الطلبات…</p>
+            ) : (
+              <StaffWorkstation
+                view={tab}
+                orders={orders}
+                role={membership.role}
+                items={data.menuItems}
+                restaurantId={restaurantDatabaseId}
+                onPatch={persistOrderPatch}
+                onStock={(id, available) => {
+                  setItems((current) =>
+                    current.map((item) =>
+                      item.id === id ? { ...item, available } : item,
+                    ),
+                  );
+                  invalidateRestaurantCache(slug);
+                  data.retryLoad();
+                }}
+              />
+            )}
+          </>
+        ) : (
+          <AdminView
+            restaurant={restaurantForView}
+            settings={settings}
+            categories={categories}
+            tab={tab}
+            setTab={goTab}
+            orders={orders}
+            restaurantDatabaseId={restaurantDatabaseId}
+            onStatus={updateOrderStatus}
+            onWhatsApp={(o) => void openWhatsApp(o)}
+            onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
+            onSwitch={(id) => navigate(`/admin/${id}`)}
+            memberships={memberships}
+            staffEmail={staffEmail}
+            onSignOut={async () => {
+              await signOut();
+              navigate("/");
+            }}
+            onItemsChange={setItems}
+            onCategoriesChange={setCategories}
+            onSettingsChange={onSettingsChange}
+          />
+        )}
+      </div>
+    </OrderAlertsProvider>
   );
 }

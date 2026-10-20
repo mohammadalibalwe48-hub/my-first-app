@@ -1,3 +1,4 @@
+import { disablePush } from "../orderPush";
 import {
   createContext,
   useContext,
@@ -113,7 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      // Refreshing a token must not tear down the live desk and its unlocked audio.
+      if (event === "TOKEN_REFRESHED") return;
       setAuthReady(false);
       window.setTimeout(() => void loadIdentity(), 0);
     });
@@ -125,6 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Remove this account's subscriptions before revoking its authenticated session.
+    await disablePush();
     await supabase.auth.signOut();
     setStaffEmail("");
     setPlatformAdmin(false);
