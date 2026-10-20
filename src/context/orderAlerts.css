@@ -1,39 +1,59 @@
 .order-alerts {
-  max-width: 1440px;
-  margin: 12px auto;
-  padding: 12px 20px;
-  border: 1px solid var(--line, #dce5e2);
-  border-radius: 12px;
-  background: var(--surface, #fff);
-  color: var(--ink, #173b34);
+  width: 100%;
+  min-width: 0;
+  padding: 14px 18px;
+  border: 1px solid #e4e2d8;
+  border-radius: 16px;
+  background: #fffefa;
+  color: #20352b;
 }
 .order-alerts__buttons {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+}
+.order-alerts__buttons > strong {
+  margin-inline-end: auto;
+  font-size: 0.85rem;
+}
+.order-alerts__help {
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: #656e63;
+}
+.order-alerts__help summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 3px 0;
 }
 .order-alerts small {
   display: block;
-  line-height: 1.6;
-  opacity: 0.8;
+  line-height: 1.7;
+  margin-top: 6px;
 }
 .order-alerts p {
-  margin: 6px 0 0;
-  min-height: 1.4em;
+  margin: 8px 0 0;
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.order-alerts p:empty {
+  display: none;
 }
 .order-alerts svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
-@media (max-width: 600px) {
+@media (max-width: 620px) {
   .order-alerts {
-    margin: 8px;
     padding: 12px;
   }
-  .order-alerts__buttons strong {
-    width: 100%;
+  .order-alerts__buttons > strong {
+    flex-basis: 100%;
+    margin-bottom: 3px;
+  }
+  .order-alerts__buttons .adm-btn {
+    flex: 1 1 auto;
   }
 }

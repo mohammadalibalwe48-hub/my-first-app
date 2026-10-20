@@ -2,6 +2,7 @@ import "./admin.css";
 import "./dialogs.css";
 import "./onboarding.css";
 import "./admin-redesign.css";
+import "./workflows.css";
 import {
   lazy,
   Suspense,
@@ -63,6 +64,9 @@ import {
 } from "lucide-react";
 import { GeolocationError, getPrecisePosition } from "../geolocation";
 import QRCode from "qrcode";
+import { PageHead, AdminEmpty } from "./AdminPrimitives";
+import { OrderAlertsPanel } from "../context/OrderAlerts";
+import { allowedWorkspaceTabs } from "../staffPermissions";
 import { supabase } from "../supabase";
 import {
   cafePath,
@@ -176,54 +180,6 @@ function PayChip({ status }: { status: Order["paymentStatus"] }) {
 
 function monogram(restaurant: Restaurant) {
   return restaurant.logo || restaurant.name.slice(0, 1);
-}
-
-function PageHead({
-  kicker,
-  title,
-  lede,
-  actions,
-}: {
-  kicker: string;
-  title: string;
-  lede?: string;
-  actions?: ReactNode;
-}) {
-  return (
-    <header className="adm-hdr">
-      <div className="adm-hdr__t">
-        <span className="adm-kicker">{kicker}</span>
-        <h2 className="adm-title">{title}</h2>
-        {lede ? <p className="adm-lede">{lede}</p> : null}
-      </div>
-      {actions ? <div className="adm-actions">{actions}</div> : null}
-    </header>
-  );
-}
-
-function AdminEmpty({
-  icon: Icon,
-  title,
-  copy,
-  children,
-  tone,
-}: {
-  icon: LucideIcon;
-  title: string;
-  copy?: string;
-  children?: ReactNode;
-  tone?: "dark";
-}) {
-  return (
-    <div className={`adm-empty${tone ? " adm-empty--dark" : ""}`}>
-      <span className="adm-empty__ico">
-        <Icon aria-hidden="true" />
-      </span>
-      <h3>{title}</h3>
-      {copy ? <p className="adm-empty__copy">{copy}</p> : null}
-      {children}
-    </div>
-  );
 }
 
 function AdminAlert({
@@ -398,7 +354,9 @@ function AdminView({
   onItemsChange,
   onCategoriesChange,
   onSettingsChange,
+  workstation,
 }: {
+  workstation?: ReactNode;
   restaurant: Restaurant;
   settings: RestaurantSettings;
   categories: MenuCategory[];
@@ -451,6 +409,30 @@ function AdminView({
   const membership = memberships.find(
     (entry) => entry.restaurantSlug === restaurant.id,
   );
+  const rail = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const revealActiveTab = () => {
+      const nav = rail.current;
+      if (!nav || window.innerWidth > 900) return;
+      const active = nav.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active) return;
+      const bounds = nav.getBoundingClientRect();
+      const item = active.getBoundingClientRect();
+      const shift = item.left < bounds.left ? item.left - bounds.left - 12 : item.right > bounds.right ? item.right - bounds.right + 12 : 0;
+      if (shift) nav.scrollBy({ left: shift });
+    };
+    // The UI provider applies document direction after mount; measure after layout too.
+    const frame = window.requestAnimationFrame(revealActiveTab);
+    const observer = new ResizeObserver(revealActiveTab);
+    if (rail.current?.firstElementChild) observer.observe(rail.current.firstElementChild);
+    window.addEventListener("resize", revealActiveTab);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", revealActiveTab);
+    };
+  }, [tab]);
+  const allowedTabs = allowedWorkspaceTabs(membership?.role ?? "kitchen");
   const canDesign =
     membership?.role === "owner" || membership?.role === "manager";
   const activeOrdersCount = orders.filter(
@@ -584,9 +566,9 @@ function AdminView({
       </header>
 
       {/* ---- Section rail ---- */}
-      <nav className="adm-nav" aria-label="فهرس مساحة العمل">
+      <nav ref={rail} className="adm-nav" aria-label="فهرس مساحة العمل">
         <div className="adm-nav__in">
-          {TAB_ITEMS.map((item) => {
+          {TAB_ITEMS.filter((item) => allowedTabs.includes(item.id)).map((item) => {
             const Icon = item.icon;
             const count = activeCountFor(item.id);
             return (
@@ -611,6 +593,8 @@ function AdminView({
       {/* ---- Content ---- */}
       <main className="adm-body">
         <div className="adm-body__in">
+          <OrderAlertsPanel />
+          {(tab === "kitchen" || tab === "cashier") && workstation}
           {tab === "overview" && (
             <>
               {onboarding.dismissed ? (
@@ -4339,6 +4323,20 @@ function SettingsPanel({
       title: "ساعات العمل",
       body: (
         <div>
+          <section className="wf-schedule adm-hours-policy">
+            <label className="adm-checkrow">
+              <input
+                type="checkbox"
+                checked={draft.enforceHours ?? false}
+                onChange={(e) => field("enforceHours", e.target.checked)}
+              />
+              <span>إيقاف الطلبات تلقائياً خارج أوقات الدوام</span>
+            </label>
+            <p>
+              المنطقة الزمنية: {draft.timezone ?? "Asia/Damascus"}. تُدعم ورديات
+              العمل التي تمتد بعد منتصف الليل.
+            </p>
+          </section>
           {draft.hours.map((hour, index) => (
             <div className="adm-hoursrow" key={hour.day}>
               <label className="adm-hoursrow__day">
@@ -4353,6 +4351,7 @@ function SettingsPanel({
               </label>
               <input
                 type="time"
+                aria-label={`${hour.day} وقت الفتح`}
                 disabled={!hour.enabled}
                 value={hour.open}
                 onChange={(event) =>
@@ -4364,6 +4363,7 @@ function SettingsPanel({
               </span>
               <input
                 type="time"
+                aria-label={`${hour.day} وقت الإغلاق`}
                 disabled={!hour.enabled}
                 value={hour.close}
                 onChange={(event) =>
@@ -4527,20 +4527,6 @@ function SettingsPanel({
           {saveError}
         </p>
       )}
-      <section className="wf-schedule">
-        <label className="adm-checkrow">
-          <input
-            type="checkbox"
-            checked={draft.enforceHours ?? false}
-            onChange={(e) => field("enforceHours", e.target.checked)}
-          />
-          <span>إيقاف الطلبات تلقائياً خارج أوقات الدوام</span>
-        </label>
-        <p>
-          المنطقة الزمنية: {draft.timezone ?? "Asia/Damascus"}. تُدعم ورديات
-          العمل التي تمتد بعد منتصف الليل.
-        </p>
-      </section>
       <PageHead
         kicker="إعداد المطعم"
         title="الهوية والتشغيل والدفع والتوصيل"

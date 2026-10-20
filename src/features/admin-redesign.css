@@ -229,3 +229,47 @@ html[dir="rtl"] .adm.adm--workspace .adm-mast {
 }
 
 @media (prefers-reduced-motion: reduce) { .adm.adm--workspace .adm-nav__item:hover { transform: none; } }
+
+/* Shared layout corrections: sticky chrome, intrinsic sizing and RTL fields. */
+.adm-root { --adm-bar-height: 56px; }
+.adm.adm--workspace .adm-nav { top: calc(var(--adm-bar-height) + 14px); max-height: calc(100dvh - var(--adm-bar-height) - 28px); }
+.adm.adm--workspace .adm-mast__tools,
+.adm.adm--workspace .adm-mast__id,
+.adm.adm--workspace .adm-body__in,
+.adm.adm--workspace .adm-card,
+.adm.adm--workspace .adm-toolbar,
+.adm.adm--workspace .adm-grid > *,
+.adm.adm--workspace .adm-field { min-width: 0; }
+.adm.adm--workspace .adm-search { min-width: min(200px,100%); }
+.adm.adm--workspace .adm-btn { max-width: 100%; }
+.adm.adm--workspace .adm-setsec { border-color: #e4e2d8; border-radius: 18px; background: #fffefa; }
+.adm.adm--workspace .adm-setsec__icon { background: #e8edda; color: var(--ow-forest); }
+.adm.adm--workspace .adm-switchsel select { text-overflow: ellipsis; padding-inline-end: 36px; }
+.adm.adm--workspace .adm-mast__name { overflow-wrap: anywhere; }
+.adm.adm--workspace .wf-schedule { border: 1px solid #e4e2d8; background: #fffefa; }
+@media (max-width: 900px) {
+ .adm.adm--workspace .adm-nav { top: var(--adm-bar-height); max-height: none; scroll-padding-inline: 12px; }
+ .adm.adm--workspace .adm-nav__item { flex: 0 0 auto; }
+}
+@media (max-width: 640px) {
+ .adm-root input:not([type="checkbox"]):not([type="radio"]),
+ .adm-root select, .adm-root textarea { font-size: 16px; }
+ .adm.adm--workspace .adm-btn--sm, .adm.adm--workspace .adm-iconbtn { min-height: 44px; }
+ .adm.adm--workspace .adm-iconbtn { min-width: 44px; }
+ .adm.adm--workspace .adm-mast__tools { flex-wrap: wrap; }
+ .adm.adm--workspace .adm-hoursrow { flex-wrap: wrap; }
+ .adm.adm--workspace .adm-hoursrow input[type="time"] { flex: 1 1 100px; min-width: 0; }
+ .adm.adm--workspace .adm-hoursrow__day { flex-basis: 100%; }
+}
+@media (max-width: 360px) {
+ .adm-bar__in { gap: 6px; padding-inline: 8px; }
+ .adm-bar__brand { gap: 6px; }
+ .adm-bar__word { font-size: .9rem; }
+ .adm-bar__link, .adm-bar__signout { padding-inline: 9px; }
+ .adm.adm--workspace .adm-whoswitch { grid-template-columns: minmax(0,1fr); }
+}
+@media (min-width: 901px) {
+ /* Fill the sidebar column even when its sticky menu is shorter than the page. */
+ .adm.adm--workspace::before { content: ""; grid-column: 1; grid-row: 2; align-self: stretch; background: linear-gradient(180deg, #183a30, #112d25); }
+ .adm.adm--workspace .adm-nav { box-shadow: none; }
+}
