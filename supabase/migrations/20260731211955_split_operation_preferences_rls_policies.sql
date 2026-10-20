@@ -1,0 +1,4 @@
+drop policy if exists restaurant_operation_preferences_modify on public.restaurant_operation_preferences;
+create policy restaurant_operation_preferences_insert on public.restaurant_operation_preferences for insert to authenticated with check (private.is_restaurant_member(restaurant_id, array['owner','manager']::public.staff_role[]));
+create policy restaurant_operation_preferences_update on public.restaurant_operation_preferences for update to authenticated using (private.is_restaurant_member(restaurant_id, array['owner','manager']::public.staff_role[])) with check (private.is_restaurant_member(restaurant_id, array['owner','manager']::public.staff_role[]));
+create policy restaurant_operation_preferences_delete on public.restaurant_operation_preferences for delete to authenticated using (private.is_restaurant_member(restaurant_id, array['owner','manager']::public.staff_role[]));

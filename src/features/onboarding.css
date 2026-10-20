@@ -161,5 +161,3 @@ html[dir="rtl"] .adm-onboard__intro {
   .adm-onboard__preview { min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { .adm-onboard, .adm-onboard * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
-
-.adm-qrbanner

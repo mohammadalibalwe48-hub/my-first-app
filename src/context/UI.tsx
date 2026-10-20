@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { readStored, writeStored } from "../domain";
 
 type UiContextValue = {
   language: "ar" | "en";
@@ -16,9 +17,12 @@ type UiContextValue = {
 const UiContext = createContext<UiContextValue | null>(null);
 
 export function UIProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [language, setLanguage] = useState<"ar" | "en">(() =>
+    readStored<string>("syrianqr-language", "ar") === "en" ? "en" : "ar",
+  );
 
   useEffect(() => {
+    writeStored("syrianqr-language", language);
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
   }, [language]);

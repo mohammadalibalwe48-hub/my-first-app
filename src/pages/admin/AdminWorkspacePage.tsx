@@ -1,5 +1,10 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import {
   ExternalLink,
   Home,
@@ -13,6 +18,9 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { useRestaurant } from "../../hooks/useRestaurant";
 import { AdminView } from "../../features/AdminUI";
+import StaffWorkstation from "../../features/StaffWorkstation";
+import { allowedWorkspaceTabs } from "../../staffPermissions";
+import { invalidateRestaurantCache } from "../../hooks/useRestaurant";
 import { cafeThemeVars } from "../../cafeTheme";
 import {
   formatSyp,
@@ -29,6 +37,8 @@ import {
 const TABS = [
   "overview",
   "orders",
+  "kitchen",
+  "cashier",
   "menu",
   "tables",
   "reports",
@@ -50,8 +60,9 @@ const DAYS = [
 
 export default function AdminWorkspacePage() {
   const { slug = "" } = useParams<{ slug: string }>();
-  const { authReady, staffEmail, memberships, platformAdmin, signOut } = useAuth();
-  const { dir } = useUI();
+  const { authReady, staffEmail, memberships, platformAdmin, signOut } =
+    useAuth();
+  const { dir, language } = useUI();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -60,6 +71,7 @@ export default function AdminWorkspacePage() {
   const [categories, setCategories] = useState<MenuCategory[]>(data.categories);
   const [settings, setSettings] = useState<RestaurantSettings>(data.settings);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersReady, setOrdersReady] = useState(false);
 
   const membership = memberships.find((m) => m.restaurantSlug === slug);
   const restaurantDatabaseId = membership?.restaurantId ?? "";
@@ -83,7 +95,11 @@ export default function AdminWorkspacePage() {
   useEffect(() => {
     if (!staffEmail || !membership?.restaurantId) return;
     let active = true;
+    setOrdersReady(false);
+    let loading = false;
     const loadAdminOrders = async () => {
+      if (loading) return;
+      loading = true;
       const { data, error } = await supabase
         .from("orders")
         .select(
@@ -92,46 +108,49 @@ export default function AdminWorkspacePage() {
         .eq("restaurant_id", membership.restaurantId)
         .order("created_at", { ascending: false })
         .limit(250);
+      loading = false;
       if (!active) return;
       if (error) {
         window.alert(`تعذر تحميل طلبات المطعم: ${error.message}`);
         return;
       }
-      const rows = ((data ?? []) as unknown as Array<{
-        id: string;
-        restaurant_id: string;
-        order_number: number | string;
-        public_token: string;
-        mode: Mode;
-        status: Order["status"];
-        customer_name: string | null;
-        customer_phone: string | null;
-        delivery_address: string | null;
-        payment_method: string;
-        payment_status: Order["paymentStatus"];
-        payment_reference: string | null;
-        total_syp: number | string;
-        internal_note: string | null;
-        cancellation_reason: string | null;
-        created_at: string;
-        updated_at: string;
-        restaurant_tables: { label_ar: string; table_code: string } | null;
-        order_lines: Array<{
+      const rows = (
+        (data ?? []) as unknown as Array<{
           id: string;
-          menu_item_id: string | null;
-          item_name_ar: string;
-          item_name_en: string;
-          unit_price_syp: number | string;
-          quantity: number;
-          note: string | null;
-          order_line_options: Array<{
+          restaurant_id: string;
+          order_number: number | string;
+          public_token: string;
+          mode: Mode;
+          status: Order["status"];
+          customer_name: string | null;
+          customer_phone: string | null;
+          delivery_address: string | null;
+          payment_method: string;
+          payment_status: Order["paymentStatus"];
+          payment_reference: string | null;
+          total_syp: number | string;
+          internal_note: string | null;
+          cancellation_reason: string | null;
+          created_at: string;
+          updated_at: string;
+          restaurant_tables: { label_ar: string; table_code: string } | null;
+          order_lines: Array<{
             id: string;
-            option_id: string | null;
-            option_name_ar: string;
-            price_delta_syp: number | string;
+            menu_item_id: string | null;
+            item_name_ar: string;
+            item_name_en: string;
+            unit_price_syp: number | string;
+            quantity: number;
+            note: string | null;
+            order_line_options: Array<{
+              id: string;
+              option_id: string | null;
+              option_name_ar: string;
+              price_delta_syp: number | string;
+            }>;
           }>;
-        }>;
-      }>).map((row) => ({
+        }>
+      ).map((row) => ({
         id: String(row.order_number),
         databaseId: row.id,
         restaurantId: slug,
@@ -147,7 +166,12 @@ export default function AdminWorkspacePage() {
             name: line.item_name_ar,
             en: line.item_name_en,
             desc: "",
-            price: Number(line.unit_price_syp),
+            price:
+              Number(line.unit_price_syp) -
+              (line.order_line_options ?? []).reduce(
+                (sum, option) => sum + Number(option.price_delta_syp),
+                0,
+              ),
             category: "",
             tags: [],
             image: images.mezze,
@@ -177,6 +201,7 @@ export default function AdminWorkspacePage() {
         updatedAt: row.updated_at,
       }));
       setOrders(rows);
+      setOrdersReady(true);
     };
 
     void loadAdminOrders();
@@ -194,8 +219,15 @@ export default function AdminWorkspacePage() {
       )
       .subscribe();
 
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadAdminOrders();
+    };
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
     return () => {
       active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
       void supabase.removeChannel(channel);
     };
   }, [staffEmail, membership?.restaurantId, slug]);
@@ -208,7 +240,7 @@ export default function AdminWorkspacePage() {
         order.id === id ? { ...order, ...patch, updatedAt } : order,
       ),
     );
-    if (!existing?.databaseId) return;
+    if (!existing?.databaseId) return false;
     const databasePatch: Record<string, string> = {};
     if (patch.status) databasePatch.status = patch.status;
     if (patch.paymentStatus) databasePatch.payment_status = patch.paymentStatus;
@@ -216,17 +248,27 @@ export default function AdminWorkspacePage() {
       databasePatch.internal_note = patch.internalNote;
     if (patch.cancellationReason !== undefined)
       databasePatch.cancellation_reason = patch.cancellationReason;
-    if (Object.keys(databasePatch).length === 0) return;
-    const { error } = await supabase
-      .from("orders")
-      .update(databasePatch)
-      .eq("id", existing.databaseId);
+    if (Object.keys(databasePatch).length === 0) return false;
+    const { data: saved, error } = await supabase.rpc("staff_update_order", {
+      p_order_id: existing.databaseId,
+      p_patch: databasePatch,
+      p_expected_updated_at: existing.updatedAt,
+    });
     if (error) {
       setOrders((current) =>
         current.map((order) => (order.id === id ? existing : order)),
       );
       window.alert(`تعذر حفظ تحديث الطلب: ${error.message}`);
+      return false;
     }
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === id
+          ? { ...order, updatedAt: String(saved.updatedAt) }
+          : order,
+      ),
+    );
+    return true;
   };
 
   const updateOrderStatus = (
@@ -253,7 +295,9 @@ export default function AdminWorkspacePage() {
       ...order.lines.map(
         (l) =>
           `- ${l.qty}× ${l.item.name}${
-            l.options.length ? ` (${l.options.map((o) => o.name).join(", ")})` : ""
+            l.options.length
+              ? ` (${l.options.map((o) => o.name).join(", ")})`
+              : ""
           }`,
       ),
       `الإجمالي: ${formatSyp(order.total)}`,
@@ -277,9 +321,7 @@ export default function AdminWorkspacePage() {
   };
 
   const onSettingsChange = async (next: RestaurantSettings) => {
-    const previous = settings;
-    setSettings(next);
-    if (!membership) return;
+    if (!membership) throw new Error("Restaurant membership is required");
     const { error } = await supabase.rpc("sync_admin_settings", {
       p_restaurant_id: membership.restaurantId,
       p_payload: {
@@ -296,14 +338,17 @@ export default function AdminWorkspacePage() {
       },
     });
     if (error) {
-      setSettings(previous);
-      window.alert(`تعذر حفظ الإعدادات: ${error.message}`);
+      throw new Error(error.message);
     }
+    setSettings(next);
+    invalidateRestaurantCache(slug);
   };
 
   const restaurantForView: Restaurant = { ...data.restaurant, items };
 
-  const tail = location.pathname.replace(`/admin/${slug}/`, "").replace(/\/$/, "");
+  const tail = location.pathname
+    .replace(`/admin/${slug}/`, "")
+    .replace(/\/$/, "");
   const tab: AdminTab = (TABS as readonly string[]).includes(tail)
     ? (tail as AdminTab)
     : "overview";
@@ -346,6 +391,10 @@ export default function AdminWorkspacePage() {
   if (!membership) {
     return <Navigate to={`/admin/${memberships[0].restaurantSlug}`} replace />;
   }
+
+  const allowed = allowedWorkspaceTabs(membership.role);
+  if (!allowed.includes(tab))
+    return <Navigate to={`/admin/${slug}/${allowed[0]}`} replace />;
 
   const goTab = (t: AdminTab) =>
     navigate(t === "overview" ? `/admin/${slug}` : `/admin/${slug}/${t}`);
@@ -416,28 +465,78 @@ export default function AdminWorkspacePage() {
           </button>
         </div>
       </header>
-      <AdminView
-        restaurant={restaurantForView}
-        settings={settings}
-        categories={categories}
-        tab={tab}
-        setTab={goTab}
-        orders={orders}
-        restaurantDatabaseId={restaurantDatabaseId}
-        onStatus={updateOrderStatus}
-        onWhatsApp={(o) => void openWhatsApp(o)}
-        onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
-        onSwitch={(id) => navigate(`/admin/${id}`)}
-        memberships={memberships}
-        staffEmail={staffEmail}
-        onSignOut={async () => {
-          await signOut();
-          navigate("/");
-        }}
-        onItemsChange={setItems}
-        onCategoriesChange={setCategories}
-        onSettingsChange={onSettingsChange}
-      />
+      {tab === "kitchen" || tab === "cashier" ? (
+        <>
+          <nav className="wf-nav" aria-label="Workspace">
+            {allowed.map((entry) => (
+              <button
+                key={entry}
+                aria-current={tab === entry ? "page" : undefined}
+                onClick={() => goTab(entry)}
+              >
+                {language === "en"
+                  ? entry
+                  : {
+                      overview: "نظرة عامة",
+                      orders: "الطلبات",
+                      kitchen: "المطبخ",
+                      cashier: "الكاشير",
+                      menu: "القائمة",
+                      tables: "الطاولات",
+                      reports: "التقارير",
+                      operations: "الفريق والتشغيل",
+                      design: "التصميم",
+                      settings: "الإعدادات",
+                    }[entry]}
+              </button>
+            ))}
+          </nav>
+          {!ordersReady ? (
+            <p role="status">جارٍ تحميل الطلبات…</p>
+          ) : (
+            <StaffWorkstation
+              view={tab}
+              orders={orders}
+              role={membership.role}
+              items={data.menuItems}
+              restaurantId={restaurantDatabaseId}
+              onPatch={persistOrderPatch}
+              onStock={(id, available) => {
+                setItems((current) =>
+                  current.map((item) =>
+                    item.id === id ? { ...item, available } : item,
+                  ),
+                );
+                invalidateRestaurantCache(slug);
+                data.retryLoad();
+              }}
+            />
+          )}
+        </>
+      ) : (
+        <AdminView
+          restaurant={restaurantForView}
+          settings={settings}
+          categories={categories}
+          tab={tab}
+          setTab={goTab}
+          orders={orders}
+          restaurantDatabaseId={restaurantDatabaseId}
+          onStatus={updateOrderStatus}
+          onWhatsApp={(o) => void openWhatsApp(o)}
+          onOrderChange={(id, patch) => void persistOrderPatch(id, patch)}
+          onSwitch={(id) => navigate(`/admin/${id}`)}
+          memberships={memberships}
+          staffEmail={staffEmail}
+          onSignOut={async () => {
+            await signOut();
+            navigate("/");
+          }}
+          onItemsChange={setItems}
+          onCategoriesChange={setCategories}
+          onSettingsChange={onSettingsChange}
+        />
+      )}
     </div>
   );
 }

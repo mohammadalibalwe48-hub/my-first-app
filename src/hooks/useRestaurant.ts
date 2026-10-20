@@ -46,8 +46,21 @@ export function buildDefaultSettings(base: Restaurant): RestaurantSettings {
     latitude: null,
     longitude: null,
     geofenceMeters: 150,
-    hours: DAYS.map((day) => ({ day, enabled: true, open: "09:00", close: "23:00" })),
-    zones: [{ id: "damascus", name: "دمشق", fee: 15000, minimum: 100000, active: true }],
+    hours: DAYS.map((day) => ({
+      day,
+      enabled: true,
+      open: "09:00",
+      close: "23:00",
+    })),
+    zones: [
+      {
+        id: "damascus",
+        name: "دمشق",
+        fee: 15000,
+        minimum: 100000,
+        active: true,
+      },
+    ],
   };
 }
 
@@ -83,7 +96,11 @@ function seedFromStorage(slug: string): void {
   }
 }
 
-function persistToStorage(slug: string, design: unknown, accent: string | null): void {
+function persistToStorage(
+  slug: string,
+  design: unknown,
+  accent: string | null,
+): void {
   try {
     window.localStorage.setItem(
       storeKey(slug),
@@ -148,9 +165,9 @@ export function useRestaurant(slug: string): RestaurantData {
     accent: string | null;
     design: unknown;
   }>(() => ({
-      accent: accentCache[slug] || null,
-      design: designCache[slug] ?? null,
-    }));
+    accent: accentCache[slug] || null,
+    design: designCache[slug] ?? null,
+  }));
   const [ready, setReady] = useState<boolean>(() => !!menuCache[slug]);
   const [tableContext, setTableContext] =
     useState<PublicMenuPayload["table"]>(null);
@@ -173,7 +190,7 @@ export function useRestaurant(slug: string): RestaurantData {
     let active = true;
     seedFromStorage(slug);
     setTableContext(null);
-    if (menuCache[slug] && !tableToken) {
+    if (menuCache[slug] && !tableToken && reloadNonce === 0) {
       setMenuItems(menuCache[slug]);
       setCategories(categoryCache[slug]);
       setSettings(settingsCache[slug]);
@@ -185,7 +202,7 @@ export function useRestaurant(slug: string): RestaurantData {
       setReady(true);
       return;
     }
-    setReady(false);
+    if (!menuCache[slug]) setReady(false);
     setLoadError(null);
 
     const load = async () => {
@@ -196,98 +213,112 @@ export function useRestaurant(slug: string): RestaurantData {
         });
         if (!active) return;
         if (error || !data) {
-          setReady(false);
+          if (!menuCache[slug]) setReady(false);
           setLoadError("تعذر تحميل قائمة المطعم. تحقق من اتصالك وحاول مجدداً.");
           return;
         }
-      const payload = data as PublicMenuPayload;
-      setTableContext(payload.table);
-      const fetchedAccent = payload.restaurant.accent ?? null;
-      const fetchedDesign =
-        payload.restaurant.design &&
-        typeof payload.restaurant.design === "object"
-          ? payload.restaurant.design
-          : null;
-      accentCache[slug] = fetchedAccent || "";
-      designCache[slug] = fetchedDesign;
-      persistToStorage(slug, fetchedDesign, fetchedAccent);
-      setExtra({ accent: fetchedAccent, design: fetchedDesign });
+        const payload = data as PublicMenuPayload;
+        setTableContext(payload.table);
+        const fetchedAccent = payload.restaurant.accent ?? null;
+        const fetchedDesign =
+          payload.restaurant.design &&
+          typeof payload.restaurant.design === "object"
+            ? payload.restaurant.design
+            : null;
+        accentCache[slug] = fetchedAccent || "";
+        designCache[slug] = fetchedDesign;
+        persistToStorage(slug, fetchedDesign, fetchedAccent);
+        setExtra({ accent: fetchedAccent, design: fetchedDesign });
 
-      const nameByCategory = new Map(
-        payload.categories.map((c) => [c.id, c.nameAr]),
-      );
-      const items: Item[] = payload.items.map((entry) => ({
-        id: entry.id,
-        name: entry.nameAr,
-        en: entry.nameEn,
-        desc: entry.descriptionAr,
-        price: Number(entry.price),
-        category: nameByCategory.get(entry.categoryId) ?? "رئيسية",
-        tags: entry.tags.filter((t): t is Tag =>
-          ["vegetarian", "spicy", "chef"].includes(t),
-        ),
-        image: entry.imageUrl || images.mezze,
-        popular: entry.popular,
-        available: entry.available,
-        options: entry.optionGroups.map((group) => ({
-          id: group.id,
-          name: group.nameAr,
-          required: group.required,
-          options: group.options.map((o) => ({
-            id: o.id,
-            name: o.nameAr,
-            price: Number(o.price),
+        const nameByCategory = new Map(
+          payload.categories.map((c) => [c.id, c.nameAr]),
+        );
+        const items: Item[] = payload.items.map((entry) => ({
+          id: entry.id,
+          name: entry.nameAr,
+          en: entry.nameEn,
+          desc: entry.descriptionAr,
+          descEn: entry.descriptionEn,
+          price: Number(entry.price),
+          category: nameByCategory.get(entry.categoryId) ?? "رئيسية",
+          tags: entry.tags.filter((t): t is Tag =>
+            ["vegetarian", "spicy", "chef"].includes(t),
+          ),
+          image: entry.imageUrl || images.mezze,
+          popular: entry.popular,
+          available: entry.available,
+          availableFrom: entry.availableFrom,
+          availableUntil: entry.availableUntil,
+          preparationMinutes: entry.preparationMinutes,
+          options: entry.optionGroups.map((group) => ({
+            id: group.id,
+            name: group.nameAr,
+            en: group.nameEn,
+            minSelections: group.minSelections,
+            maxSelections: group.maxSelections,
+            required: group.required,
+            options: group.options.map((o) => ({
+              id: o.id,
+              name: o.nameAr,
+              en: o.nameEn,
+              price: Number(o.price),
+            })),
           })),
-        })),
-      }));
-      const cats: MenuCategory[] = payload.categories.map((c) => ({
-        id: c.id,
-        name: c.nameAr,
-        en: c.nameEn,
-        visible: true,
-        archived: false,
-      }));
-      const wallets = payload.wallets;
-      const s: RestaurantSettings = {
-        name: payload.restaurant.nameAr,
-        subtitle: payload.restaurant.subtitleAr,
-        city: payload.restaurant.city,
-        neighborhood: payload.restaurant.neighborhood,
-        phone: payload.restaurant.phone,
-        whatsapp: payload.restaurant.whatsapp,
-        rate: Number(payload.restaurant.exchangeRate),
-        syriatelCash:
-          wallets.find((w) => w.provider === "Syriatel Cash")
-            ?.merchantIdentifier ?? "",
-        shamCash:
-          wallets.find((w) => w.provider.includes("Sham"))?.merchantIdentifier ??
-          "",
-        mtnCash:
-          wallets.find((w) => w.provider === "MTN Cash")?.merchantIdentifier ??
-          "",
-        taxPercent: Number(payload.restaurant.taxPercent),
-        servicePercent: Number(payload.restaurant.servicePercent),
-        dineIn: payload.restaurant.dineIn,
-        takeaway: payload.restaurant.takeaway,
-        delivery: payload.restaurant.delivery,
-        currencyEstimate: payload.restaurant.usdEstimateEnabled,
-        latitude: payload.restaurant.latitude ?? null,
-        longitude: payload.restaurant.longitude ?? null,
-        geofenceMeters: payload.restaurant.geofenceMeters ?? 150,
-        hours: payload.hours.map((h) => ({
-          day: DAYS[h.weekday],
-          enabled: h.enabled,
-          open: h.open.slice(0, 5),
-          close: h.close.slice(0, 5),
-        })),
-        zones: payload.zones.map((z) => ({
-          id: z.id,
-          name: z.nameAr,
-          fee: Number(z.fee),
-          minimum: Number(z.minimum),
-          active: true,
-        })),
-      };
+        }));
+        const cats: MenuCategory[] = payload.categories.map((c) => ({
+          id: c.id,
+          name: c.nameAr,
+          en: c.nameEn,
+          visible: true,
+          archived: false,
+        }));
+        const wallets = payload.wallets;
+        const s: RestaurantSettings = {
+          name: payload.restaurant.nameAr,
+          nameEn: payload.restaurant.nameEn,
+          subtitleEn: payload.restaurant.subtitleEn,
+          subtitle: payload.restaurant.subtitleAr,
+          city: payload.restaurant.city,
+          neighborhood: payload.restaurant.neighborhood,
+          phone: payload.restaurant.phone,
+          whatsapp: payload.restaurant.whatsapp,
+          rate: Number(payload.restaurant.exchangeRate),
+          syriatelCash:
+            wallets.find((w) => w.provider === "Syriatel Cash")
+              ?.merchantIdentifier ?? "",
+          shamCash:
+            wallets.find((w) => w.provider.includes("Sham"))
+              ?.merchantIdentifier ?? "",
+          mtnCash:
+            wallets.find((w) => w.provider === "MTN Cash")
+              ?.merchantIdentifier ?? "",
+          isOpen: payload.restaurant.isOpen ?? true,
+          discountPercent: Number(payload.restaurant.discountPercent ?? 0),
+          enforceHours: payload.restaurant.enforceHours ?? false,
+          timezone: payload.restaurant.timezone ?? "Asia/Damascus",
+          taxPercent: Number(payload.restaurant.taxPercent),
+          servicePercent: Number(payload.restaurant.servicePercent),
+          dineIn: payload.restaurant.dineIn,
+          takeaway: payload.restaurant.takeaway,
+          delivery: payload.restaurant.delivery,
+          currencyEstimate: payload.restaurant.usdEstimateEnabled,
+          latitude: payload.restaurant.latitude ?? null,
+          longitude: payload.restaurant.longitude ?? null,
+          geofenceMeters: payload.restaurant.geofenceMeters ?? 150,
+          hours: payload.hours.map((h) => ({
+            day: DAYS[h.weekday],
+            enabled: h.enabled,
+            open: h.open.slice(0, 5),
+            close: h.close.slice(0, 5),
+          })),
+          zones: payload.zones.map((z) => ({
+            id: z.id,
+            name: z.nameAr,
+            fee: Number(z.fee),
+            minimum: Number(z.minimum),
+            active: true,
+          })),
+        };
 
         menuCache[slug] = items;
         categoryCache[slug] = cats;
@@ -311,6 +342,18 @@ export function useRestaurant(slug: string): RestaurantData {
       active = false;
     };
   }, [slug, reloadNonce, tableToken]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") setReloadNonce((n) => n + 1);
+    };
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [slug]);
 
   const base = useMemo(() => findBase(slug), [slug]);
   const resolvedSettings = settings ?? buildDefaultSettings(base);

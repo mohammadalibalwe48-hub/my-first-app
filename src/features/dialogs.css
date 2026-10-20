@@ -1,0 +1,234 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 24, 29, 0.62);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  overflow-y: auto;
+}
+
+.modal {
+  position: relative;
+  width: min(660px, 100%);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-lg);
+  max-height: min(94dvh, 920px);
+  overflow-y: auto;
+  animation: adm-pop 0.26s var(--ease-out);
+}
+
+.modal--narrow {
+  width: min(460px, 100%);
+}
+
+.modal--wide {
+  width: min(960px, 100%);
+}
+
+@keyframes adm-pop {
+  from { transform: translateY(14px) scale(0.985); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.modal__close {
+  position: absolute;
+  top: 14px;
+  inset-inline-end: 14px;
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.modal__close:hover {
+  background: var(--teal);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.modal__close svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Dialog inner layout */
+.adm-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+.adm-dialog__body {
+  padding: clamp(18px, 2.6vw, 28px);
+}
+
+.adm-dialog__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px clamp(18px, 2.6vw, 28px);
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  flex-wrap: wrap;
+}
+
+.adm-dialog__title {
+  padding-inline-end: 46px;
+}
+
+/* ----------------------------------------------------------------------------
+   Staff auth modal — styled to sit on the teal entry page AND the workspace
+   ------------------------------------------------------------------------- */
+.auth-card {
+  text-align: center;
+}
+
+.auth-card > h2 {
+  font-size: 1.6rem;
+  margin: 10px 0 6px;
+  line-height: 1.25;
+}
+
+.auth-card > p {
+  color: var(--text-3);
+  font-size: 0.9rem;
+  max-width: 380px;
+  margin-inline: auto;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.auth-card > small {
+  display: block;
+  color: var(--text-3);
+  font-size: 0.74rem;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.section-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.74rem;
+  line-height: 1;
+  color: var(--red);
+}
+
+.section-kicker::before {
+  content: "";
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--yellow);
+}
+
+.auth-msg {
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yellow) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--yellow) 34%, transparent);
+  color: var(--ink);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  text-align: start;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: start;
+  min-width: 0;
+}
+
+.form-field > span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.form-field textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--teal-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent);
+}
+
+.link-btn {
+  color: var(--teal-2);
+  font-size: 0.84rem;
+  font-weight: 700;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.link-btn:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.btn--gold {
+  background: var(--yellow);
+  color: var(--ink);
+  border-color: transparent;
+}
+
+.btn--gold:hover:not(:disabled) {
+  background: var(--yellow-2);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--ink);
+}
+
+.btn--outline:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--surface);
+}
+

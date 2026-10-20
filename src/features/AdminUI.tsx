@@ -1,7 +1,10 @@
 import "./admin.css";
+import "./dialogs.css";
 import "./onboarding.css";
 import "./admin-redesign.css";
 import {
+  lazy,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -61,7 +64,6 @@ import {
 import { GeolocationError, getPrecisePosition } from "../geolocation";
 import QRCode from "qrcode";
 import { supabase } from "../supabase";
-import MenuDesignStudio from "./MenuDesignStudio";
 import {
   cafePath,
   formatSyp,
@@ -94,6 +96,8 @@ import {
 /* ============================================================================
    Shared local atoms & helpers (presentation only)
    ========================================================================== */
+
+const MenuDesignStudio = lazy(() => import("./MenuDesignStudio"));
 
 const MODE_ICON: Record<Mode, LucideIcon> = {
   "dine-in": Utensils,
@@ -135,7 +139,9 @@ function StatusChip({
 }) {
   const Icon = STATUS_ICON[status];
   return (
-    <span className={`adm-chip adm-chip--${status}${compact ? " adm-chip--sm" : ""}`}>
+    <span
+      className={`adm-chip adm-chip--${status}${compact ? " adm-chip--sm" : ""}`}
+    >
       <i className="adm-chip__dot" aria-hidden="true" />
       {statusLabels[status]}
       <Icon aria-hidden="true" />
@@ -274,239 +280,11 @@ function AdmDialog({
         aria-labelledby={labelledBy}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button
-          className="modal__close"
-          onClick={onClose}
-          aria-label="إغلاق"
-        >
+        <button className="modal__close" onClick={onClose} aria-label="إغلاق">
           <X aria-hidden="true" />
         </button>
         {children}
         {footer ? <div className="adm-dialog__foot">{footer}</div> : null}
-      </div>
-    </div>
-  );
-}
-
-/* ============================================================================
-   Staff authentication modal — entry-page dependency, presentation only.
-   ========================================================================== */
-function StaffAuthModal({
-  language,
-  onClose,
-  onSuccess,
-}: {
-  language: "ar" | "en";
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const en = language === "en";
-  const ownerEmail = "admin@qrcode-syria.com";
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const finishInitialOwnerOnboarding = async (signedInEmail: string) => {
-    if (signedInEmail.toLowerCase() !== ownerEmail) return true;
-    const { error } = await supabase.rpc("bootstrap_initial_owner");
-    if (!error) return true;
-    if (error.message.includes("already been completed")) return true;
-    setMessage(
-      en
-        ? `Signed in, but the owner membership could not be activated: ${error.message}`
-        : `تم تسجيل الدخول، لكن تعذر تفعيل عضوية المالك: ${error.message}`,
-    );
-    return false;
-  };
-
-  const signIn = async () => {
-    setLoading(true);
-    setMessage("");
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (error) {
-      setLoading(false);
-      setMessage(
-        error.message.toLowerCase().includes("invalid login")
-          ? en
-            ? "The email or password is incorrect."
-            : "البريد الإلكتروني أو كلمة المرور غير صحيحة."
-          : en
-            ? `Could not sign in: ${error.message}`
-            : `تعذر تسجيل الدخول: ${error.message}`,
-      );
-      return;
-    }
-    const ready = await finishInitialOwnerOnboarding(data.user.email ?? email);
-    setLoading(false);
-    if (ready) onSuccess();
-  };
-
-  const signUpInitialOwner = async () => {
-    if (email.trim().toLowerCase() !== ownerEmail) {
-      setMessage(
-        en
-          ? `Initial registration is only available for ${ownerEmail}.`
-          : `التسجيل الأولي متاح فقط للبريد ${ownerEmail}.`,
-      );
-      return;
-    }
-    setLoading(true);
-    setMessage("");
-    const { data, error } = await supabase.auth.signUp({
-      email: ownerEmail,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { display_name: "مالك سُفرة" },
-      },
-    });
-    if (error) {
-      setLoading(false);
-      setMessage(
-        en
-          ? `Could not create the owner account: ${error.message}`
-          : `تعذر إنشاء حساب المالك: ${error.message}`,
-      );
-      return;
-    }
-    if (!data.session) {
-      setLoading(false);
-      setMessage(
-        en
-          ? "Account created. Open the confirmation email, then return and sign in to finish activating the owner membership."
-          : "تم إنشاء الحساب. افتح رسالة التأكيد في البريد الإلكتروني، ثم عد وسجّل الدخول لإكمال تفعيل عضوية المالك.",
-      );
-      return;
-    }
-    const ready = await finishInitialOwnerOnboarding(ownerEmail);
-    setLoading(false);
-    if (ready) onSuccess();
-  };
-
-  const resetPassword = async () => {
-    if (!email.trim()) {
-      setMessage(
-        en
-          ? "Enter your email address first so we can send a reset link."
-          : "أدخل البريد الإلكتروني أولاً لإرسال رابط الاستعادة.",
-      );
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
-    });
-    setLoading(false);
-    setMessage(
-      error
-        ? en
-          ? `Could not send the link: ${error.message}`
-          : `تعذر إرسال الرابط: ${error.message}`
-        : en
-          ? "If an account exists for that email, a password reset link has been sent."
-          : "أُرسل رابط استعادة كلمة المرور إلى بريدك إن كان الحساب موجوداً.",
-    );
-  };
-
-  return (
-    <div className="modal-backdrop" dir={en ? "ltr" : "rtl"} lang={language} onMouseDown={onClose}>
-      <div
-        className="modal modal--narrow auth-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="staff-auth-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <button className="modal__close" onClick={onClose} aria-label={en ? "Close" : "إغلاق"}>
-          <X />
-        </button>
-        <span
-          className="section-kicker"
-          style={{ justifyContent: "center", marginTop: "6px" }}
-        >
-          {en ? "Staff access" : "دخول الموظفين"}
-        </span>
-        <h2 id="staff-auth-title">{en ? "Restaurant dashboard" : "لوحة المطعم"}</h2>
-        <p>
-          {en
-            ? "Use the staff account provided by your restaurant owner. Guests do not need an account."
-            : "استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب."}
-        </p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void signIn();
-          }}
-        >
-          <label className="form-field">
-            <span>{en ? "Email address" : "البريد الإلكتروني"}</span>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder={ownerEmail}
-            />
-          </label>
-          <label className="form-field">
-            <span>{en ? "Password" : "كلمة المرور"}</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder={en ? "Password" : "كلمة المرور"}
-            />
-          </label>
-          {message && <div className="auth-msg">{message}</div>}
-          <button className="btn btn--gold" type="submit" disabled={loading}>
-            {loading
-              ? en
-                ? "Signing in…"
-                : "جارٍ تسجيل الدخول…"
-              : en
-                ? "Sign in"
-                : "تسجيل الدخول"}
-          </button>
-          {email.trim().toLowerCase() === ownerEmail && (
-            <button
-              className="btn btn--outline"
-              type="button"
-              disabled={loading || password.length < 6}
-              onClick={() => void signUpInitialOwner()}
-            >
-              {en ? "Create the initial owner account" : "إنشاء حساب المالك لأول مرة"}
-            </button>
-          )}
-          <button
-            className="link-btn"
-            type="button"
-            disabled={loading}
-            onClick={() => void resetPassword()}
-          >
-            {en ? "Forgot password?" : "نسيت كلمة المرور؟"}
-          </button>
-        </form>
-        <small>
-          {en
-            ? "Access is tied to restaurant membership and enforced by the database."
-            : "الصلاحيات مرتبطة بعضوية المطعم وتُطبق في قاعدة البيانات."}
-        </small>
       </div>
     </div>
   );
@@ -519,6 +297,8 @@ function StaffAuthModal({
 type AdminTab =
   | "overview"
   | "orders"
+  | "kitchen"
+  | "cashier"
   | "menu"
   | "tables"
   | "reports"
@@ -533,6 +313,8 @@ const TAB_ITEMS: {
 }[] = [
   { id: "overview", label: "نظرة عامة", icon: LayoutDashboard },
   { id: "orders", label: "الطلبات", icon: ClipboardList },
+  { id: "kitchen", label: "شاشة المطبخ", icon: Flame },
+  { id: "cashier", label: "شاشة الكاشير", icon: Wallet },
   { id: "menu", label: "القائمة", icon: UtensilsCrossed },
   { id: "tables", label: "الطاولات و QR", icon: QrCode },
   { id: "reports", label: "التقارير", icon: BarChart3 },
@@ -542,7 +324,8 @@ const TAB_ITEMS: {
 ];
 
 type OnboardingState = { completed: string[]; dismissed: boolean };
-const onboardingKey = (restaurantId: string) => `sufra-onboarding-v1-${restaurantId}`;
+const onboardingKey = (restaurantId: string) =>
+  `sufra-onboarding-v1-${restaurantId}`;
 
 function loadOnboarding(restaurantId: string): OnboardingState {
   const saved = readStored<unknown>(onboardingKey(restaurantId), null);
@@ -551,7 +334,9 @@ function loadOnboarding(restaurantId: string): OnboardingState {
   const value = saved as Partial<OnboardingState>;
   return {
     completed: Array.isArray(value.completed)
-      ? value.completed.filter((entry): entry is string => typeof entry === "string")
+      ? value.completed.filter(
+          (entry): entry is string => typeof entry === "string",
+        )
       : [],
     dismissed: value.dismissed === true,
   };
@@ -896,7 +681,8 @@ function AdminView({
                   <span className="adm-onboard-reopen__copy">
                     <strong>تهيئة المطعم</strong>
                     <small>
-                      {onboardingProgress} من {FIRST_RUN_STEPS.length} خطوات مكتملة
+                      {onboardingProgress} من {FIRST_RUN_STEPS.length} خطوات
+                      مكتملة
                     </small>
                   </span>
                   <button
@@ -956,7 +742,11 @@ function AdminView({
                   />
                 </label>
 
-                <div className="adm-seg" role="group" aria-label="تصفية حسب القناة">
+                <div
+                  className="adm-seg"
+                  role="group"
+                  aria-label="تصفية حسب القناة"
+                >
                   {(
                     [
                       ["all", "الكل"],
@@ -970,12 +760,12 @@ function AdminView({
                       className={`adm-seg__btn${adminFilter === value ? " is-on" : ""}`}
                       onClick={() => setAdminFilter(value as "all" | Mode)}
                     >
-                      {value !== "all" ? (
-                        (() => {
-                          const Icon = MODE_ICON[value as Mode];
-                          return <Icon aria-hidden="true" />;
-                        })()
-                      ) : null}
+                      {value !== "all"
+                        ? (() => {
+                            const Icon = MODE_ICON[value as Mode];
+                            return <Icon aria-hidden="true" />;
+                          })()
+                        : null}
                       {label}
                     </button>
                   ))}
@@ -1033,7 +823,11 @@ function AdminView({
                     <section
                       className="adm-kb__col"
                       key={status}
-                      aria-label={status === "received" ? "طلبات جديدة" : statusLabels[status]}
+                      aria-label={
+                        status === "received"
+                          ? "طلبات جديدة"
+                          : statusLabels[status]
+                      }
                     >
                       <div
                         className={`adm-kb__hd${status === "cancelled" ? " adm-kb__hd--cancelled" : ""}`}
@@ -1058,7 +852,9 @@ function AdminView({
                       >
                         <h3 className="adm-kb__title">
                           <Icon aria-hidden="true" />
-                          {status === "received" ? "طلبات جديدة" : statusLabels[status]}
+                          {status === "received"
+                            ? "طلبات جديدة"
+                            : statusLabels[status]}
                         </h3>
                         <b className="adm-kb__count adm-num">
                           {columnOrders.length}
@@ -1137,12 +933,16 @@ function AdminView({
           )}
 
           {tab === "design" && (
-            <MenuDesignStudio
-              restaurant={restaurant}
-              restaurantDatabaseId={restaurantDatabaseId}
-              categories={categories}
-              canEdit={canDesign}
-            />
+            <Suspense
+              fallback={<p role="status">جارٍ تحميل استوديو التصميم…</p>}
+            >
+              <MenuDesignStudio
+                restaurant={restaurant}
+                restaurantDatabaseId={restaurantDatabaseId}
+                categories={categories}
+                canEdit={canDesign}
+              />
+            </Suspense>
           )}
 
           {tab === "settings" && (
@@ -1193,7 +993,9 @@ function FirstRunGuide({
   onDismiss: () => void;
   onOpenTab: (tab: AdminTab) => void;
 }) {
-  const progress = FIRST_RUN_STEPS.filter((step) => completed.includes(step.id)).length;
+  const progress = FIRST_RUN_STEPS.filter((step) =>
+    completed.includes(step.id),
+  ).length;
   const percent = Math.round((progress / FIRST_RUN_STEPS.length) * 100);
   const allDone = progress === FIRST_RUN_STEPS.length;
 
@@ -1214,8 +1016,14 @@ function FirstRunGuide({
               : "ثلاث خطوات بسيطة تفصلك عن قائمة رقمية جاهزة لاستقبال الطلبات."}
           </p>
         </div>
-        <div className="adm-onboard__progress" aria-label={`اكتملت ${progress} من ${FIRST_RUN_STEPS.length} خطوات`}>
-          <strong>{progress}<span>/{FIRST_RUN_STEPS.length}</span></strong>
+        <div
+          className="adm-onboard__progress"
+          aria-label={`اكتملت ${progress} من ${FIRST_RUN_STEPS.length} خطوات`}
+        >
+          <strong>
+            {progress}
+            <span>/{FIRST_RUN_STEPS.length}</span>
+          </strong>
           <small>مكتملة</small>
         </div>
         <button
@@ -1391,10 +1199,7 @@ function AdminOverview({
         title="صورة المطعم الآن"
         lede="قراءة سريعة لما يتحرك في المطبخ، وما يحتاج قراراً منك."
         actions={
-          <button
-            className="adm-btn adm-btn--accent"
-            onClick={onOpenOrders}
-          >
+          <button className="adm-btn adm-btn--accent" onClick={onOpenOrders}>
             افتح مكتب الطلبات
             <ArrowRight aria-hidden="true" />
           </button>
@@ -1427,7 +1232,9 @@ function AdminOverview({
               ) : null}
               <div className="ov-ledger__meta">
                 {revenueTrend === null ? (
-                  <span className="ov-trend ov-trend--flat">— لا أمس للمقارنة</span>
+                  <span className="ov-trend ov-trend--flat">
+                    — لا أمس للمقارنة
+                  </span>
                 ) : revenueTrend >= 0 ? (
                   <span className="ov-trend">
                     <ArrowUp aria-hidden="true" />
@@ -1456,10 +1263,7 @@ function AdminOverview({
                   ? `${pendingOrders} طلبات جديدة تنتظر التأكيد. افتح مكتب الطلبات حتى لا تتأخر الوصفات.`
                   : "لا توجد طلبات جديدة معلقة، ويمكن للفريق متابعة التحضير."}
               </p>
-              <button
-                className="adm-btn adm-btn--gold"
-                onClick={onOpenOrders}
-              >
+              <button className="adm-btn adm-btn--gold" onClick={onOpenOrders}>
                 راجع خط الإنتاج
               </button>
             </div>
@@ -1619,7 +1423,11 @@ function AdminOverview({
               </div>
               <div className="adm-card__bd">
                 {peakHourValue > 0 ? (
-                  <div className="ov-chart" role="img" aria-label="المبيعات حسب الساعة">
+                  <div
+                    className="ov-chart"
+                    role="img"
+                    aria-label="المبيعات حسب الساعة"
+                  >
                     {operatingHours.map((hour) => {
                       const value = hourBuckets[hour];
                       const height = value ? (value / maxHour) * 100 : 0;
@@ -1627,7 +1435,11 @@ function AdminOverview({
                         <div
                           className={`ov-chart__col${hour === peakHour ? " is-peak" : ""}`}
                           key={hour}
-                          title={value ? `${formatSyp(value)} — ${hour}:00` : undefined}
+                          title={
+                            value
+                              ? `${formatSyp(value)} — ${hour}:00`
+                              : undefined
+                          }
                         >
                           <div
                             className="ov-chart__bar"
@@ -1663,7 +1475,9 @@ function AdminOverview({
               <div className="adm-card__bd">
                 <div>
                   {statusOrder.map((status) => {
-                    const count = orders.filter((o) => o.status === status).length;
+                    const count = orders.filter(
+                      (o) => o.status === status,
+                    ).length;
                     const revenue = orders
                       .filter(
                         (o) => o.status === status && o.status !== "cancelled",
@@ -1868,8 +1682,7 @@ function OrderDetails({
   useEffect(() => setNote(order.internalNote || ""), [order.internalNote]);
   const cancel = () => {
     const reason = window.prompt("سبب إلغاء الطلب")?.trim();
-    if (reason)
-      onStatus(order.id, "cancelled", { cancellationReason: reason });
+    if (reason) onStatus(order.id, "cancelled", { cancellationReason: reason });
   };
 
   const flow = (
@@ -1881,7 +1694,9 @@ function OrderDetails({
       "out-for-delivery",
       "completed",
     ] as Order["status"][]
-  ).filter((status) => status !== "out-for-delivery" || order.mode === "delivery");
+  ).filter(
+    (status) => status !== "out-for-delivery" || order.mode === "delivery",
+  );
   const flowIndex =
     order.status === "cancelled" ? -1 : flow.indexOf(order.status);
 
@@ -1996,7 +1811,9 @@ function OrderDetails({
                   <small>{order.lines.length} أصناف في الفاتورة</small>
                 </div>
                 <span className="adm-odsec__cta">
-                  {order.payment === "كاش" ? "الدفع عند الاستلام" : order.payment}
+                  {order.payment === "كاش"
+                    ? "الدفع عند الاستلام"
+                    : order.payment}
                 </span>
               </div>
               <div className="adm-lines">
@@ -2067,7 +1884,10 @@ function OrderDetails({
 
           {/* ================= rail column ================= */}
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <section className="adm-card" style={{ borderRadius: "var(--r-md)" }}>
+            <section
+              className="adm-card"
+              style={{ borderRadius: "var(--r-md)" }}
+            >
               <div className="adm-card__bd" style={{ padding: "16px" }}>
                 <div className="adm-odsec__hd" style={{ marginBottom: 6 }}>
                   <div className="adm-odsec__t">
@@ -2149,10 +1969,7 @@ function OrderDetails({
             </section>
 
             {order.status !== "cancelled" && order.status !== "completed" && (
-              <button
-                className="adm-btn adm-btn--danger"
-                onClick={cancel}
-              >
+              <button className="adm-btn adm-btn--danger" onClick={cancel}>
                 <X aria-hidden="true" />
                 إلغاء الطلب
               </button>
@@ -2161,7 +1978,10 @@ function OrderDetails({
         </div>
 
         <footer className="adm-sheet__foot">
-          <button className="adm-btn adm-btn--gold" onClick={() => onWhatsApp(order)}>
+          <button
+            className="adm-btn adm-btn--gold"
+            onClick={() => onWhatsApp(order)}
+          >
             <MessageCircle aria-hidden="true" />
             مراسلة العميل واتساب
           </button>
@@ -2199,32 +2019,32 @@ function MenuManager({
 }) {
   const [editing, setEditing] = useState<Item | "new" | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("الكل");
-  const syncTimer = useRef<number | null>(null);
-
+  const saveQueue = useRef(Promise.resolve());
+  const [menuSaveError, setMenuSaveError] = useState("");
+  const [menuSaving, setMenuSaving] = useState(false);
   const persistMenu = (items: Item[], nextCategories = categories) => {
     if (!restaurantDatabaseId) return;
-    if (syncTimer.current) window.clearTimeout(syncTimer.current);
-    syncTimer.current = window.setTimeout(async () => {
-      const { error } = await supabase.rpc("sync_admin_menu", {
-        p_restaurant_id: restaurantDatabaseId,
-        p_payload: {
-          categories: nextCategories.map((entry, sortOrder) => ({
-            ...entry,
-            sortOrder,
-          })),
-          items,
-        },
-      });
-      if (error) window.alert(`تعذر حفظ القائمة: ${error.message}`);
-    }, 250);
+    setMenuSaving(true);
+    saveQueue.current = saveQueue.current
+      .then(async () => {
+        const { error } = await supabase.rpc("sync_admin_menu", {
+          p_restaurant_id: restaurantDatabaseId,
+          p_payload: {
+            categories: nextCategories.map((entry, sortOrder) => ({
+              ...entry,
+              sortOrder,
+            })),
+            items,
+          },
+        });
+        if (error) setMenuSaveError(error.message);
+        else setMenuSaveError("");
+      })
+      .catch(() =>
+        setMenuSaveError("تعذر حفظ القائمة. تحقق من الاتصال ثم أعد المحاولة."),
+      )
+      .finally(() => setMenuSaving(false));
   };
-
-  useEffect(
-    () => () => {
-      if (syncTimer.current) window.clearTimeout(syncTimer.current);
-    },
-    [],
-  );
 
   const update = (items: Item[]) => {
     onChange(items);
@@ -2259,7 +2079,7 @@ function MenuManager({
     updateCategories([
       ...categories,
       {
-        id: `category-${Date.now()}`,
+        id: crypto.randomUUID(),
         name,
         en,
         visible: true,
@@ -2319,17 +2139,30 @@ function MenuManager({
   const save = (form: HTMLFormElement) => {
     const data = new FormData(form);
     const previous = editing !== "new" ? editing : null;
+    const from = String(data.get("availableFrom") || "");
+    const until = String(data.get("availableUntil") || "");
+    if (from && until && new Date(until) <= new Date(from)) {
+      window.alert("وقت انتهاء العرض يجب أن يكون بعد بدايته");
+      return;
+    }
     const item: Item = {
-      id: previous?.id ?? `item-${Date.now()}`,
+      id: previous?.id ?? crypto.randomUUID(),
       name: String(data.get("name")),
       en: String(data.get("en")),
       desc: String(data.get("desc")),
+      descEn: String(data.get("descEn") || ""),
       price: Number(data.get("price")),
       category: String(data.get("category")) as Item["category"],
       tags: data.getAll("tags") as Tag[],
       image: String(data.get("image")) || images.mezze,
       popular: data.get("popular") === "on",
       available: previous?.available ?? true,
+      availableFrom: from ? new Date(from).toISOString() : null,
+      availableUntil: until ? new Date(until).toISOString() : null,
+      preparationMinutes: Math.max(
+        1,
+        Number(data.get("preparationMinutes")) || 15,
+      ),
       options: previous?.options ?? [],
     };
     update(
@@ -2354,6 +2187,25 @@ function MenuManager({
 
   return (
     <>
+      <p role="status">
+        {menuSaving
+          ? "جارٍ حفظ القائمة…"
+          : menuSaveError
+            ? "توجد تغييرات لم تُحفظ"
+            : "القائمة محفوظة"}
+      </p>
+      {menuSaveError && (
+        <p role="alert">
+          {menuSaveError}
+          <button
+            type="button"
+            className="adm-btn"
+            onClick={() => persistMenu(restaurant.items)}
+          >
+            إعادة محاولة الحفظ
+          </button>
+        </p>
+      )}
       <PageHead
         kicker="محتوى المطعم / المطبخ أولاً"
         title="عناصر القائمة"
@@ -2469,9 +2321,7 @@ function MenuManager({
                       <strong className="adm-num">
                         {formatSyp(item.price)}
                       </strong>
-                      {item.category ? (
-                        <small>{item.category}</small>
-                      ) : null}
+                      {item.category ? <small>{item.category}</small> : null}
                     </div>
                   </div>
 
@@ -2488,7 +2338,7 @@ function MenuManager({
                     </p>
                   ) : null}
 
-                  {(item.tags.length || (item.options?.length ?? 0) > 0) ? (
+                  {item.tags.length || (item.options?.length ?? 0) > 0 ? (
                     <div className="adm-dish__tags">
                       {item.tags.map((tag) => {
                         const Icon = TAG_ICON[tag];
@@ -2592,6 +2442,16 @@ function MenuManager({
                     defaultValue={editing === "new" ? "" : editing.desc}
                   />
                 </label>
+                <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+                  <span>الوصف بالإنجليزية</span>
+                  <textarea
+                    name="descEn"
+                    dir="ltr"
+                    defaultValue={
+                      editing === "new" ? "" : (editing.descEn ?? "")
+                    }
+                  />
+                </label>
                 <label className="adm-field">
                   <span>السعر بالليرة</span>
                   <input
@@ -2644,6 +2504,67 @@ function MenuManager({
                 </label>
               </div>
 
+              <div className="wf-schedule">
+                <strong>جدولة توفر الصنف</strong>
+                <small>
+                  الأوقات حسب المنطقة الزمنية لهذا الجهاز. اتركها فارغة للتوفر
+                  الدائم.
+                </small>
+                <label className="adm-field">
+                  <span>متاح من</span>
+                  <input
+                    type="datetime-local"
+                    name="availableFrom"
+                    defaultValue={
+                      editing !== "new" && editing.availableFrom
+                        ? new Date(
+                            Date.parse(editing.availableFrom) -
+                              new Date(
+                                editing.availableFrom,
+                              ).getTimezoneOffset() *
+                                60000,
+                          )
+                            .toISOString()
+                            .slice(0, 16)
+                        : ""
+                    }
+                  />
+                </label>
+                <label className="adm-field">
+                  <span>متاح حتى</span>
+                  <input
+                    type="datetime-local"
+                    name="availableUntil"
+                    defaultValue={
+                      editing !== "new" && editing.availableUntil
+                        ? new Date(
+                            Date.parse(editing.availableUntil) -
+                              new Date(
+                                editing.availableUntil,
+                              ).getTimezoneOffset() *
+                                60000,
+                          )
+                            .toISOString()
+                            .slice(0, 16)
+                        : ""
+                    }
+                  />
+                </label>
+                <label className="adm-field">
+                  <span>وقت التحضير المتوقع (دقيقة)</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="240"
+                    name="preparationMinutes"
+                    defaultValue={
+                      editing !== "new"
+                        ? (editing.preparationMinutes ?? 15)
+                        : 15
+                    }
+                  />
+                </label>
+              </div>
               <fieldset
                 style={{
                   border: "1px solid var(--line)",
@@ -2671,7 +2592,11 @@ function MenuManager({
                     ["chef", "اختيار الشيف", Sparkles],
                   ] as const
                 ).map(([value, label, Icon]) => (
-                  <label className="adm-checkrow" key={value} style={{ padding: "11px 12px" }}>
+                  <label
+                    className="adm-checkrow"
+                    key={value}
+                    style={{ padding: "11px 12px" }}
+                  >
                     <input
                       type="checkbox"
                       name="tags"
@@ -2680,8 +2605,18 @@ function MenuManager({
                         editing !== "new" && editing.tags.includes(value)
                       }
                     />
-                    <span className="adm-checkrow__lbl" style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-                      <Icon style={{ width: 15, height: 15, color: "var(--teal)" }} aria-hidden="true" />
+                    <span
+                      className="adm-checkrow__lbl"
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 7,
+                      }}
+                    >
+                      <Icon
+                        style={{ width: 15, height: 15, color: "var(--teal)" }}
+                        aria-hidden="true"
+                      />
                       <strong>{label}</strong>
                     </span>
                   </label>
@@ -2704,7 +2639,10 @@ function MenuManager({
                       gap: 7,
                     }}
                   >
-                    <Sparkles style={{ width: 15, height: 15, color: "var(--warn)" }} aria-hidden="true" />
+                    <Sparkles
+                      style={{ width: 15, height: 15, color: "var(--warn)" }}
+                      aria-hidden="true"
+                    />
                     <strong>الأكثر طلباً</strong>
                   </span>
                 </label>
@@ -2748,14 +2686,24 @@ function CategoryManager({
           <h3>تصنيفات القائمة</h3>
           <p>رتّب التصنيفات وعدّل ظهورها للزبائن.</p>
         </div>
-        <button className="adm-btn adm-btn--soft adm-btn--sm" type="button" onClick={onAdd}>
+        <button
+          className="adm-btn adm-btn--soft adm-btn--sm"
+          type="button"
+          onClick={onAdd}
+        >
           <Plus aria-hidden="true" />
           إضافة تصنيف
         </button>
       </div>
       <div className="adm-card__bd" style={{ paddingBlock: "8px" }}>
         {active.length === 0 ? (
-          <p style={{ color: "var(--text-3)", fontSize: "0.86rem", padding: "10px 4px" }}>
+          <p
+            style={{
+              color: "var(--text-3)",
+              fontSize: "0.86rem",
+              padding: "10px 4px",
+            }}
+          >
             لا توجد تصنيفات ظاهرة — أضف تصنيفاً لتنظيم القائمة.
           </p>
         ) : (
@@ -2800,7 +2748,10 @@ function CategoryManager({
                   title="تقديم"
                   onClick={() => {
                     const next = [...active];
-                    [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                    [next[index - 1], next[index]] = [
+                      next[index],
+                      next[index - 1],
+                    ];
                     onUpdate("__reorder__", {
                       id: JSON.stringify(next.map((item) => item.id)),
                     } as Partial<MenuCategory>);
@@ -2816,7 +2767,10 @@ function CategoryManager({
                   title="تأخير"
                   onClick={() => {
                     const next = [...active];
-                    [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                    [next[index + 1], next[index]] = [
+                      next[index],
+                      next[index + 1],
+                    ];
                     onUpdate("__reorder__", {
                       id: JSON.stringify(next.map((item) => item.id)),
                     } as Partial<MenuCategory>);
@@ -2857,10 +2811,10 @@ function OptionEditor({
     onUpdate([
       ...groups,
       {
-        id: `group-${Date.now()}`,
+        id: crypto.randomUUID(),
         name: "مجموعة جديدة",
         required: false,
-        options: [{ id: `option-${Date.now()}`, name: "خيار جديد", price: 0 }],
+        options: [{ id: crypto.randomUUID(), name: "خيار جديد", price: 0 }],
       },
     ]);
   return (
@@ -2978,7 +2932,10 @@ function OptionEditor({
                                   ...entry,
                                   options: entry.options.map((choice, j) =>
                                     j === optionIndex
-                                      ? { ...choice, price: Number(e.target.value) }
+                                      ? {
+                                          ...choice,
+                                          price: Number(e.target.value),
+                                        }
                                       : choice,
                                   ),
                                 }
@@ -3024,7 +2981,7 @@ function OptionEditor({
                             options: [
                               ...entry.options,
                               {
-                                id: `option-${Date.now()}`,
+                                id: crypto.randomUUID(),
                                 name: "خيار جديد",
                                 price: 0,
                               },
@@ -3231,7 +3188,10 @@ function ReportsPanel({
           <RefreshCw aria-hidden="true" />
           كل الفترة
         </button>
-        <span className="adm-toolbar__meta" style={{ marginInlineStart: "auto" }}>
+        <span
+          className="adm-toolbar__meta"
+          style={{ marginInlineStart: "auto" }}
+        >
           <CheckCircle2 aria-hidden="true" />
           مزامنة مع قاعدة البيانات
         </span>
@@ -3258,9 +3218,7 @@ function ReportsPanel({
             </span>
           </div>
           <strong className="ov-kpi__val adm-num">{reportOrderCount}</strong>
-          <span className="ov-kpi__sub">
-            {reportPaidCount} طلب محتسب
-          </span>
+          <span className="ov-kpi__sub">{reportPaidCount} طلب محتسب</span>
         </article>
         <article className="ov-kpi ov-kpi--gold">
           <div className="ov-kpi__top">
@@ -3350,11 +3308,22 @@ function ReportsPanel({
             ) : (
               topItems.map((item, index) => (
                 <div className="rv-row" key={`${item.name}-${index}`}>
-                  <span className={`rv-rank${index === 0 ? " rv-rank--top" : ""} adm-num`}>
+                  <span
+                    className={`rv-rank${index === 0 ? " rv-rank--top" : ""} adm-num`}
+                  >
                     {index + 1}
                   </span>
-                  <span className="rv-row__lbl" style={{ flex: 1, minWidth: 0 }}>
-                    <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span
+                    className="rv-row__lbl"
+                    style={{ flex: 1, minWidth: 0 }}
+                  >
+                    <strong
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {item.name}
                     </strong>
                     <small>{item.qty} وحدة</small>
@@ -3652,7 +3621,13 @@ function OperationsPanel({
                   <strong>
                     {member.name}
                     {!member.active ? (
-                      <span style={{ color: "var(--danger)", fontSize: "0.7rem", marginInlineStart: 6 }}>
+                      <span
+                        style={{
+                          color: "var(--danger)",
+                          fontSize: "0.7rem",
+                          marginInlineStart: 6,
+                        }}
+                      >
                         (موقوف)
                       </span>
                     ) : null}
@@ -3720,7 +3695,13 @@ function OperationsPanel({
         </div>
         <div className="adm-card__bd" style={{ paddingBlock: "8px" }}>
           {state.audit.length === 0 ? (
-            <p style={{ color: "var(--text-3)", fontSize: "0.86rem", padding: "10px 4px" }}>
+            <p
+              style={{
+                color: "var(--text-3)",
+                fontSize: "0.86rem",
+                padding: "10px 4px",
+              }}
+            >
               لا توجد أنشطة مسجلة بعد.
             </p>
           ) : (
@@ -4063,7 +4044,9 @@ function TableCard({
             {table.area}
           </small>
         </div>
-        <span className={`adm-chip${table.active ? " adm-chip--verified" : " adm-chip--cancelled"}`}>
+        <span
+          className={`adm-chip${table.active ? " adm-chip--verified" : " adm-chip--cancelled"}`}
+        >
           <i className="adm-chip__dot" aria-hidden="true" />
           {table.active ? "نشطة" : "متوقفة"}
         </span>
@@ -4108,7 +4091,12 @@ function TableCard({
           <Printer aria-hidden="true" />
           طباعة
         </button>
-        <button className="adm-icobtn" onClick={onEdit} aria-label="تعديل" title="تعديل">
+        <button
+          className="adm-icobtn"
+          onClick={onEdit}
+          aria-label="تعديل"
+          title="تعديل"
+        >
           <Pencil aria-hidden="true" />
         </button>
         <button
@@ -4161,6 +4149,7 @@ function SettingsPanel({
   const [draft, setDraft] = useState(settings);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   useEffect(() => setDraft(settings), [settings]);
 
   const field = <K extends keyof RestaurantSettings>(
@@ -4169,11 +4158,37 @@ function SettingsPanel({
   ) => setDraft((current) => ({ ...current, [key]: value }));
 
   const save = async () => {
+    setSaveError("");
+    if (
+      !Number.isFinite(draft.rate) ||
+      draft.rate <= 0 ||
+      [draft.taxPercent, draft.servicePercent].some(
+        (n) => !Number.isFinite(n) || n < 0 || n > 100,
+      ) ||
+      !Number.isFinite(draft.discountPercent ?? 0) ||
+      (draft.discountPercent ?? 0) < 0 ||
+      (draft.discountPercent ?? 0) > 100 ||
+      draft.zones.some((z) => z.fee < 0 || z.minimum < 0) ||
+      draft.hours.some((h) => h.enabled && h.open === h.close)
+    ) {
+      setSaveError(
+        "راجع الخصم ورسوم التوصيل وأوقات الدوام. وقت الفتح والإغلاق يجب أن يختلفا.",
+      );
+      return;
+    }
     setSaving(true);
-    await onChange(draft);
-    setSaving(false);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setSaved(false);
+    try {
+      await onChange(draft);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "تعذر حفظ الإعدادات",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addZone = () =>
@@ -4182,7 +4197,7 @@ function SettingsPanel({
       zones: [
         ...current.zones,
         {
-          id: `zone-${Date.now()}`,
+          id: crypto.randomUUID(),
           name: "منطقة جديدة",
           fee: 0,
           minimum: 0,
@@ -4249,6 +4264,22 @@ function SettingsPanel({
             />
           </label>
           <label className="adm-field">
+            <span>اسم المطعم بالإنجليزية</span>
+            <input
+              dir="ltr"
+              value={draft.nameEn ?? ""}
+              onChange={(e) => field("nameEn", e.target.value)}
+            />
+          </label>
+          <label className="adm-field">
+            <span>الوصف بالإنجليزية</span>
+            <input
+              dir="ltr"
+              value={draft.subtitleEn ?? ""}
+              onChange={(e) => field("subtitleEn", e.target.value)}
+            />
+          </label>
+          <label className="adm-field">
             <span>الوصف المختصر</span>
             <input
               value={draft.subtitle}
@@ -4304,6 +4335,20 @@ function SettingsPanel({
                 value={draft.rate}
                 onChange={(event) => field("rate", Number(event.target.value))}
               />
+            </label>
+            <label className="adm-field">
+              <span>خصم على الأصناف %</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={draft.discountPercent ?? 0}
+                onChange={(e) =>
+                  field("discountPercent", Number(e.target.value))
+                }
+              />
+              <small>يُطبق قبل الضريبة والخدمة، ولا يشمل رسوم التوصيل.</small>
             </label>
             <label className="adm-field">
               <span>الضريبة %</span>
@@ -4383,25 +4428,15 @@ function SettingsPanel({
       title: "طرق الطلب المتاحة",
       body: (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {(
+          {[
             [
-              [
-                "dineIn",
-                "الطلب داخل المطعم",
-                "عبر رمز QR الخاص بالطاولة",
-              ] as const,
-              [
-                "takeaway",
-                "الطلبات الخارجية",
-                "استلام من المطعم",
-              ] as const,
-              [
-                "delivery",
-                "خدمة التوصيل",
-                "حسب المناطق والحد الأدنى",
-              ] as const,
-            ]
-          ).map(([key, label, hint]) => (
+              "dineIn",
+              "الطلب داخل المطعم",
+              "عبر رمز QR الخاص بالطاولة",
+            ] as const,
+            ["takeaway", "الطلبات الخارجية", "استلام من المطعم"] as const,
+            ["delivery", "خدمة التوصيل", "حسب المناطق والحد الأدنى"] as const,
+          ].map(([key, label, hint]) => (
             <label className="adm-checkrow" key={key}>
               <input
                 type="checkbox"
@@ -4474,7 +4509,9 @@ function SettingsPanel({
                 <span>اسم المنطقة</span>
                 <input
                   value={zone.name}
-                  onChange={(event) => setZone(index, { name: event.target.value })}
+                  onChange={(event) =>
+                    setZone(index, { name: event.target.value })
+                  }
                 />
               </label>
               <label className="adm-field">
@@ -4604,6 +4641,25 @@ function SettingsPanel({
 
   return (
     <>
+      {saveError && (
+        <p className="cx-note cx-note--danger" role="alert">
+          {saveError}
+        </p>
+      )}
+      <section className="wf-schedule">
+        <label className="adm-checkrow">
+          <input
+            type="checkbox"
+            checked={draft.enforceHours ?? false}
+            onChange={(e) => field("enforceHours", e.target.checked)}
+          />
+          <span>إيقاف الطلبات تلقائياً خارج أوقات الدوام</span>
+        </label>
+        <p>
+          المنطقة الزمنية: {draft.timezone ?? "Asia/Damascus"}. تُدعم ورديات
+          العمل التي تمتد بعد منتصف الليل.
+        </p>
+      </section>
       <PageHead
         kicker="إعداد المطعم"
         title="الهوية والتشغيل والدفع والتوصيل"
@@ -4624,7 +4680,11 @@ function SettingsPanel({
       />
 
       <form
-        style={{ display: "flex", flexDirection: "column", gap: "clamp(14px, 2vw, 20px)" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "clamp(14px, 2vw, 20px)",
+        }}
         onSubmit={(event) => {
           event.preventDefault();
           void save();
@@ -4650,7 +4710,11 @@ function SettingsPanel({
           );
         })}
 
-        <button className="adm-btn adm-btn--accent" type="submit" disabled={saving}>
+        <button
+          className="adm-btn adm-btn--accent"
+          type="submit"
+          disabled={saving}
+        >
           {saving ? (
             <Loader2 aria-hidden="true" />
           ) : saved ? (
@@ -4658,11 +4722,7 @@ function SettingsPanel({
           ) : (
             <Check aria-hidden="true" />
           )}
-          {saving
-            ? "جارٍ الحفظ…"
-            : saved
-              ? "تم الحفظ"
-              : "حفظ جميع التغييرات"}
+          {saving ? "جارٍ الحفظ…" : saved ? "تم الحفظ" : "حفظ جميع التغييرات"}
         </button>
       </form>
     </>
@@ -4670,7 +4730,6 @@ function SettingsPanel({
 }
 
 export {
-  StaffAuthModal,
   AdminView,
   OperationsPanel,
   ReportsPanel,
