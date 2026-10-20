@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import { useUI } from "./UI";
+import { readSavedCart, readSavedOrders } from "../storedOrdering";
 import { rebuildOrder } from "../ordering";
 import { useRestaurant } from "../hooks/useRestaurant";
 import type { GeoFix } from "../geolocation";
@@ -118,10 +119,10 @@ export function CafeProvider({
   const [mode, setMode] = useState<Mode>("dine-in");
 
   const [cart, setCart] = useState<CartLine[]>(() =>
-    readStored(`sufra-cart-${slug}`, []),
+    readSavedCart(slug),
   );
   const [orders, setOrders] = useState<Order[]>(() =>
-    readStored("sufra-orders", []),
+    readSavedOrders(),
   );
   const pendingOrderKey = useRef<string | null>(
     readStored(`sufra-pending-order-${slug}`, null),
@@ -148,7 +149,7 @@ export function CafeProvider({
 
   // Reset customer session state when switching cafe.
   useEffect(() => {
-    setCart(readStored(`sufra-cart-${slug}`, []));
+    setCart(readSavedCart(slug));
     pendingOrderKey.current = readStored(`sufra-pending-order-${slug}`, null);
     setCategory("كل الأصناف");
     setTag("all");
@@ -565,6 +566,9 @@ export function CafeProvider({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      // Persist the receipt before navigation: Safari may suspend this tab before effects run.
+      writeStored("sufra-orders", [order, ...ordersRef.current]);
+      writeStored(`sufra-cart-${slug}`, []);
       setOrders((current) => [order, ...current]);
       setCart([]);
       clearPendingOrderKey();

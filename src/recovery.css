@@ -1,0 +1,51 @@
+.app-recovery {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  text-align: center;
+  background: #fbfcf8;
+  color: #35422b;
+  font-family: "Tajawal", "Inter", sans-serif;
+  gap: 14px;
+}
+.app-recovery__mark {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #eff4e4;
+  color: #71854b;
+  font-size: 32px;
+}
+.app-recovery h1 {
+  font-family: inherit;
+  font-size: 24px;
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
+.app-recovery p {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #707963;
+  margin: 0;
+}
+.app-recovery button {
+  min-height: 48px;
+  padding: 12px 24px;
+  background: #566631;
+  color: #fff;
+  border: 0;
+  border-radius: 13px;
+  font: inherit;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.app-recovery button:focus-visible {
+  outline: 3px solid #819657;
+  outline-offset: 4px;
+}
