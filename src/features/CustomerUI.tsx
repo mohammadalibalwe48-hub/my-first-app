@@ -39,7 +39,6 @@ import { readStored, writeStored } from "../domain";
 import {
   formatSyp,
   formatUsd,
-  images,
   modeLabels,
   statusLabels,
   tagLabels,
@@ -247,7 +246,7 @@ function MenuView({
     designCover ||
     items.find((i) => i.image)?.image ||
     restaurant.items.find((i) => i.image)?.image ||
-    images.mezze;
+    "/images/table.webp";
   const designLogoUrl = restaurant.design?.content.logoUrl || "";
   const bannerOn = restaurant.design?.content.bannerOn === true;
   const bannerText = restaurant.design?.content.bannerText?.trim() || "";
@@ -310,8 +309,8 @@ function MenuView({
           <span className="cx-welcome__eyebrow">
             <Leaf size={14} aria-hidden="true" />
             {language === "en"
-              ? "A little moment of delicious"
-              : "لحظة حلوة، وأكلة أطيب"}
+              ? "FRESH FROM OUR KITCHEN"
+              : "من مطبخنا، على ذوقك"}
           </span>
           <h1>
             {language === "en" ? "What sounds good today?" : "شو عبالك اليوم؟"}
@@ -332,7 +331,16 @@ function MenuView({
         </div>
         <div className="cx-welcome__art">
           <span aria-hidden="true" />
-          <img src={heroImage} alt="" fetchPriority="high" />
+          <img
+            src={heroImage}
+            alt=""
+            fetchPriority="high"
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (!image.src.endsWith("/images/table.webp"))
+                image.src = "/images/table.webp";
+            }}
+          />
         </div>
       </section>
 

@@ -33,9 +33,12 @@ with sync_playwright() as p:
    context=browser.new_context(viewport={'width':width,'height':844});context.route('**/*',fixtures['handler']);context.add_init_script('localStorage.setItem("syrianqr-language",'+json.dumps(json.dumps(lang))+')')
    page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(BASE);page.locator('.home-venue').first.wait_for();check_bounds(page)
+   page.locator('.home-hero__photo img').evaluate('(e)=>e.decode()')
+   assert page.locator('.home-hero__photo img').evaluate('e=>e.naturalWidth>0'),'Landing photo did not load'
    page.locator('.home-venue').first.click();page.locator('.cx-dish').first.wait_for();check_bounds(page)
    assert page.locator('.cx').get_attribute('data-cd-cards') is None,'Legacy design still controls cards'
    assert page.locator('.cx-dish__media').first.evaluate('e=>getComputedStyle(e).borderRadius')=='50%'
+   media=page.locator('.cx-dish__media').first.bounding_box();assert abs(media['width']-media['height'])<2,'Round thumbnail is stretched'
    search=page.locator('.cx-search input');search.fill('no-dish-matches');page.locator('.cx-empty').wait_for();page.locator('.cx-empty button').click();page.locator('.cx-dish').first.wait_for()
    page.locator('.cx-dish__media').nth(1).click();page.get_by_role('dialog').wait_for();check_bounds(page);focus_in_dialog(page)
    add=page.locator('.cx-item__add');assert add.is_disabled(),'Required modifier not enforced'
