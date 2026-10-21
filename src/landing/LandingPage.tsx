@@ -1,15 +1,12 @@
 import {
   ArrowRight,
-  Globe2,
-  Leaf,
-  MapPin,
-  QrCode,
-  ShoppingBag,
-  Utensils,
   ArrowUpRight,
+  Globe2,
+  QrCode,
+  Utensils,
+  ShoppingBag,
 } from "lucide-react";
-import { images } from "../domain";
-import { PLATFORM_NAME, PLATFORM_LOGO_URL } from "../platform";
+import { PLATFORM_NAME } from "../platform";
 import "./landing.css";
 
 const venues = [
@@ -17,26 +14,26 @@ const venues = [
     slug: "sufra",
     nameAr: "سُفرة الشام",
     nameEn: "Sufra Sham",
-    descriptionAr: "من المازة الشامية للمشاوي. أطباق بتشبه لَمّة البيت.",
-    descriptionEn: "Levantine mezze, grills, and the familiar taste of home.",
     kindAr: "مطبخ شامي",
     kindEn: "Levantine kitchen",
-    image: images.mezze,
-    letter: "س",
+    descriptionAr: "مازة، مشاوي، وطعم بيجمعنا.",
+    descriptionEn: "Mezze, grills, and food made for sharing.",
+    image: "/images/table.webp",
+    number: "01",
   },
   {
     slug: "cozy",
     nameAr: "Cozy Corner",
     nameEn: "Cozy Corner",
-    descriptionAr: "قهوة على رواق، لقمة خفيفة، وشي حلو يكمل يومك.",
-    descriptionEn:
-      "A good coffee, a light bite, and something sweet for your day.",
     kindAr: "قهوة ولقمات خفيفة",
-    kindEn: "Coffee & comfort food",
-    image: images.coffee,
-    letter: "C",
+    kindEn: "Coffee & comfort",
+    descriptionAr: "قهوة على رواق، وشي حلو ليومك.",
+    descriptionEn: "Slow mornings, good coffee, something sweet.",
+    image: "/images/coffee.webp",
+    number: "02",
   },
 ];
+
 export default function LandingPage({
   language,
   onToggleLanguage,
@@ -58,89 +55,94 @@ export default function LandingPage({
       <header className="home-head">
         <div className="home-head__in">
           <a className="home-brand" href="/" aria-label={PLATFORM_NAME}>
-            <img src={PLATFORM_LOGO_URL} alt="" />
+            <span className="home-brand__mark">
+              <Utensils size={22} strokeWidth={1.6} />
+            </span>
             <span>
-              {PLATFORM_NAME}
-              <small>
-                {t("كل شي طيب، أقرب إلك", "Good food, a little closer")}
-              </small>
+              SYRIAN<span className="home-brand__qr">QR</span>
             </span>
           </a>
           <nav aria-label={t("التنقل الرئيسي", "Main navigation")}>
+            <a className="home-nav-menus" href="#restaurants">
+              {t("المطاعم", "Restaurants")}
+            </a>
             <button
               className="home-language"
               onClick={onToggleLanguage}
               aria-label="تغيير اللغة / Change language"
             >
-              <Globe2 size={17} />
+              <Globe2 size={16} />
               {ar ? "EN" : "عربي"}
             </button>
             <button className="home-owner" onClick={onOpenAdmin}>
-              {t("إدارة المطعم", "Restaurant login")}
+              {t("دخول الموظفين", "Staff login")}
               <ArrowUpRight size={15} />
             </button>
           </nav>
         </div>
       </header>
-      <main className="home-main">
-        <section className="home-welcome">
-          <div className="home-welcome__copy">
+      <main>
+        <section className="home-hero" aria-labelledby="home-title">
+          <div className="home-hero__copy">
             <span className="home-eyebrow">
-              <Leaf size={15} />
-              {t("الطلب الحلو، بيبلّش من هون", "A good order starts here")}
+              <span />
+              {t("على ذوقك، بكل بساطة", "GOOD FOOD. YOUR WAY.")}
             </span>
-            <h1>
-              {t("من أول نظرة،", "From the first look,")}
+            <h1 id="home-title">
+              {t("كل لقمة،", "Good food.")}
               <br />
-              <em>{t("لآخر لقمة.", "to the last bite.")}</em>
+              <em>{t("إلها حكاية.", "Great company.")}</em>
             </h1>
             <p>
               {t(
-                "منيو واضح، أطباق بتشهي، وطلب على ذوقك. اختار مطعمك وخلّي الباقي علينا.",
-                "A clearer menu. Food you’ll love. Your order, just the way you like it. Pick a restaurant and explore.",
+                "من قهوتك الصباحية لسُفرة بتجمع الأحباب. اكتشف القوائم، اختار اللي بتحبّه، واطلب على راحتك.",
+                "From your first coffee to a table worth sharing. Discover the menus, find your favourites, and make yourself at home.",
               )}
             </p>
             <a href="#restaurants" className="home-button">
-              {t("استكشف القوائم", "Explore the menus")}
-              <ArrowRight size={18} />
+              {t("اكتشف المطاعم", "Find your table")}
+              <ArrowRight size={20} />
             </a>
-            <small className="home-welcome__hint">
-              <QrCode size={14} />
-              {t(
-                "بالمطعم؟ امسح رمز طاولتك لتطلب مباشرة.",
-                "Dining in? Scan your table’s QR code to order.",
-              )}
-            </small>
+            <div className="home-hero__bottom">
+              <span>01 — 02</span>
+              <span>
+                {t("أكل طيب. لحظات أحلى.", "A little taste of the everyday.")}
+              </span>
+            </div>
           </div>
-          <div className="home-welcome__art" aria-hidden="true">
-            <span className="home-art__shape" />
+          <div className="home-hero__photo">
             <img
-              className="home-art__plate"
-              src={images.salad}
-              alt=""
+              src="/images/table.webp"
+              alt={t(
+                "سُفرة غنية بالخضار الطازجة والأطباق الملوّنة",
+                "A colourful meal with fresh vegetables, ready to share",
+              )}
               fetchPriority="high"
+              width="1400"
+              height="933"
             />
-            <img className="home-art__small" src={images.mezze} alt="" />
-            <span className="home-art__label">
-              <Leaf size={16} />
-              {t("على ذوقك", "Made for your taste")}
+            <span className="home-photo-note">
+              <Utensils size={16} />
+              {t("في كل سُفرة، شي بتحبّه", "Something for every appetite")}
             </span>
           </div>
         </section>
-        <section className="home-restaurants" id="restaurants">
+        <section
+          className="home-restaurants"
+          id="restaurants"
+          aria-labelledby="restaurants-title"
+        >
           <header>
             <div>
-              <span className="home-eyebrow">
-                {t(
-                  "اختار المكان، والباقي على ذوقك",
-                  "Find your next favourite",
-                )}
+              <span className="home-kicker">
+                {t("أماكن بتستاهل تجرّبها", "THE PLACES. THE FLAVOURS.")}
               </span>
-              <h2>{t("وين حابب تطلب؟", "Where would you like to order?")}</h2>
+              <h2 id="restaurants-title">
+                {t("اليوم، شو عبالك؟", "What are you in the mood for?")}
+              </h2>
             </div>
             <span className="home-section-note">
-              <Utensils size={15} />
-              {t("تصفح، اختار، واطلب", "Browse, choose, enjoy")}
+              {t("اختار مطعمك وافتح المنيو", "Pick a place. Explore the menu.")}
             </span>
           </header>
           <div className="home-venues">
@@ -151,76 +153,70 @@ export default function LandingPage({
                 onClick={() => onOpenCafe(venue.slug)}
               >
                 <div className="home-venue__photo">
-                  <img src={venue.image} alt="" loading="lazy" />
-                  <span>{t(venue.kindAr, venue.kindEn)}</span>
+                  <img
+                    src={venue.image}
+                    alt=""
+                    loading="lazy"
+                    width="1400"
+                    height="933"
+                  />
+                  <span className="home-venue__number">{venue.number}</span>
                 </div>
                 <div className="home-venue__body">
-                  <span className="home-venue__seal">{venue.letter}</span>
-                  <div>
-                    <h3>{t(venue.nameAr, venue.nameEn)}</h3>
-                    <p>{t(venue.descriptionAr, venue.descriptionEn)}</p>
-                    <small>
-                      <MapPin size={12} />
-                      {t("دمشق", "Damascus")}
-                    </small>
-                  </div>
-                  <span className="home-venue__go">
-                    <ArrowRight size={20} />
+                  <span className="home-kicker">
+                    {t(venue.kindAr, venue.kindEn)}
+                  </span>
+                  <h3>{t(venue.nameAr, venue.nameEn)}</h3>
+                  <p>{t(venue.descriptionAr, venue.descriptionEn)}</p>
+                  <span className="home-venue__action">
+                    {t("افتح المنيو", "Explore menu")}
+                    <ArrowRight size={19} />
                   </span>
                 </div>
               </button>
             ))}
           </div>
         </section>
-        <section className="home-how">
-          <div>
-            <span className="home-how__icon">
-              <QrCode />
+        <section className="home-table">
+          <div className="home-table__intro">
+            <span className="home-table__qr">
+              <QrCode size={30} strokeWidth={1.5} />
             </span>
-            <h3>{t("افتح المنيو", "Open the menu")}</h3>
-            <p>
-              {t(
-                "امسح رمز الطاولة، أو اختار مطعمك من هون.",
-                "Scan the table QR code or choose a restaurant here.",
-              )}
-            </p>
+            <div>
+              <h2>{t("قاعد بالمطعم؟", "Already at the table?")}</h2>
+              <p>
+                {t(
+                  "امسح رمز طاولتك. المنيو والطلب صاروا بإيدك.",
+                  "Scan your table’s QR code. Your menu is right here.",
+                )}
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="home-how__icon">
-              <Utensils />
-            </span>
-            <h3>{t("اختار على ذوقك", "Make it yours")}</h3>
-            <p>
-              {t(
-                "شوف التفاصيل والإضافات، وجهّز طلبك بسهولة.",
-                "Explore the dishes and customise your favourites.",
-              )}
-            </p>
-          </div>
-          <div>
-            <span className="home-how__icon">
-              <ShoppingBag />
-            </span>
-            <h3>{t("اطلب وتابع", "Order and follow along")}</h3>
-            <p>
-              {t(
-                "راجع السلة وتفاصيل الاستلام، وتابع حالة طلبك.",
-                "Review your basket, choose collection, and track your order.",
-              )}
-            </p>
-          </div>
+          <ol>
+            <li>
+              <span>01</span>
+              {t("افتح المنيو", "Explore the menu")}
+            </li>
+            <li>
+              <span>02</span>
+              {t("اختار على ذوقك", "Make it yours")}
+            </li>
+            <li>
+              <span>03</span>
+              {t("اطلب وتابع", "Order & follow along")}
+              <ShoppingBag size={17} />
+            </li>
+          </ol>
         </section>
       </main>
       <footer className="home-footer">
-        <span>
-          {PLATFORM_NAME}
-          <small>
-            {t("تجربة أبسط، منيو ألطف.", "A simpler way to order.")}
-          </small>
-        </span>
+        <a className="home-brand" href="/">
+          SYRIAN<span className="home-brand__qr">QR</span>
+        </a>
+        <p>{t("طعم بيجمعنا.", "Good food brings us together.")}</p>
         <button onClick={onOpenAdmin}>
           {t("مساحة عمل المطعم", "Restaurant workspace")}
-          <ArrowUpRight size={14} />
+          <ArrowUpRight size={15} />
         </button>
       </footer>
     </div>
