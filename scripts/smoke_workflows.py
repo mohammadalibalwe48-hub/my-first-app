@@ -98,7 +98,7 @@ with sync_playwright() as p:
             assert page.get_by_role('button',name='Accept order').count()==0
         else:
             page.get_by_text('خصم على الأصناف %',exact=True).wait_for()
-            page.goto(BASE+'/admin/sufra/orders');page.locator('.workspace-order-row').first.click();page.get_by_role('dialog').wait_for();page.get_by_role('button',name='إغلاق الملف',exact=True).click();assert page.get_by_role('dialog').count()==0
+            page.goto(BASE+'/admin/sufra/orders');page.locator('.workspace-order-row').first.click();page.get_by_role('dialog').wait_for();page.locator('button[aria-label="إغلاق الملف"]').click();assert page.get_by_role('dialog').count()==0
             page.goto(BASE+'/admin/sufra/menu');page.get_by_role('button',name='إضافة صنف',exact=False).first.click()
             page.get_by_text('جدولة توفر الصنف',exact=True).wait_for()
         context.close();print('PASS',role,'workspace and permissions')
