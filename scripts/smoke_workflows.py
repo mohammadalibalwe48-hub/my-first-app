@@ -59,11 +59,13 @@ with sync_playwright() as p:
     page.get_by_role('button',name='Add Test dish',exact=False).click()
     page.get_by_role('button',name='Open basket',exact=False).first.click()
     page.get_by_role('button',name='Continue to checkout',exact=False).click()
-    page.get_by_role('button',name='Takeaway',exact=False).click()
+    page.get_by_role('button',name='Takeaway',exact=False).click();page.get_by_role('button',name='Continue',exact=True).click()
     page.locator('input[name=customer]').fill('Test customer');page.locator('input[name=phone]').fill('0900000000')
     page.get_by_label('Remember my name, phone and address on this device only').check()
     assert page.locator('.cx-checkout__sum').inner_text().find('10,350')>=0
     assert page.locator('input[name=payment]').count()==1,'Unconfigured wallets shown'
+    page.get_by_role('button',name='Continue',exact=True).click()
+    assert not state['submissions'],'Advancing checkout submitted an order without final confirmation'
     state['fail_submit']=True;page.get_by_role('button',name='Place order',exact=True).click()
     page.get_by_role('button',name='Retry order',exact=True).wait_for();assert page.locator('input[name=phone]').input_value()=='0900000000'
     state['fail_submit']=False;page.get_by_role('button',name='Retry order',exact=True).click()
@@ -73,8 +75,9 @@ with sync_playwright() as p:
     state['status']='completed';page.evaluate('window.dispatchEvent(new Event("focus"))');page.get_by_role('button',name='Reorder at current prices').wait_for()
     page.get_by_role('button',name='Reorder at current prices').click();page.get_by_role('button',name='Continue to checkout',exact=False).click()
     assert page.locator('input[name=phone]').input_value()=='0900000000'
+    page.get_by_role('button',name='Delivery',exact=False).click();assert '12,350' in page.locator('.cx-checkout__sum').inner_text();page.get_by_role('button',name='Continue',exact=True).click()
     page.get_by_label('Remember my name, phone and address on this device only').uncheck();assert page.evaluate('localStorage.getItem("syrianqr-checkout-v1-sufra")') is None
-    page.get_by_role('button',name='Delivery',exact=False).click();assert '12,350' in page.locator('.cx-checkout__sum').inner_text()
+    assert '12,350' in page.locator('.cx-checkout__sum').inner_text()
     assert not errors,errors
     context.close()
     print('PASS customer checkout, accurate totals, failure recovery, idempotent retry, preferences, live history, and reorder')
@@ -83,7 +86,7 @@ with sync_playwright() as p:
         page=context.new_page();page.on('pageerror',lambda error:errors.append(str(error)))
         page.goto(BASE+'/admin/sufra/'+view)
         if role=='kitchen':
-            page.get_by_role('heading',name='Kitchen display').wait_for();page.get_by_role('button',name='Accept order').click()
+            page.get_by_role('heading',name='Kitchen display').wait_for();page.locator('.workstation-stage-tabs').get_by_role('button',name='Ready',exact=True).click();page.locator('.adm-workstation .adm-empty').wait_for();page.locator('.workstation-stage-tabs').get_by_role('button',name='All orders',exact=True).click();page.get_by_role('button',name='Accept order').click()
             assert state['patches'][-1]['p_patch']=={'status':'confirmed'}
             assert page.get_by_role('button',name='Confirm payment received').count()==0
             page.get_by_role('button',name='Test dish Available').click()
@@ -95,6 +98,7 @@ with sync_playwright() as p:
             assert page.get_by_role('button',name='Accept order').count()==0
         else:
             page.get_by_text('خصم على الأصناف %',exact=True).wait_for()
+            page.goto(BASE+'/admin/sufra/orders');page.locator('.workspace-order-row').first.click();page.get_by_role('dialog').wait_for();page.get_by_role('button',name='إغلاق الملف',exact=True).click();assert page.get_by_role('dialog').count()==0
             page.goto(BASE+'/admin/sufra/menu');page.get_by_role('button',name='إضافة صنف',exact=False).first.click()
             page.get_by_text('جدولة توفر الصنف',exact=True).wait_for()
         context.close();print('PASS',role,'workspace and permissions')

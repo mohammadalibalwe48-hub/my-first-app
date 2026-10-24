@@ -7,8 +7,10 @@ export default function StaffAuthModal({
   language,
   onClose,
   onSuccess,
+  inline = false,
 }: {
   language: "ar" | "en";
+  inline?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -20,12 +22,13 @@ export default function StaffAuthModal({
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    if (inline) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, inline]);
 
   const finishInitialOwnerOnboarding = async (signedInEmail: string) => {
     if (signedInEmail.toLowerCase() !== ownerEmail) return true;
@@ -132,20 +135,15 @@ export default function StaffAuthModal({
     );
   };
 
-  return (
+  const card = (
     <div
-      className="modal-backdrop"
-      dir={en ? "ltr" : "rtl"}
-      lang={language}
-      onMouseDown={onClose}
+      className="modal modal--narrow auth-card"
+      role={inline ? undefined : "dialog"}
+      aria-modal={inline ? undefined : true}
+      aria-labelledby="staff-auth-title"
+      onMouseDown={(event) => event.stopPropagation()}
     >
-      <div
-        className="modal modal--narrow auth-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="staff-auth-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+      {!inline && (
         <button
           className="modal__close"
           onClick={onClose}
@@ -153,86 +151,99 @@ export default function StaffAuthModal({
         >
           <X />
         </button>
-        <span
-          className="section-kicker"
-          style={{ justifyContent: "center", marginTop: "6px" }}
-        >
-          {en ? "Staff access" : "دخول الموظفين"}
-        </span>
-        <h2 id="staff-auth-title">
-          {en ? "Restaurant dashboard" : "لوحة المطعم"}
-        </h2>
-        <p>
-          {en
-            ? "Use the staff account provided by your restaurant owner. Guests do not need an account."
-            : "استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب."}
-        </p>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void signIn();
-          }}
-        >
-          <label className="form-field">
-            <span>{en ? "Email address" : "البريد الإلكتروني"}</span>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="name@restaurant.com"
-            />
-          </label>
-          <label className="form-field">
-            <span>{en ? "Password" : "كلمة المرور"}</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder={en ? "Password" : "كلمة المرور"}
-            />
-          </label>
-          {message && <div className="auth-msg">{message}</div>}
-          <button className="btn btn--gold" type="submit" disabled={loading}>
-            {loading
-              ? en
-                ? "Signing in…"
-                : "جارٍ تسجيل الدخول…"
-              : en
-                ? "Sign in"
-                : "تسجيل الدخول"}
-          </button>
-          {email.trim().toLowerCase() === ownerEmail && (
-            <button
-              className="btn btn--outline"
-              type="button"
-              disabled={loading || password.length < 6}
-              onClick={() => void signUpInitialOwner()}
-            >
-              {en
-                ? "Create the initial owner account"
-                : "إنشاء حساب المالك لأول مرة"}
-            </button>
-          )}
+      )}
+      <span
+        className="section-kicker"
+        style={{ justifyContent: "center", marginTop: "6px" }}
+      >
+        {en ? "Staff access" : "دخول الموظفين"}
+      </span>
+      <h2 id="staff-auth-title">
+        {en ? "Restaurant dashboard" : "لوحة المطعم"}
+      </h2>
+      <p>
+        {en
+          ? "Use the staff account provided by your restaurant owner. Guests do not need an account."
+          : "استخدم حساب الموظف الذي أضافه مالك المطعم. لا يحتاج الزبائن إلى حساب."}
+      </p>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void signIn();
+        }}
+      >
+        <label className="form-field">
+          <span>{en ? "Email address" : "البريد الإلكتروني"}</span>
+          <input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="name@restaurant.com"
+          />
+        </label>
+        <label className="form-field">
+          <span>{en ? "Password" : "كلمة المرور"}</span>
+          <input
+            type="password"
+            autoComplete="current-password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder={en ? "Password" : "كلمة المرور"}
+          />
+        </label>
+        {message && <div className="auth-msg">{message}</div>}
+        <button className="btn btn--gold" type="submit" disabled={loading}>
+          {loading
+            ? en
+              ? "Signing in…"
+              : "جارٍ تسجيل الدخول…"
+            : en
+              ? "Sign in"
+              : "تسجيل الدخول"}
+        </button>
+        {email.trim().toLowerCase() === ownerEmail && (
           <button
-            className="link-btn"
+            className="btn btn--outline"
             type="button"
-            disabled={loading}
-            onClick={() => void resetPassword()}
+            disabled={loading || password.length < 6}
+            onClick={() => void signUpInitialOwner()}
           >
-            {en ? "Forgot password?" : "نسيت كلمة المرور؟"}
+            {en
+              ? "Create the initial owner account"
+              : "إنشاء حساب المالك لأول مرة"}
           </button>
-        </form>
-        <small>
-          {en
-            ? "For restaurant staff. Contact your restaurant owner if you need access."
-            : "حساب مخصص لفريق المطعم. تواصل مع مالك المطعم إذا كنت تحتاج صلاحية دخول."}
-        </small>
-      </div>
+        )}
+        <button
+          className="link-btn"
+          type="button"
+          disabled={loading}
+          onClick={() => void resetPassword()}
+        >
+          {en ? "Forgot password?" : "نسيت كلمة المرور؟"}
+        </button>
+      </form>
+      <small>
+        {en
+          ? "For restaurant staff. Contact your restaurant owner if you need access."
+          : "حساب مخصص لفريق المطعم. تواصل مع مالك المطعم إذا كنت تحتاج صلاحية دخول."}
+      </small>
+    </div>
+  );
+  return inline ? (
+    <div className="inline-staff-auth" dir={en ? "ltr" : "rtl"}>
+      {card}
+    </div>
+  ) : (
+    <div
+      className="modal-backdrop"
+      dir={en ? "ltr" : "rtl"}
+      onMouseDown={onClose}
+    >
+      {card}
     </div>
   );
 }

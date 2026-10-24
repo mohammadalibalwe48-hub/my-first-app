@@ -1,33 +1,36 @@
-# Olive Table design system
+# SYRIAN QR — food app experience
 
-SYRIAN QR uses the supplied restaurant-menu references as inspiration: an olive navigation rail, a warm cream canvas, large rectangular food photography, thin card borders, pill categories, and a clear basket action. This is a responsive adaptation for the existing production ordering application, not a replica of the reference brands.
+The chosen direction is the user's white-and-coral mobile food-app reference. This release replaces the customer component tree and old stylesheet stack, rather than applying another theme to the previous interface.
 
-## Foundations
+## Components and ownership
 
-- Canvas: `#f5f2e9`; paper: `#fffcf5`.
-- Olive: `#657353`; strong ink: `#35432b`.
-- Ordering action: terracotta `#b65035`; hover: `#943d27`.
-- English display: DM Serif Display; English interface: DM Sans.
-- Arabic editorial display: Amiri; Arabic interface and operational headings: Tajawal.
-- Use existing Lucide outline icons for actual controls. Keep restaurant photos and descriptions from the backend. The generated sharing-table photo is an editorial landing-page illustration, not a menu-item replacement.
+- `src/components/AppKit.tsx`: buttons, icon buttons, image/error fallback, section headings, empty states and dialog headings.
+- `src/features/customer/Experience.tsx`: restaurant profile, search/filter/saved-dish browsing, food cards, dish selection, basket, order feed and tracking.
+- `src/features/customer/core.tsx`: currency display, quantity control and accessible overlay lifecycle.
+- `src/features/customer/app.css`: the customer component styles, including guided checkout. The previous customer.css/mobile/refresh/atlas stylesheets are removed.
+- `src/features/CustomerUI.tsx`: checkout's existing validated controller and form fields, now exposed as fulfilment → details → payment steps.
+- `src/pages/CafeLayout.tsx`: new app navigation, restaurant context, desktop basket rail, mobile basket action and notifications.
+- `src/landing/LandingPage.tsx`: restaurant discovery with working name/cuisine search and place-type filters.
+- `src/features/WorkspaceShell.tsx`: restaurant switcher, workspace navigation, account menu, notification shortcut and command header.
+- `src/features/AdminUI.tsx`: redesigned overview with actual metrics, queue and service status; searchable order inbox replaces the seven-column board. Existing protected editors and order actions remain connected.
+- `src/features/StaffWorkstation.tsx`: kitchen preparation-stage and cashier payment-stage filters, within the shared workspace.
+- `src/features/workspace-app.css`: workspace and direct staff sign-in components. Previous forest/olive overrides and the old promotional entry styles are removed.
+- `src/pages/platform/platform-app.css`: platform-owner navigation and owner-console component system.
 
-## Responsive behavior
+## Experience rules
 
-- Restaurant menu above 900px: sticky olive category sidebar and inset cream content.
-- Product grid: four columns from 1350px; three from 600px; two below 600px.
-- Below 900px: categories become a horizontal rail; existing mobile menu, history and basket navigation remain available.
-- Restaurant changes start at the top of the menu. Opening dish details preserves the browsing position.
-- Dialogs contain their own scrolling, retain keyboard focus, restore their trigger on dismissal, and keep primary actions reachable.
+- Saved dishes persist locally, scoped to the restaurant. Invalid stored preference shapes are ignored.
+- Dish options and quantity determine the displayed total. Required/minimum/maximum selections are enforced before adding.
+- The basket is dismissed before checkout opens; only one dialog is active.
+- Checkout's Continue controls cannot submit the order. The final confirmation is a separate button/DOM identity. Required fields are validated at the details boundary and again before submission.
+- Existing server totals, discount/tax/service/delivery calculations, verified QR table context, geofence checks, submission idempotency and retry behaviour remain authoritative.
+- Orders retain their receipts, live status, cancellation information and current-price reorder flow.
+- Owner/manager/kitchen/cashier permissions, push notifications and session recovery remain in place.
+- Setup is available in a collapsed dashboard section; service information has priority.
+- Mobile workspace navigation follows the selected section as counts, fonts and viewport dimensions change.
 
-## Style ownership
+## Visual foundation
 
-- `src/landing/landing.css`: full public landing page.
-- `src/features/customer-atlas.css`: current customer presentation; imported after the existing ordering component styles so checkout and tracking behavior is preserved.
-- `src/features/olive-workspace.css`: restaurant workspace, kitchen, cashier, entry and staff sign-in presentation.
-- `src/pages/platform/platform-atlas.css`: platform owner console and asset library presentation.
+White surfaces, light neutral backgrounds, coral actions and warm accents; DM Sans for English UI and Tajawal for Arabic. Large rectangular food images, compact navigation, clear product pricing, contained dialogs and focus indicators. Existing restaurant image/content data stays attached to its restaurant. No fake ratings, nutrition, discounts, estimated delivery promises or production fixture records are added.
 
-Do not restore saved Design Studio appearance attributes or add a theme editor. Preserve ordering validation, verified table context, role permissions, notifications, session recovery and persistence when changing presentation.
-
-## Verification
-
-The browser regressions cover responsive grids, restaurant navigation scroll, long dish names and prices, missing image fallback, dish choices, basket editing, checkout, focus containment, all nine admin tabs, staff roles, notifications, and session recovery. API fixtures are mocked; they do not create production orders. Screenshots were reviewed in Arabic and English on mobile and desktop. Physical Safari/iPhone verification remains separate from Chromium viewport testing.
+Responsive product grids use two columns on phones, three on tablets, and two or three alongside the desktop order rail. Mobile keeps menu/orders/basket navigation reachable. The PWA/browser theme and recovery surfaces use the new app materials.

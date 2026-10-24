@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+} from "react";
 import {
   ArrowLeft,
   Check,
@@ -18,9 +24,9 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { supabase } from "../../supabase";
 import "./platform.css";
-import "./platform-redesign.css";
+
 import "./assets.css";
-import "./platform-atlas.css";
+import "./platform-app.css";
 
 const BUCKET = "syrianqr-site-assets";
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -35,7 +41,8 @@ type MediaAsset = {
 
 const prettySize = (bytes?: number) => {
   if (!bytes || bytes < 1) return "حجم غير معروف";
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} ك.ب`;
+  if (bytes < 1024 * 1024)
+    return `${Math.max(1, Math.round(bytes / 1024))} ك.ب`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} م.ب`;
 };
 
@@ -52,7 +59,10 @@ export default function AssetLibraryPage() {
   const [uploadProgress, setUploadProgress] = useState("");
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
   const [copiedPath, setCopiedPath] = useState("");
 
   const loadAssets = useCallback(async () => {
@@ -79,7 +89,9 @@ export default function AssetLibraryPage() {
   const visibleAssets = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return assets;
-    return assets.filter((asset) => displayName(asset).toLowerCase().includes(needle));
+    return assets.filter((asset) =>
+      displayName(asset).toLowerCase().includes(needle),
+    );
   }, [assets, query]);
 
   const uploadFiles = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -89,12 +101,16 @@ export default function AssetLibraryPage() {
 
     const rejected = files.filter((file) => {
       const isSvg = file.name.toLowerCase().endsWith(".svg");
-      return (!file.type.startsWith("image/") && !isSvg) || file.size > MAX_FILE_BYTES;
+      return (
+        (!file.type.startsWith("image/") && !isSvg) ||
+        file.size > MAX_FILE_BYTES
+      );
     });
     if (rejected.length) {
       setNotice({
         kind: "error",
-        text: "ارفع صوراً فقط (ومنها SVG)، وبحجم أقصى ١٥ م.ب لكل ملف. الملفات غير الصالحة: " +
+        text:
+          "ارفع صوراً فقط (ومنها SVG)، وبحجم أقصى ١٥ م.ب لكل ملف. الملفات غير الصالحة: " +
           rejected.map((file) => file.name).join("، "),
       });
       return;
@@ -105,7 +121,9 @@ export default function AssetLibraryPage() {
     const failures: string[] = [];
     let uploaded = 0;
     for (const [index, file] of files.entries()) {
-      setUploadProgress(`جارٍ رفع ${index + 1} من ${files.length}: ${file.name}`);
+      setUploadProgress(
+        `جارٍ رفع ${index + 1} من ${files.length}: ${file.name}`,
+      );
       const safeName = file.name
         .normalize("NFKC")
         .replace(/[\\/\u0000-\u001f]/g, "-")
@@ -125,20 +143,30 @@ export default function AssetLibraryPage() {
     setUploadProgress("");
     setNotice(
       failures.length
-        ? { kind: "error", text: `${uploaded} اكتمل رفعها. تعذّر رفع: ${failures.join(" · ")}` }
-        : { kind: "success", text: `تم رفع ${uploaded} ${uploaded === 1 ? "ملف" : "ملفات"} إلى مكتبة الموقع.` },
+        ? {
+            kind: "error",
+            text: `${uploaded} اكتمل رفعها. تعذّر رفع: ${failures.join(" · ")}`,
+          }
+        : {
+            kind: "success",
+            text: `تم رفع ${uploaded} ${uploaded === 1 ? "ملف" : "ملفات"} إلى مكتبة الموقع.`,
+          },
     );
     await loadAssets();
   };
 
   const copyUrl = async (asset: MediaAsset) => {
-    const url = supabase.storage.from(BUCKET).getPublicUrl(asset.name).data.publicUrl;
+    const url = supabase.storage.from(BUCKET).getPublicUrl(asset.name)
+      .data.publicUrl;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedPath(asset.name);
       window.setTimeout(() => setCopiedPath(""), 1800);
     } catch {
-      setNotice({ kind: "error", text: "تعذّر نسخ الرابط. افتح الصورة وانسخ عنوانها من المتصفح." });
+      setNotice({
+        kind: "error",
+        text: "تعذّر نسخ الرابط. افتح الصورة وانسخ عنوانها من المتصفح.",
+      });
     }
   };
 
@@ -167,11 +195,20 @@ export default function AssetLibraryPage() {
     <div className="px pa-page" dir={dir}>
       <header className="pa-topbar">
         <div className="pa-brand">
-          <span className="pa-brand__mark"><Images aria-hidden /></span>
-          <span><b>SYRIAN QR</b><small>مكتبة أصول الموقع</small></span>
+          <span className="pa-brand__mark">
+            <Images aria-hidden />
+          </span>
+          <span>
+            <b>SYRIAN QR</b>
+            <small>مكتبة أصول الموقع</small>
+          </span>
         </div>
         <div className="pa-topbar__actions">
-          <button type="button" className="px-btn px-btn--ghost" onClick={() => navigate("/platform")}>
+          <button
+            type="button"
+            className="px-btn px-btn--ghost"
+            onClick={() => navigate("/platform")}
+          >
             <ArrowLeft aria-hidden /> لوحة المنصة
           </button>
           <button
@@ -188,11 +225,18 @@ export default function AssetLibraryPage() {
       <main className="pa-main">
         <div className="pa-heading">
           <div>
-            <p className="px-eyebrow"><ShieldCheck aria-hidden /> مساحة مالك الموقع</p>
+            <p className="px-eyebrow">
+              <ShieldCheck aria-hidden /> مساحة مالك الموقع
+            </p>
             <h1>مكتبة الصور والملفات</h1>
-            <p>ارفع شعاراتك وصورك مرة واحدة، ثم انسخ الرابط المباشر لاستخدامه في الموقع أو قوائم المطاعم.</p>
+            <p>
+              ارفع شعاراتك وصورك مرة واحدة، ثم انسخ الرابط المباشر لاستخدامه في
+              الموقع أو قوائم المطاعم.
+            </p>
           </div>
-          <span className="pa-count"><Images aria-hidden /> {assets.length} ملف</span>
+          <span className="pa-count">
+            <Images aria-hidden /> {assets.length} ملف
+          </span>
         </div>
 
         <section className="pa-upload" aria-label="رفع ملفات الصور">
@@ -205,68 +249,163 @@ export default function AssetLibraryPage() {
               disabled={uploading}
               onChange={(event) => void uploadFiles(event)}
             />
-            <span className="pa-drop__icon">{uploading ? <Loader2 className="px-spin" /> : <UploadCloud />}</span>
-            <span className="pa-drop__copy">
-              <b>{uploading ? uploadProgress : "اختر صوراً لرفعها إلى الموقع"}</b>
-              <small>PNG · JPG · WEBP · GIF · AVIF · SVG — حتى ١٥ م.ب للملف</small>
+            <span className="pa-drop__icon">
+              {uploading ? <Loader2 className="px-spin" /> : <UploadCloud />}
             </span>
-            <span className="px-btn px-btn--solid pa-drop__button">{uploading ? "جارٍ الرفع…" : "اختيار ملفات"}</span>
+            <span className="pa-drop__copy">
+              <b>
+                {uploading ? uploadProgress : "اختر صوراً لرفعها إلى الموقع"}
+              </b>
+              <small>
+                PNG · JPG · WEBP · GIF · AVIF · SVG — حتى ١٥ م.ب للملف
+              </small>
+            </span>
+            <span className="px-btn px-btn--solid pa-drop__button">
+              {uploading ? "جارٍ الرفع…" : "اختيار ملفات"}
+            </span>
           </label>
-          <p className="pa-upload__note"><ShieldCheck aria-hidden /> الرفع والحذف متاحان لحساب مالك المنصة فقط. الروابط بعد الرفع عامة لعرض الصور على الموقع.</p>
+          <p className="pa-upload__note">
+            <ShieldCheck aria-hidden /> الرفع والحذف متاحان لحساب مالك المنصة
+            فقط. الروابط بعد الرفع عامة لعرض الصور على الموقع.
+          </p>
         </section>
 
         {notice && (
-          <div className={`pa-notice is-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
-            {notice.kind === "success" ? <Check aria-hidden /> : <FileImage aria-hidden />}
+          <div
+            className={`pa-notice is-${notice.kind}`}
+            role={notice.kind === "error" ? "alert" : "status"}
+          >
+            {notice.kind === "success" ? (
+              <Check aria-hidden />
+            ) : (
+              <FileImage aria-hidden />
+            )}
             <span>{notice.text}</span>
-            <button type="button" onClick={() => setNotice(null)} aria-label="إغلاق">×</button>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              aria-label="إغلاق"
+            >
+              ×
+            </button>
           </div>
         )}
 
         {loadError && (
           <div className="pa-storage-error" role="alert">
-            <div className="pa-storage-error__icon"><FileImage aria-hidden /></div>
+            <div className="pa-storage-error__icon">
+              <FileImage aria-hidden />
+            </div>
             <div>
               <b>تحتاج المكتبة إلى تهيئة التخزين أولاً</b>
-              <p>تعذّر الوصول إلى مساحة <code>{BUCKET}</code>: {loadError}</p>
-              <p>طبّق ترحيل التخزين الموجود في <code>supabase/migrations</code> من Supabase SQL Editor، ثم أعد المحاولة. سيُنشئ مساحة صور عامة بسياسات رفع وحذف للمالك فقط.</p>
+              <p>
+                تعذّر الوصول إلى مساحة <code>{BUCKET}</code>: {loadError}
+              </p>
+              <p>
+                طبّق ترحيل التخزين الموجود في <code>supabase/migrations</code>{" "}
+                من Supabase SQL Editor، ثم أعد المحاولة. سيُنشئ مساحة صور عامة
+                بسياسات رفع وحذف للمالك فقط.
+              </p>
             </div>
-            <button type="button" className="px-btn px-btn--ghost" onClick={() => void loadAssets()} disabled={loading}>
-              <RefreshCw className={loading ? "px-spin" : ""} aria-hidden /> إعادة المحاولة
+            <button
+              type="button"
+              className="px-btn px-btn--ghost"
+              onClick={() => void loadAssets()}
+              disabled={loading}
+            >
+              <RefreshCw className={loading ? "px-spin" : ""} aria-hidden />{" "}
+              إعادة المحاولة
             </button>
           </div>
         )}
 
         <section className="pa-library" aria-labelledby="pa-library-title">
           <div className="pa-library__head">
-            <div><span className="px-kicker">أصول الموقع</span><h2 id="pa-library-title">الملفات المرفوعة</h2></div>
-            <label className="pa-search"><span className="sr-only">ابحث في الصور</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم الملف…" /></label>
+            <div>
+              <span className="px-kicker">أصول الموقع</span>
+              <h2 id="pa-library-title">الملفات المرفوعة</h2>
+            </div>
+            <label className="pa-search">
+              <span className="sr-only">ابحث في الصور</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ابحث باسم الملف…"
+              />
+            </label>
           </div>
 
           {loading ? (
-            <div className="pa-state" role="status"><Loader2 className="px-spin" aria-hidden /> جارٍ تحميل مكتبة الصور…</div>
+            <div className="pa-state" role="status">
+              <Loader2 className="px-spin" aria-hidden /> جارٍ تحميل مكتبة
+              الصور…
+            </div>
           ) : !loadError && visibleAssets.length === 0 ? (
-            <div className="pa-state pa-state--empty"><span><Images aria-hidden /></span><b>{assets.length ? "لا توجد نتائج مطابقة" : "مكتبتك جاهزة لصورتك الأولى"}</b><p>{assets.length ? "جرّب البحث باسم مختلف." : "ارفع شعار QR SYRIA أو صور المطاعم هنا؛ ستظهر روابطها فوراً لتستخدمها في صفحات الموقع."}</p></div>
+            <div className="pa-state pa-state--empty">
+              <span>
+                <Images aria-hidden />
+              </span>
+              <b>
+                {assets.length
+                  ? "لا توجد نتائج مطابقة"
+                  : "مكتبتك جاهزة لصورتك الأولى"}
+              </b>
+              <p>
+                {assets.length
+                  ? "جرّب البحث باسم مختلف."
+                  : "ارفع شعار QR SYRIA أو صور المطاعم هنا؛ ستظهر روابطها فوراً لتستخدمها في صفحات الموقع."}
+              </p>
+            </div>
           ) : (
             <div className="pa-grid">
               {visibleAssets.map((asset) => {
-                const url = supabase.storage.from(BUCKET).getPublicUrl(asset.name).data.publicUrl;
+                const url = supabase.storage
+                  .from(BUCKET)
+                  .getPublicUrl(asset.name).data.publicUrl;
                 const copied = copiedPath === asset.name;
                 return (
                   <article className="pa-card" key={asset.id ?? asset.name}>
-                    <a className="pa-card__preview" href={url} target="_blank" rel="noreferrer" aria-label={`فتح ${displayName(asset)}`}>
+                    <a
+                      className="pa-card__preview"
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`فتح ${displayName(asset)}`}
+                    >
                       <img src={url} alt={displayName(asset)} loading="lazy" />
-                      <span className="pa-card__open"><ExternalLink aria-hidden /></span>
+                      <span className="pa-card__open">
+                        <ExternalLink aria-hidden />
+                      </span>
                     </a>
                     <div className="pa-card__body">
                       <b title={displayName(asset)}>{displayName(asset)}</b>
-                      <small>{prettySize(asset.metadata?.size)}{asset.metadata?.mimetype ? ` · ${asset.metadata.mimetype}` : ""}</small>
+                      <small>
+                        {prettySize(asset.metadata?.size)}
+                        {asset.metadata?.mimetype
+                          ? ` · ${asset.metadata.mimetype}`
+                          : ""}
+                      </small>
                       <div className="pa-card__actions">
-                        <button type="button" className="px-btn px-btn--solid" onClick={() => void copyUrl(asset)}>
-                          {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+                        <button
+                          type="button"
+                          className="px-btn px-btn--solid"
+                          onClick={() => void copyUrl(asset)}
+                        >
+                          {copied ? (
+                            <Check aria-hidden />
+                          ) : (
+                            <Copy aria-hidden />
+                          )}
                           {copied ? "تم النسخ" : "نسخ الرابط"}
                         </button>
-                        <button type="button" className="px-iconbtn pa-delete" onClick={() => void deleteAsset(asset)} aria-label={`حذف ${displayName(asset)}`} title="حذف الملف">
+                        <button
+                          type="button"
+                          className="px-iconbtn pa-delete"
+                          onClick={() => void deleteAsset(asset)}
+                          aria-label={`حذف ${displayName(asset)}`}
+                          title="حذف الملف"
+                        >
                           <Trash2 aria-hidden />
                         </button>
                       </div>
@@ -277,7 +416,10 @@ export default function AssetLibraryPage() {
             </div>
           )}
         </section>
-        <footer className="pa-foot">مكتبة صور SYRIAN QR <span aria-hidden>·</span> عناوين الملفات مستقرة وقابلة للاستخدام في الموقع العام</footer>
+        <footer className="pa-foot">
+          مكتبة صور SYRIAN QR <span aria-hidden>·</span> عناوين الملفات مستقرة
+          وقابلة للاستخدام في الموقع العام
+        </footer>
       </main>
     </div>
   );

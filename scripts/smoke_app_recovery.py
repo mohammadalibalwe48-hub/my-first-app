@@ -55,10 +55,10 @@ with sync_playwright() as p:
  print('PASS malformed saved basket/history data no longer crashes rendering',flush=True)
  # A healthy background/foreground cycle preserves the page, basket, and form draft.
  c=context(browser);page=c.new_page();page.goto(BASE+'/c/sufra');page.locator('.cx-add').first.click();page.locator('.cx-cartbtn').click();page.locator('.cx-cart__foot button').click()
- page.locator('.cx-mode').nth(1).click();page.locator('input[name=customer]').fill('Unsaved draft');page.evaluate('window.__resumeMarker="same-page";window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}));document.dispatchEvent(new Event("visibilitychange"))')
+ page.locator('.cx-mode').nth(1).click();page.get_by_role('button',name='Continue',exact=True).click();page.locator('input[name=customer]').fill('Unsaved draft');page.evaluate('window.__resumeMarker="same-page";window.dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}));document.dispatchEvent(new Event("visibilitychange"))')
  page.wait_for_timeout(350);assert page.evaluate('window.__resumeMarker')=='same-page';assert page.locator('input[name=customer]').input_value()=='Unsaved draft'
  page.reload();page.locator('.cx-dish').first.wait_for();page.locator('.cx-cartbtn').click();page.locator('.cx-cline').wait_for()
- page.locator('.cx-cart__foot button').click();page.locator('.cx-mode').nth(1).click();page.locator('input[name=customer]').fill('Persistent receipt');page.locator('input[name=phone]').fill('0900000000');page.get_by_role('button',name='Place order',exact=True).click();page.wait_for_url('**/orders');page.reload();page.locator('.cx-livecard').first.wait_for()
+ page.locator('.cx-cart__foot button').click();page.locator('.cx-mode').nth(1).click();page.get_by_role('button',name='Continue',exact=True).click();page.locator('input[name=customer]').fill('Persistent receipt');page.locator('input[name=phone]').fill('0900000000');page.get_by_role('button',name='Continue',exact=True).click();page.get_by_role('button',name='Place order',exact=True).click();page.wait_for_url('**/orders');page.reload();page.locator('.order-receipt').first.wait_for()
  assert page.evaluate('JSON.parse(localStorage.getItem("sufra-orders")).length')==1
  print('PASS healthy tab restoration keeps form state; valid basket and receipt survive reload',flush=True);c.close()
  # Simulate a restored document whose application root was lost.

@@ -36,18 +36,20 @@ with sync_playwright() as p:
    context=browser.new_context(viewport={'width':width,'height':844});context.route('**/*',fixtures['handler']);context.add_init_script('localStorage.setItem("syrianqr-language",'+json.dumps(json.dumps(lang))+')')
    page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
    page.goto(BASE);page.locator('.home-venue').first.wait_for();check_bounds(page)
-   page.locator('.home-hero__photo img').evaluate('(e)=>e.decode()')
-   assert page.locator('.home-hero__photo img').evaluate('e=>e.naturalWidth>0'),'Landing photo did not load'
+   page.locator('.featured-place img').evaluate('(e)=>e.decode()')
+   assert page.locator('.featured-place img').evaluate('e=>e.naturalWidth>0'),'Landing photo did not load'
+   page.locator('.discovery-search input').fill('no-restaurant-matches');page.locator('.ui-empty').wait_for();page.locator('.ui-empty button').click();assert page.locator('.home-venue').count()==2;page.locator('.discovery-filters button').nth(2).click();assert page.locator('.home-venue').count()==1;page.locator('.discovery-filters button').first.click()
    page.locator('.home-venue').first.click();page.locator('.cx-dish').first.wait_for();check_bounds(page)
    assert page.locator('.cx').get_attribute('data-cd-cards') is None,'Legacy design still controls cards'
    assert page.locator('.cx-head').bounding_box()['y']<=1,'Opening a restaurant keeps the old page scroll position'
    assert page.evaluate('window.scrollY')<2
    columns=page.locator('.cx-grid').evaluate('e=>getComputedStyle(e).gridTemplateColumns.split(" ").length')
-   assert columns==(2 if width<600 else 3),('Wrong menu grid',width,columns)
-   if width>900: assert page.locator('.cx-menu-aside').is_visible()
-   else: assert not page.locator('.cx-menu-aside').is_visible()
-   page.locator('.cx-dish').nth(2).locator('.has-missing-photo').wait_for()
+   assert columns==(3 if 600<=width<=900 else 2),('Wrong menu grid',width,columns)
+   if width>900: assert page.locator('.desktop-order-rail').is_visible()
+   else: assert not page.locator('.desktop-order-rail').is_visible()
+   page.locator('.cx-dish').nth(2).locator('.is-missing').wait_for()
    assert page.locator('.cx-dish').nth(2).locator('.cx-photo-fallback').is_visible()
+   page.locator('.product-save').first.click();page.locator('.saved-toggle').click();assert page.locator('.cx-dish').count()==1;page.locator('.saved-toggle').click();assert page.locator('.cx-dish').count()==5
    search=page.locator('.cx-search input');search.fill('no-dish-matches');page.locator('.cx-empty').wait_for();page.locator('.cx-empty button').click();page.locator('.cx-dish').first.wait_for()
    page.locator('.cx-dish__media').nth(1).click();page.get_by_role('dialog').wait_for();check_bounds(page);focus_in_dialog(page)
    add=page.locator('.cx-item__add');assert add.is_disabled(),'Required modifier not enforced'
@@ -58,7 +60,7 @@ with sync_playwright() as p:
    page.locator('.cx-cline__remove').click();assert page.locator('.cx-cline').count()==0
    page.locator('.cx-cart .cx-close').click();page.locator('.cx-dish .cx-add').first.click();page.locator('.cx-cartbtn').click();page.locator('.cx-cart__foot button').click()
    page.get_by_role('dialog').wait_for();check_bounds(page);focus_in_dialog(page)
-   page.locator('.cx-mode').nth(1).click();page.locator('input[name=customer]').fill('Guest fixture');page.locator('input[name=phone]').fill('0900000000');check_bounds(page)
+   page.locator('.cx-mode').nth(1).click();page.locator('.cx-checkout__foot .cx-btn').click();page.locator('input[name=customer]').fill('Guest fixture');page.locator('input[name=phone]').fill('0900000000');check_bounds(page)
    assert not errors,errors
    context.close();print('PASS storefront, home, modifiers, basket removal, checkout, focus and bounds:',width,lang,flush=True)
  # Removal is complete for owner navigation and old bookmarks.

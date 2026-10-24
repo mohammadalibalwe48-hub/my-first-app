@@ -37,6 +37,7 @@ export default function StaffWorkstation({
   const en = language === "en";
   const t = (ar: string, english: string) => (en ? english : ar);
   const [query, setQuery] = useState("");
+  const [stage, setStage] = useState("all");
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -59,6 +60,15 @@ export default function StaffWorkstation({
   const canKitchen = ["owner", "manager", "kitchen"].includes(role);
   const canCashier = ["owner", "manager", "cashier"].includes(role);
   const visible = orders
+    .filter(
+      (o) =>
+        stage === "all" ||
+        (view === "kitchen"
+          ? stage === "new"
+            ? ["received", "confirmed"].includes(o.status)
+            : o.status === stage
+          : o.paymentStatus === stage),
+    )
     .filter(
       (o) =>
         (view === "kitchen"
@@ -152,6 +162,33 @@ export default function StaffWorkstation({
           </span>
         }
       />
+      <nav
+        className="workstation-stage-tabs"
+        aria-label={t("تصفية سير العمل", "Filter service stage")}
+      >
+        {(kitchen
+          ? [
+              { id: "all", a: "كل الطلبات", e: "All orders" },
+              { id: "new", a: "جديدة", e: "New" },
+              { id: "preparing", a: "قيد التحضير", e: "Preparing" },
+              { id: "ready", a: "جاهزة", e: "Ready" },
+            ]
+          : [
+              { id: "all", a: "كل الفواتير", e: "All bills" },
+              { id: "pending", a: "بانتظار الدفع", e: "Awaiting payment" },
+              { id: "verified", a: "مدفوعة", e: "Paid" },
+            ]
+        ).map((s) => (
+          <button
+            key={s.id}
+            className={stage === s.id ? "is-on" : ""}
+            aria-pressed={stage === s.id}
+            onClick={() => setStage(s.id)}
+          >
+            {t(s.a, s.e)}
+          </button>
+        ))}
+      </nav>
       <div className="adm-toolbar">
         <label className="adm-search">
           <Search aria-hidden="true" />
