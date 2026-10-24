@@ -1,5 +1,5 @@
 import { useCustomerText } from "../features/customerText";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import {
   Outlet,
   useLocation,
@@ -58,6 +58,11 @@ function CafeShell() {
   const { slug, restaurant } = cafe;
   const navigate = useNavigate();
   const location = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    document.getElementById("cx-main")?.focus({ preventScroll: true });
+  }, [location.pathname]);
 
   const [scrolled, setScrolled] = useState(false);
   const [showTop, setShowTop] = useState(false);
@@ -168,7 +173,11 @@ function CafeShell() {
               {logoUrl ? <img src={logoUrl} alt="" /> : restaurant.logo || "م"}
             </span>
             <span className="cx-brand__id">
-              <b>{restaurant.name}</b>
+              <b>
+                {language === "en"
+                  ? restaurant.nameEn || restaurant.name
+                  : restaurant.name}
+              </b>
               <small>
                 <MapPin size={11} strokeWidth={2.6} aria-hidden="true" />
                 {locationLabel}
@@ -240,7 +249,7 @@ function CafeShell() {
         </div>
       </header>
 
-      <main id="cx-main" className="cx-main">
+      <main id="cx-main" className="cx-main" tabIndex={-1}>
         <div className="cx-page" key={location.pathname}>
           <Outlet />
         </div>

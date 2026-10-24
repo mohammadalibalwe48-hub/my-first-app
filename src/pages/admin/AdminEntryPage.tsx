@@ -17,6 +17,7 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import StaffAuthModal from "../../features/StaffAuthModal";
 import "./admin-entry.css";
+import "../../features/olive-workspace.css";
 
 const COPY = {
   ar: {
@@ -39,9 +40,16 @@ const COPY = {
     platform: "لوحة المنصة",
     platformDescription: "إدارة المطاعم ومتابعة أداء المنصة",
     restaurantDashboard: "لوحة المطعم",
-    noMembership: "حسابك لا يملك عضوية فعّالة في أي مطعم. اطلب من مالك المطعم إضافتك إلى فريق العمل.",
+    noMembership:
+      "حسابك لا يملك عضوية فعّالة في أي مطعم. اطلب من مالك المطعم إضافتك إلى فريق العمل.",
     footer: "منصة سورية لإدارة المطاعم",
-    roles: { owner: "مالك", manager: "مدير", cashier: "كاشير", kitchen: "المطبخ", viewer: "مشاهدة" },
+    roles: {
+      owner: "مالك",
+      manager: "مدير",
+      cashier: "كاشير",
+      kitchen: "المطبخ",
+      viewer: "مشاهدة",
+    },
   },
   en: {
     brandSub: "Restaurant management starts here",
@@ -63,9 +71,16 @@ const COPY = {
     platform: "Platform dashboard",
     platformDescription: "Manage restaurants and review platform activity",
     restaurantDashboard: "Restaurant dashboard",
-    noMembership: "This account has no active restaurant membership. Ask a restaurant owner to add you to their team.",
+    noMembership:
+      "This account has no active restaurant membership. Ask a restaurant owner to add you to their team.",
     footer: "Syrian restaurant management platform",
-    roles: { owner: "Owner", manager: "Manager", cashier: "Cashier", kitchen: "Kitchen", viewer: "Viewer" },
+    roles: {
+      owner: "Owner",
+      manager: "Manager",
+      cashier: "Cashier",
+      kitchen: "Kitchen",
+      viewer: "Viewer",
+    },
   },
 } as const;
 
@@ -83,7 +98,8 @@ const initials = (name: string): string => {
 };
 
 export default function AdminEntryPage(): JSX.Element {
-  const { authReady, staffEmail, platformAdmin, memberships, signOut } = useAuth();
+  const { authReady, staffEmail, platformAdmin, memberships, signOut } =
+    useAuth();
   const { language, toggleLanguage } = useUI();
   const t = COPY[language];
   const navigate = useNavigate();
@@ -103,13 +119,14 @@ export default function AdminEntryPage(): JSX.Element {
   }, [authReady, signedIn, platformAdmin, memberships, navigate]);
 
   if (authReady && signedIn) {
-    const onlyOne =
-      (platformAdmin ? 1 : 0) + memberships.length === 1;
+    const onlyOne = (platformAdmin ? 1 : 0) + memberships.length === 1;
     if (onlyOne) {
       if (platformAdmin && memberships.length === 0)
         return <Navigate to="/platform" replace />;
       if (!platformAdmin && memberships.length === 1)
-        return <Navigate to={`/admin/${memberships[0].restaurantSlug}`} replace />;
+        return (
+          <Navigate to={`/admin/${memberships[0].restaurantSlug}`} replace />
+        );
     }
   }
 
@@ -143,7 +160,11 @@ export default function AdminEntryPage(): JSX.Element {
             <Languages />
             {language === "ar" ? "EN" : "عربي"}
           </button>
-          <button type="button" className="entry-pill" onClick={() => navigate("/")}>
+          <button
+            type="button"
+            className="entry-pill"
+            onClick={() => navigate("/")}
+          >
             <Globe2 />
             {t.publicSite}
           </button>
@@ -169,40 +190,50 @@ export default function AdminEntryPage(): JSX.Element {
         ) : !signedIn ? (
           <section className="entry-portal entry-portal--signin">
             <div className="entry-portal__intro">
-            <span className="entry-kicker">
-              <span className="entry-kicker__dot" />
-              {t.kicker}
-            </span>
-            <h1 className="entry-hero__title">
-              {t.title}
-            </h1>
-            <p className="entry-hero__lead">
-              {t.lead}
-            </p>
-            <div className="entry-points">
-              <span><ClipboardList aria-hidden="true" />{t.points[0]}</span>
-              <span><Utensils aria-hidden="true" />{t.points[1]}</span>
-              <span><UsersRound aria-hidden="true" />{t.points[2]}</span>
-            </div>
+              <span className="entry-kicker">
+                <span className="entry-kicker__dot" />
+                {t.kicker}
+              </span>
+              <div className="entry-hero__photo">
+                <img src="/images/syrian-table-hero.webp" alt="" />
+              </div>
+              <h1 className="entry-hero__title">{t.title}</h1>
+              <p className="entry-hero__lead">{t.lead}</p>
+              <div className="entry-points">
+                <span>
+                  <ClipboardList aria-hidden="true" />
+                  {t.points[0]}
+                </span>
+                <span>
+                  <Utensils aria-hidden="true" />
+                  {t.points[1]}
+                </span>
+                <span>
+                  <UsersRound aria-hidden="true" />
+                  {t.points[2]}
+                </span>
+              </div>
             </div>
             <aside className="entry-login-card">
-              <span className="entry-login-card__mark"><QrCode aria-hidden="true" /></span>
+              <span className="entry-login-card__mark">
+                <QrCode aria-hidden="true" />
+              </span>
               <span className="entry-login-card__eyebrow">{t.cardEyebrow}</span>
               <h2>{t.cardTitle}</h2>
               <p>{t.cardText}</p>
-            <button
-              type="button"
-              className="entry-cta"
-              onClick={() => setAuthOpen(true)}
-            >
-              <Lock />
-              {t.signIn}
-              <ArrowRight className="entry-arrow" />
-            </button>
-            <p className="entry-sec">
-              <ShieldCheck />
-              {t.security}
-            </p>
+              <button
+                type="button"
+                className="entry-cta"
+                onClick={() => setAuthOpen(true)}
+              >
+                <Lock />
+                {t.signIn}
+                <ArrowRight className="entry-arrow" />
+              </button>
+              <p className="entry-sec">
+                <ShieldCheck />
+                {t.security}
+              </p>
             </aside>
           </section>
         ) : (
@@ -250,7 +281,9 @@ export default function AdminEntryPage(): JSX.Element {
                     <small>{t.restaurantDashboard}</small>
                   </span>
                   <span className="entry-option__tag">
-                    {t.roles[m.role as keyof typeof t.roles] ?? ROLE_LABEL[m.role] ?? m.role}
+                    {t.roles[m.role as keyof typeof t.roles] ??
+                      ROLE_LABEL[m.role] ??
+                      m.role}
                   </span>
                   <ArrowRight className="entry-arrow" />
                 </button>
@@ -259,9 +292,7 @@ export default function AdminEntryPage(): JSX.Element {
               {memberships.length === 0 && !platformAdmin && (
                 <div className="entry-note">
                   <ShieldCheck />
-                  <p>
-                    {t.noMembership}
-                  </p>
+                  <p>{t.noMembership}</p>
                 </div>
               )}
             </div>
@@ -270,7 +301,9 @@ export default function AdminEntryPage(): JSX.Element {
       </main>
 
       <footer className="entry-foot">
-        <span>© {new Date().getFullYear()} SYRIAN QR — {t.footer}</span>
+        <span>
+          © {new Date().getFullYear()} SYRIAN QR — {t.footer}
+        </span>
       </footer>
 
       {authOpen && (
