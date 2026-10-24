@@ -3,6 +3,7 @@ import "./dialogs.css";
 import "./onboarding.css";
 import "./admin-redesign.css";
 import "./workflows.css";
+import "./olive-workspace.css";
 import {
   useEffect,
   useRef,

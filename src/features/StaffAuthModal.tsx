@@ -133,7 +133,12 @@ export default function StaffAuthModal({
   };
 
   return (
-    <div className="modal-backdrop" dir={en ? "ltr" : "rtl"} lang={language} onMouseDown={onClose}>
+    <div
+      className="modal-backdrop"
+      dir={en ? "ltr" : "rtl"}
+      lang={language}
+      onMouseDown={onClose}
+    >
       <div
         className="modal modal--narrow auth-card"
         role="dialog"
@@ -141,7 +146,11 @@ export default function StaffAuthModal({
         aria-labelledby="staff-auth-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className="modal__close" onClick={onClose} aria-label={en ? "Close" : "إغلاق"}>
+        <button
+          className="modal__close"
+          onClick={onClose}
+          aria-label={en ? "Close" : "إغلاق"}
+        >
           <X />
         </button>
         <span
@@ -150,7 +159,9 @@ export default function StaffAuthModal({
         >
           {en ? "Staff access" : "دخول الموظفين"}
         </span>
-        <h2 id="staff-auth-title">{en ? "Restaurant dashboard" : "لوحة المطعم"}</h2>
+        <h2 id="staff-auth-title">
+          {en ? "Restaurant dashboard" : "لوحة المطعم"}
+        </h2>
         <p>
           {en
             ? "Use the staff account provided by your restaurant owner. Guests do not need an account."
@@ -170,7 +181,7 @@ export default function StaffAuthModal({
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder={ownerEmail}
+              placeholder="name@restaurant.com"
             />
           </label>
           <label className="form-field">
@@ -202,7 +213,9 @@ export default function StaffAuthModal({
               disabled={loading || password.length < 6}
               onClick={() => void signUpInitialOwner()}
             >
-              {en ? "Create the initial owner account" : "إنشاء حساب المالك لأول مرة"}
+              {en
+                ? "Create the initial owner account"
+                : "إنشاء حساب المالك لأول مرة"}
             </button>
           )}
           <button
@@ -216,11 +229,10 @@ export default function StaffAuthModal({
         </form>
         <small>
           {en
-            ? "Access is tied to restaurant membership and enforced by the database."
-            : "الصلاحيات مرتبطة بعضوية المطعم وتُطبق في قاعدة البيانات."}
+            ? "For restaurant staff. Contact your restaurant owner if you need access."
+            : "حساب مخصص لفريق المطعم. تواصل مع مالك المطعم إذا كنت تحتاج صلاحية دخول."}
         </small>
       </div>
     </div>
   );
 }
-

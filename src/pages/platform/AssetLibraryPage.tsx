@@ -20,6 +20,7 @@ import { supabase } from "../../supabase";
 import "./platform.css";
 import "./platform-redesign.css";
 import "./assets.css";
+import "./platform-atlas.css";
 
 const BUCKET = "syrianqr-site-assets";
 const MAX_FILE_BYTES = 15 * 1024 * 1024;

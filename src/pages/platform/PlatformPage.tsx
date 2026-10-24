@@ -43,6 +43,7 @@ import { useUI } from "../../context/UI";
 import { formatSyp, modeLabels, statusLabels } from "../../domain";
 import "./platform.css";
 import "./platform-redesign.css";
+import "./platform-atlas.css";
 
 /* ---------------- types ---------------- */
 

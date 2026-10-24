@@ -12,6 +12,8 @@ for i in range(1,5):
  item=copy.deepcopy(base_item);item['id']=f'30000000-0000-4000-8000-00000000001{i}';item['nameAr']=f'طبق جديد {i}';item['nameEn']=f'Dish {i}';menu['items'].append(item)
 menu['items'][1]['optionGroups']=[{'id':'extras','nameAr':'إضافة','nameEn':'Extras','required':True,'minSelections':1,'maxSelections':1,'options':[{'id':'extra','nameAr':'جبنة','nameEn':'Cheese','price':1000,'available':True}]}]
 menu['items'][4]['categoryId']='drinks'
+menu['items'][4].update(nameAr='طبق موسمي للمشاركة مع الخضار والأعشاب والإضافات الخاصة بالمطعم',nameEn='A_very_long_seasonal_sharing_dish_name_for_wrapping',price=123456789)
+menu['items'][2]['imageUrl']='/missing-design-test-photo.webp'
 # Saved legacy editor appearance must not override the new unified design.
 menu['restaurant']['design']={'palette':{'canvas':'#000000','ink':'#ffffff','action':'#ff0000'},'layout':{'hero':'cover','cards':'overlay'}}
 
@@ -20,6 +22,7 @@ def check_bounds(page):
  if page.get_by_role('dialog').count():
   assert page.get_by_role('dialog').evaluate('e=>e.scrollWidth<=e.clientWidth+1'),'Dialog overflows horizontally'
   box=page.get_by_role('dialog').bounding_box();assert box['x']>=0 and box['x']+box['width']<=page.viewport_size['width']+1,box
+  page.wait_for_function('''()=>{const r=document.querySelector('[role=dialog]').getBoundingClientRect();return r.top>=-1&&r.bottom<=innerHeight+1}''')
 
 def focus_in_dialog(page):
  page.keyboard.press('Tab');assert page.evaluate('!!document.activeElement.closest("[role=dialog]")')
@@ -37,8 +40,14 @@ with sync_playwright() as p:
    assert page.locator('.home-hero__photo img').evaluate('e=>e.naturalWidth>0'),'Landing photo did not load'
    page.locator('.home-venue').first.click();page.locator('.cx-dish').first.wait_for();check_bounds(page)
    assert page.locator('.cx').get_attribute('data-cd-cards') is None,'Legacy design still controls cards'
-   assert page.locator('.cx-dish__media').first.evaluate('e=>getComputedStyle(e).borderRadius')=='50%'
-   media=page.locator('.cx-dish__media').first.bounding_box();assert abs(media['width']-media['height'])<2,'Round thumbnail is stretched'
+   assert page.locator('.cx-head').bounding_box()['y']<=1,'Opening a restaurant keeps the old page scroll position'
+   assert page.evaluate('window.scrollY')<2
+   columns=page.locator('.cx-grid').evaluate('e=>getComputedStyle(e).gridTemplateColumns.split(" ").length')
+   assert columns==(2 if width<600 else 3),('Wrong menu grid',width,columns)
+   if width>900: assert page.locator('.cx-menu-aside').is_visible()
+   else: assert not page.locator('.cx-menu-aside').is_visible()
+   page.locator('.cx-dish').nth(2).locator('.has-missing-photo').wait_for()
+   assert page.locator('.cx-dish').nth(2).locator('.cx-photo-fallback').is_visible()
    search=page.locator('.cx-search input');search.fill('no-dish-matches');page.locator('.cx-empty').wait_for();page.locator('.cx-empty button').click();page.locator('.cx-dish').first.wait_for()
    page.locator('.cx-dish__media').nth(1).click();page.get_by_role('dialog').wait_for();check_bounds(page);focus_in_dialog(page)
    add=page.locator('.cx-item__add');assert add.is_disabled(),'Required modifier not enforced'

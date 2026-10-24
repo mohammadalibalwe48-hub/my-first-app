@@ -26,7 +26,10 @@ export default function HomePage() {
       language={language}
       onToggleLanguage={toggleLanguage}
       onOpenCafe={(slug) => navigate(`/c/${slug}`)}
-      onOpenAdmin={() => navigate("/admin")}
+      onOpenAdmin={() => {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        navigate("/admin");
+      }}
     />
   );
 }

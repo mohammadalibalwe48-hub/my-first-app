@@ -58,6 +58,7 @@ import "./customer.css";
 import "./customer-mobile.css";
 import "./workflows.css";
 import "./customer-refresh.css";
+import "./customer-atlas.css";
 
 /* ---------------- shared helpers ---------------- */
 
@@ -276,11 +277,7 @@ function MenuView({
         ? tx("الأكثر طلباً")
         : category;
 
-  const go = (item: Item) => {
-    const el = document.getElementById("cx-catalogue");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    onSelect(item);
-  };
+  const go = (item: Item) => onSelect(item);
 
   const scrollToMenu = () => {
     document
@@ -292,449 +289,516 @@ function MenuView({
 
   return (
     <div className="cx-store">
-      {bannerOn && bannerText && (
-        <div className={`cx-banner cx-banner--${bannerTone}`} role="status">
-          <span aria-hidden="true">✦</span>
-          <p>{bannerText}</p>
-        </div>
-      )}
-
-      <section
-        className="cx-welcome"
-        aria-label={
-          language === "en" ? "Welcome to our menu" : "أهلاً في قائمتنا"
-        }
+      <aside
+        className="cx-menu-aside"
+        aria-label={language === "en" ? "Menu categories" : "أقسام المنيو"}
       >
-        <div className="cx-welcome__copy">
-          <span className="cx-welcome__eyebrow">
-            <Leaf size={14} aria-hidden="true" />
-            {language === "en"
-              ? "FRESH FROM OUR KITCHEN"
-              : "من مطبخنا، على ذوقك"}
-          </span>
-          <h1>
-            {language === "en" ? "What sounds good today?" : "شو عبالك اليوم؟"}
-          </h1>
-          <p>
-            {language === "en"
-              ? restaurant.subtitleEn || restaurant.subtitle
-              : restaurant.subtitle}
-          </p>
-          <button
-            className="cx-welcome__link"
-            type="button"
-            onClick={scrollToMenu}
-          >
-            {tx("تصفح الأطباق")}
-            <ArrowRight className="cx-arrow" size={16} aria-hidden="true" />
-          </button>
+        <a href="/" className="cx-aside-back">
+          <ArrowRight size={15} className="cx-arrow" />
+          {language === "en" ? "All restaurants" : "كل المطاعم"}
+        </a>
+        <div className="cx-aside-brand">
+          {language === "en"
+            ? restaurant.nameEn || restaurant.name
+            : restaurant.name}
+          <small>{language === "en" ? "THE MENU" : "قائمة الطعام"}</small>
         </div>
-        <div className="cx-welcome__art">
-          <span aria-hidden="true" />
-          <img
-            src={heroImage}
-            alt=""
-            fetchPriority="high"
-            onError={(event) => {
-              const image = event.currentTarget;
-              if (!image.src.endsWith("/images/table.webp"))
-                image.src = "/images/table.webp";
-            }}
-          />
-        </div>
-      </section>
-
-      {/* ---- Sticky search / filters / category rail ---- */}
-      <div className="cx-stick">
-        <section className="cx-tools" aria-label={tx("البحث والتصفية")}>
-          <label className="cx-search">
-            <Search size={19} aria-hidden="true" />
-            <span className="cx-search__bar">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={tx("ابحث عن طبق أو مكوّن…")}
-                aria-label={tx("ابحث في القائمة")}
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="cx-search__clear"
-                  onClick={() => setQuery("")}
-                  aria-label={tx("مسح البحث")}
-                >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              )}
-            </span>
-            <span className="cx-search__count mono-num">
-              {digits.format(itemCount)}
-            </span>
-          </label>
-
-          <div className="cx-tools__row">
-            <div
-              className="cx-tagchips"
-              role="group"
-              aria-label={tx("تصفية الأطباق")}
+        <nav>
+          {catEntries.map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              className={category === entry ? "is-on" : ""}
+              aria-pressed={category === entry}
+              onClick={() => {
+                setCategory(entry);
+                scrollToMenu();
+              }}
             >
-              <button
-                type="button"
-                className={`cx-chip${tag === "all" ? " is-on" : ""}`}
-                onClick={() => setTag("all")}
-              >
-                {tx("الكل")}
-              </button>
-              {(["vegetarian", "chef"] as Tag[]).map((entry) => (
-                <button
-                  type="button"
-                  key={entry}
-                  className={`cx-chip${tag === entry ? " is-on" : ""}`}
-                  onClick={() => setTag(tag === entry ? "all" : entry)}
-                >
-                  {tag === entry ? (
-                    <Check size={13} aria-hidden="true" />
-                  ) : null}
-                  {tx(tagLabels[entry])}
-                </button>
-              ))}
-            </div>
-            <div className="cx-cur" role="group" aria-label={tx("العملة")}>
-              <button
-                type="button"
-                className={currency === "syp" ? "is-on" : ""}
-                onClick={() => setCurrency("syp")}
-              >
-                {tx("ل.س")}
-              </button>
-              <button
-                type="button"
-                className={currency === "usd" ? "is-on" : ""}
-                onClick={() => setCurrency("usd")}
-              >
-                $
-              </button>
-            </div>
+              <span>
+                {tx(
+                  language === "en"
+                    ? categories.find((c) => c.name === entry)?.en || entry
+                    : entry,
+                )}
+              </span>
+              <ArrowRight size={15} className="cx-arrow" />
+            </button>
+          ))}
+        </nav>
+        <p className="cx-aside-note">
+          <Utensils size={19} />
+          {language === "en"
+            ? "A little of what you love."
+            : "كل اللي بتحبّه، على سُفرة وحدة."}
+        </p>
+        <a href="/" className="cx-aside-credit">
+          SYRIAN QR
+        </a>
+      </aside>
+      <div className="cx-menu-content">
+        {bannerOn && bannerText && (
+          <div className={`cx-banner cx-banner--${bannerTone}`} role="status">
+            <span aria-hidden="true">✦</span>
+            <p>{bannerText}</p>
+          </div>
+        )}
+
+        <section
+          className="cx-welcome"
+          aria-label={
+            language === "en" ? "Welcome to our menu" : "أهلاً في قائمتنا"
+          }
+        >
+          <div className="cx-welcome__copy">
+            <span className="cx-welcome__eyebrow">
+              <Leaf size={14} aria-hidden="true" />
+              {language === "en"
+                ? "FRESH FROM OUR KITCHEN"
+                : "من مطبخنا، على ذوقك"}
+            </span>
+            <h1>
+              {language === "en" ? "Good food. Good mood." : "شو عبالك اليوم؟"}
+            </h1>
+            <p>
+              {language === "en"
+                ? restaurant.subtitleEn || restaurant.subtitle
+                : restaurant.subtitle}
+            </p>
+            <button
+              className="cx-welcome__link"
+              type="button"
+              onClick={scrollToMenu}
+            >
+              {tx("تصفح الأطباق")}
+              <ArrowRight className="cx-arrow" size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="cx-welcome__art">
+            <img
+              src={heroImage}
+              alt=""
+              fetchPriority="high"
+              onError={(event) => {
+                const image = event.currentTarget;
+                if (!image.src.endsWith("/images/table.webp"))
+                  image.src = "/images/table.webp";
+              }}
+            />
           </div>
         </section>
 
-        <nav className="cx-cats" aria-label={tx("تصفح أقسام القائمة")}>
-          {catEntries.map((entry, index) => {
-            const on = category === entry;
-            const n = countFor(entry);
-            return (
-              <button
-                key={entry}
-                type="button"
-                className={`cx-cat${on ? " is-on" : ""}`}
-                onClick={() => setCategory(entry)}
-                aria-pressed={on}
-              >
-                <i className="mono-num" aria-hidden="true">
-                  {on ? "" : String(index + 1).padStart(2, "0")}
-                </i>
-                <span>
-                  {tx(
-                    language === "en"
-                      ? categories.find((c) => c.name === entry)?.en || entry
-                      : entry,
-                  )}
-                </span>
-                <b className="mono-num">{digits.format(n)}</b>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* ---- Catalogue ---- */}
-      <section className="cx-catalogue" id="cx-catalogue">
-        <header className="cx-catalog__head">
-          <div>
-            <span className="cx-eyebrow">
-              <i aria-hidden="true" />
-              {language === "en"
-                ? restaurant.nameEn || restaurant.name
-                : restaurant.name}
-            </span>
-            <h2 className="cx-catalog__title">
-              {tx(
-                language === "en"
-                  ? categories.find((c) => c.name === heading)?.en || heading
-                  : heading,
-              )}
-            </h2>
-            <p className="cx-catalog__lead">
-              {tx("اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.")}
-            </p>
-          </div>
-          {itemCount > 0 && (
-            <span className="cx-catalog__stamp">
-              <b className="mono-num">{digits.format(itemCount)}</b>
-              {tx("صنفاً متاحاً")}
-            </span>
-          )}
-        </header>
-
-        <div className="cx-grid">
-          {loading
-            ? Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  className="cx-dish cx-dish--sk"
-                  key={index}
-                  aria-hidden="true"
-                >
-                  <span className="cx-dish__media sk" />
-                  <div className="cx-dish__body">
-                    <span className="cx-skline sk" style={{ width: "38%" }} />
-                    <span className="cx-skline sk" style={{ width: "72%" }} />
-                    <span className="cx-skline sk" style={{ width: "55%" }} />
-                  </div>
-                </div>
-              ))
-            : loadError
-              ? null
-              : items.map((item) => {
-                  const price = money(item.price, currency, rate, language);
-                  const secondary =
-                    currency === "usd" ? formatSyp(item.price) : "";
-                  const customisable = Boolean(item.options?.length);
-                  const configurable = needsChoices(item);
-                  return (
-                    <article className="cx-dish" key={item.id}>
-                      <button
-                        type="button"
-                        className="cx-dish__media"
-                        onClick={() => go(item)}
-                        aria-label={
-                          language === "en"
-                            ? `Details for ${item.en || item.name}`
-                            : `تفاصيل ${item.name}`
-                        }
-                      >
-                        <span className="cx-dish__imgwrap">
-                          <img
-                            src={item.image}
-                            alt={
-                              language === "en"
-                                ? item.en || item.name
-                                : item.name
-                            }
-                            loading="lazy"
-                          />
-                        </span>
-                        {item.popular && (
-                          <span className="cx-dish__flag">
-                            <b>{tx("الأكثر طلباً")}</b>
-                          </span>
-                        )}
-                        {customisable && (
-                          <span className="cx-dish__gear" aria-hidden="true">
-                            <i />
-                            <i />
-                            <i />
-                          </span>
-                        )}
-                      </button>
-                      <div className="cx-dish__body">
-                        <div className="cx-dish__topline">
-                          <span className="cx-dish__cat">
-                            {language === "en"
-                              ? categories.find((c) => c.name === item.category)
-                                  ?.en || item.category
-                              : item.category}
-                          </span>
-                          {item.tags.length > 0 && (
-                            <span className="cx-dish__tags">
-                              {item.tags.map((t) => (
-                                <span key={t}>{tx(tagLabels[t])}</span>
-                              ))}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          className="cx-dish__name"
-                          onClick={() => go(item)}
-                        >
-                          {language === "en" ? item.en || item.name : item.name}
-                        </button>
-                        {item.desc && (
-                          <p className="cx-dish__desc">
-                            {language === "en"
-                              ? item.descEn || item.desc
-                              : item.desc}
-                          </p>
-                        )}
-
-                        <div className="cx-dish__foot">
-                          <div className="cx-price">
-                            <b>{price}</b>
-                            {secondary && <small>{secondary}</small>}
-                          </div>
-                          {!configurable ? (
-                            <button
-                              type="button"
-                              className="cx-add"
-                              onClick={(e) => {
-                                const dish =
-                                  e.currentTarget.closest(".cx-dish");
-                                flyToCart(
-                                  dish?.querySelector<HTMLElement>(
-                                    ".cx-dish__imgwrap img",
-                                  ),
-                                );
-                                onQuickAdd(item);
-                              }}
-                              aria-label={
-                                language === "en"
-                                  ? `Add ${item.en || item.name} to order`
-                                  : `أضف ${item.name} إلى الطلب`
-                              }
-                            >
-                              <Plus size={20} aria-hidden="true" />
-                              <span>{tx("أضف")}</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="cx-add cx-add--ghost"
-                              onClick={() => go(item)}
-                            >
-                              <span>{tx("تخصيص")}</span>
-                              <ChevronDown size={16} aria-hidden="true" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-        </div>
-
-        {!loading && loadError && (
-          <div className="cx-empty" role="alert">
-            <span className="cx-empty__art" aria-hidden="true">
-              <Store size={26} />
-            </span>
-            <h3>{tx("تعذر تحميل القائمة")}</h3>
-            <p>{loadError}</p>
-            <button
-              type="button"
-              className="cx-btn cx-btn--red"
-              onClick={onRetry}
-            >
-              <RefreshCw size={17} aria-hidden="true" />
-              {tx("حاول مرة أخرى")}
-            </button>
-          </div>
-        )}
-
-        {!loading && !loadError && items.length === 0 && (
-          <div className="cx-empty">
-            <span className="cx-empty__art" aria-hidden="true">
-              <Search size={26} />
-            </span>
-            <h3>{tx("لم نجد صنفاً مطابقاً")}</h3>
-            <p>{tx("جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً من القائمة.")}</p>
-            <button
-              type="button"
-              className="cx-btn cx-btn--red"
-              onClick={() => {
-                setQuery("");
-                setTag("all");
-                setCategory("كل الأصناف");
-              }}
-            >
-              {tx("عرض كل الأصناف")}
-            </button>
-          </div>
-        )}
-
-        {!loading && items.length > 0 && (
-          <p className="cx-catalog__foot">
-            <span aria-hidden="true">✦</span>
-            {tx("كل أطباق")}{" "}
-            {language === "en"
-              ? restaurant.nameEn || restaurant.name
-              : restaurant.name}{" "}
-            {tx("تحضَّر طازجة عند الطلب — بالهناء والشفاء.")}
-          </p>
-        )}
-      </section>
-
-      {dc && (dc.hours || dc.socials || dc.footer) && (
-        <footer className="cx-sitefoot">
-          <div className="cx-sitefoot__col">
-            <div className="cx-sitefoot__brand">
-              <span className="cx-sitefoot__seal">
-                {designLogoUrl ? (
-                  <img src={designLogoUrl} alt="" />
-                ) : (
-                  (restaurant.logo || "م").slice(0, 1)
+        {/* ---- Sticky search / filters / category rail ---- */}
+        <div className="cx-stick">
+          <section className="cx-tools" aria-label={tx("البحث والتصفية")}>
+            <label className="cx-search">
+              <Search size={19} aria-hidden="true" />
+              <span className="cx-search__bar">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={tx("ابحث عن طبق أو مكوّن…")}
+                  aria-label={tx("ابحث في القائمة")}
+                />
+                {query && (
+                  <button
+                    type="button"
+                    className="cx-search__clear"
+                    onClick={() => setQuery("")}
+                    aria-label={tx("مسح البحث")}
+                  >
+                    <X size={16} aria-hidden="true" />
+                  </button>
                 )}
               </span>
-              <span>
+              <span className="cx-search__count mono-num">
+                {digits.format(itemCount)}
+              </span>
+            </label>
+
+            <div className="cx-tools__row">
+              <div
+                className="cx-tagchips"
+                role="group"
+                aria-label={tx("تصفية الأطباق")}
+              >
+                <button
+                  type="button"
+                  className={`cx-chip${tag === "all" ? " is-on" : ""}`}
+                  onClick={() => setTag("all")}
+                >
+                  {tx("الكل")}
+                </button>
+                {(["vegetarian", "chef"] as Tag[]).map((entry) => (
+                  <button
+                    type="button"
+                    key={entry}
+                    className={`cx-chip${tag === entry ? " is-on" : ""}`}
+                    onClick={() => setTag(tag === entry ? "all" : entry)}
+                  >
+                    {tag === entry ? (
+                      <Check size={13} aria-hidden="true" />
+                    ) : null}
+                    {tx(tagLabels[entry])}
+                  </button>
+                ))}
+              </div>
+              <div className="cx-cur" role="group" aria-label={tx("العملة")}>
+                <button
+                  type="button"
+                  className={currency === "syp" ? "is-on" : ""}
+                  onClick={() => setCurrency("syp")}
+                >
+                  {tx("ل.س")}
+                </button>
+                <button
+                  type="button"
+                  className={currency === "usd" ? "is-on" : ""}
+                  onClick={() => setCurrency("usd")}
+                >
+                  $
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <nav className="cx-cats" aria-label={tx("تصفح أقسام القائمة")}>
+            {catEntries.map((entry, index) => {
+              const on = category === entry;
+              const n = countFor(entry);
+              return (
+                <button
+                  key={entry}
+                  type="button"
+                  className={`cx-cat${on ? " is-on" : ""}`}
+                  onClick={() => setCategory(entry)}
+                  aria-pressed={on}
+                >
+                  <i className="mono-num" aria-hidden="true">
+                    {on ? "" : String(index + 1).padStart(2, "0")}
+                  </i>
+                  <span>
+                    {tx(
+                      language === "en"
+                        ? categories.find((c) => c.name === entry)?.en || entry
+                        : entry,
+                    )}
+                  </span>
+                  <b className="mono-num">{digits.format(n)}</b>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* ---- Catalogue ---- */}
+        <section className="cx-catalogue" id="cx-catalogue">
+          <header className="cx-catalog__head">
+            <div>
+              <span className="cx-eyebrow">
+                <i aria-hidden="true" />
                 {language === "en"
                   ? restaurant.nameEn || restaurant.name
                   : restaurant.name}
-                {dc.footerText ? "" : null}
               </span>
+              <h2 className="cx-catalog__title">
+                {tx(
+                  language === "en"
+                    ? categories.find((c) => c.name === heading)?.en || heading
+                    : heading,
+                )}
+              </h2>
+              <p className="cx-catalog__lead">
+                {tx("اضغط على أي طبق لتفاصيله وخياراته، أو أضفه مباشرة بلمسة.")}
+              </p>
             </div>
-            {dc.footerText && (
-              <p className="cx-sitefoot__note">{dc.footerText}</p>
+            {itemCount > 0 && (
+              <span className="cx-catalog__stamp">
+                <b className="mono-num">{digits.format(itemCount)}</b>
+                {tx("صنفاً متاحاً")}
+              </span>
             )}
+          </header>
+
+          <div className="cx-grid">
+            {loading
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    className="cx-dish cx-dish--sk"
+                    key={index}
+                    aria-hidden="true"
+                  >
+                    <span className="cx-dish__media sk" />
+                    <div className="cx-dish__body">
+                      <span className="cx-skline sk" style={{ width: "38%" }} />
+                      <span className="cx-skline sk" style={{ width: "72%" }} />
+                      <span className="cx-skline sk" style={{ width: "55%" }} />
+                    </div>
+                  </div>
+                ))
+              : loadError
+                ? null
+                : items.map((item) => {
+                    const price = money(item.price, currency, rate, language);
+                    const secondary =
+                      currency === "usd" ? formatSyp(item.price) : "";
+                    const customisable = Boolean(item.options?.length);
+                    const configurable = needsChoices(item);
+                    return (
+                      <article className="cx-dish" key={item.id}>
+                        <button
+                          type="button"
+                          className="cx-dish__media"
+                          onClick={() => go(item)}
+                          aria-label={
+                            language === "en"
+                              ? `Details for ${item.en || item.name}`
+                              : `تفاصيل ${item.name}`
+                          }
+                        >
+                          <span className="cx-dish__imgwrap">
+                            {
+                              <Utensils
+                                className="cx-photo-fallback"
+                                size={32}
+                                strokeWidth={1.2}
+                                aria-hidden="true"
+                              />
+                            }
+                            {item.image && (
+                              <img
+                                src={item.image}
+                                alt={
+                                  language === "en"
+                                    ? item.en || item.name
+                                    : item.name
+                                }
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                  event.currentTarget.parentElement?.classList.add(
+                                    "has-missing-photo",
+                                  );
+                                }}
+                              />
+                            )}
+                          </span>
+                          {item.popular && (
+                            <span className="cx-dish__flag">
+                              <b>{tx("الأكثر طلباً")}</b>
+                            </span>
+                          )}
+                          {customisable && (
+                            <span className="cx-dish__gear" aria-hidden="true">
+                              <ChevronDown size={14} />
+                            </span>
+                          )}
+                        </button>
+                        <div className="cx-dish__body">
+                          <div className="cx-dish__topline">
+                            <span className="cx-dish__cat">
+                              {language === "en"
+                                ? categories.find(
+                                    (c) => c.name === item.category,
+                                  )?.en || item.category
+                                : item.category}
+                            </span>
+                            {item.tags.length > 0 && (
+                              <span className="cx-dish__tags">
+                                {item.tags.map((t) => (
+                                  <span key={t}>{tx(tagLabels[t])}</span>
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="cx-dish__name"
+                            onClick={() => go(item)}
+                          >
+                            {language === "en"
+                              ? item.en || item.name
+                              : item.name}
+                          </button>
+                          {item.desc && (
+                            <p className="cx-dish__desc">
+                              {language === "en"
+                                ? item.descEn || item.desc
+                                : item.desc}
+                            </p>
+                          )}
+
+                          <div className="cx-dish__foot">
+                            <div className="cx-price">
+                              <b>{price}</b>
+                              {secondary && <small>{secondary}</small>}
+                            </div>
+                            {!configurable ? (
+                              <button
+                                type="button"
+                                className="cx-add"
+                                onClick={(e) => {
+                                  const dish =
+                                    e.currentTarget.closest(".cx-dish");
+                                  flyToCart(
+                                    dish?.querySelector<HTMLElement>(
+                                      ".cx-dish__imgwrap img",
+                                    ),
+                                  );
+                                  onQuickAdd(item);
+                                }}
+                                aria-label={
+                                  language === "en"
+                                    ? `Add ${item.en || item.name} to order`
+                                    : `أضف ${item.name} إلى الطلب`
+                                }
+                              >
+                                <Plus size={20} aria-hidden="true" />
+                                <span>{tx("أضف")}</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="cx-add cx-add--ghost"
+                                onClick={() => go(item)}
+                              >
+                                <span>{tx("تخصيص")}</span>
+                                <ChevronDown size={16} aria-hidden="true" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
           </div>
 
-          {dc.hours && (
-            <div className="cx-sitefoot__col">
-              <h3>{tx("ساعات العمل")}</h3>
-              <p className="cx-sitefoot__note">{dc.hoursText}</p>
+          {!loading && loadError && (
+            <div className="cx-empty" role="alert">
+              <span className="cx-empty__art" aria-hidden="true">
+                <Store size={26} />
+              </span>
+              <h3>{tx("تعذر تحميل القائمة")}</h3>
+              <p>{loadError}</p>
+              <button
+                type="button"
+                className="cx-btn cx-btn--red"
+                onClick={onRetry}
+              >
+                <RefreshCw size={17} aria-hidden="true" />
+                {tx("حاول مرة أخرى")}
+              </button>
             </div>
           )}
 
-          {dc.socials && (
-            <div className="cx-sitefoot__col">
-              <h3>{tx("تواصل معنا")}</h3>
-              <div className="cx-sitefoot__socials">
-                {dc.instagram && (
-                  <a
-                    className="cx-sitefoot__social"
-                    href={socialHref(dc.instagram)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <AtSign size={16} aria-hidden="true" />
-                    {tx("إنستغرام")}
-                  </a>
-                )}
-                {dc.facebook && (
-                  <a
-                    className="cx-sitefoot__social"
-                    href={socialHref(dc.facebook)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Share2 size={16} aria-hidden="true" />
-                    {tx("فيسبوك")}
-                  </a>
-                )}
-                {restaurant.whatsapp && (
-                  <a
-                    className="cx-sitefoot__social"
-                    href={`https://wa.me/${restaurant.whatsapp}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <MessageCircle size={16} aria-hidden="true" />
-                    {dc.whatsappLabel || "واتساب"}
-                  </a>
-                )}
-              </div>
+          {!loading && !loadError && items.length === 0 && (
+            <div className="cx-empty">
+              <span className="cx-empty__art" aria-hidden="true">
+                <Search size={26} />
+              </span>
+              <h3>{tx("لم نجد صنفاً مطابقاً")}</h3>
+              <p>
+                {tx("جرّب كلمة بحث أخرى أو اختر قسماً مختلفاً من القائمة.")}
+              </p>
+              <button
+                type="button"
+                className="cx-btn cx-btn--red"
+                onClick={() => {
+                  setQuery("");
+                  setTag("all");
+                  setCategory("كل الأصناف");
+                }}
+              >
+                {tx("عرض كل الأصناف")}
+              </button>
             </div>
           )}
-        </footer>
-      )}
+
+          {!loading && items.length > 0 && (
+            <p className="cx-catalog__foot">
+              <span aria-hidden="true">✦</span>
+              {tx("كل أطباق")}{" "}
+              {language === "en"
+                ? restaurant.nameEn || restaurant.name
+                : restaurant.name}{" "}
+              {tx("تحضَّر طازجة عند الطلب — بالهناء والشفاء.")}
+            </p>
+          )}
+        </section>
+
+        {dc && (dc.hours || dc.socials || dc.footer) && (
+          <footer className="cx-sitefoot">
+            <div className="cx-sitefoot__col">
+              <div className="cx-sitefoot__brand">
+                <span className="cx-sitefoot__seal">
+                  {designLogoUrl ? (
+                    <img src={designLogoUrl} alt="" />
+                  ) : (
+                    (restaurant.logo || "م").slice(0, 1)
+                  )}
+                </span>
+                <span>
+                  {language === "en"
+                    ? restaurant.nameEn || restaurant.name
+                    : restaurant.name}
+                  {dc.footerText ? "" : null}
+                </span>
+              </div>
+              {dc.footerText && (
+                <p className="cx-sitefoot__note">{dc.footerText}</p>
+              )}
+            </div>
+
+            {dc.hours && (
+              <div className="cx-sitefoot__col">
+                <h3>{tx("ساعات العمل")}</h3>
+                <p className="cx-sitefoot__note">{dc.hoursText}</p>
+              </div>
+            )}
+
+            {dc.socials && (
+              <div className="cx-sitefoot__col">
+                <h3>{tx("تواصل معنا")}</h3>
+                <div className="cx-sitefoot__socials">
+                  {dc.instagram && (
+                    <a
+                      className="cx-sitefoot__social"
+                      href={socialHref(dc.instagram)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <AtSign size={16} aria-hidden="true" />
+                      {tx("إنستغرام")}
+                    </a>
+                  )}
+                  {dc.facebook && (
+                    <a
+                      className="cx-sitefoot__social"
+                      href={socialHref(dc.facebook)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Share2 size={16} aria-hidden="true" />
+                      {tx("فيسبوك")}
+                    </a>
+                  )}
+                  {restaurant.whatsapp && (
+                    <a
+                      className="cx-sitefoot__social"
+                      href={`https://wa.me/${restaurant.whatsapp}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MessageCircle size={16} aria-hidden="true" />
+                      {dc.whatsappLabel || "واتساب"}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </footer>
+        )}
+      </div>
     </div>
   );
 }
