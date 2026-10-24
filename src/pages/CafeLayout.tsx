@@ -151,233 +151,225 @@ function CafeShell() {
   );
 
   return (
-    <div className="cx cx--fresh" dir={dir}>
-      {/* Skip link for keyboard users */}
+    <div className="cx cx--fresh experience-app" dir={dir}>
       <a className="cx-skip" href="#cx-main">
         {tx("تخطَّ إلى المحتوى")}
       </a>
-
-      <header className={`cx-head${scrolled ? " is-scrolled" : ""}`}>
-        <div className="cx-head__in">
-          <button
-            type="button"
-            className="cx-brand"
-            onClick={goMenu}
-            aria-label={
-              language === "en"
-                ? `${restaurant.name} — Back to menu`
-                : `${restaurant.name} — العودة إلى القائمة`
-            }
+      <header className="cx-head">
+        <div className="app-topbar">
+          <Link
+            to="/"
+            className="app-back"
+            aria-label={language === "en" ? "All restaurants" : "كل المطاعم"}
           >
-            <span className="cx-brand__seal" aria-hidden="true">
-              {logoUrl ? <img src={logoUrl} alt="" /> : restaurant.logo || "م"}
+            <ArrowUp size={20} />
+          </Link>
+          <Link to={base} className="app-restaurant">
+            <span>
+              {logoUrl ? <img src={logoUrl} alt="" /> : <Utensils size={21} />}
             </span>
-            <span className="cx-brand__id">
+            <div>
               <b>
                 {language === "en"
                   ? restaurant.nameEn || restaurant.name
                   : restaurant.name}
               </b>
-              <small>
-                <MapPin size={11} strokeWidth={2.6} aria-hidden="true" />
-                {locationLabel}
-              </small>
-            </span>
-          </button>
-
-          <nav className="cx-head__nav" aria-label={tx("التنقل الرئيسي")}>
-            <button
-              type="button"
-              className={`cx-navlink${onMenu ? " is-active" : ""}`}
-              onClick={goMenu}
+              <small>{locationLabel}</small>
+            </div>
+          </Link>
+          <nav className="app-desktop-nav">
+            <Link to={base} aria-current={onMenu ? "page" : undefined}>
+              {tx("القائمة")}
+            </Link>
+            <Link
+              to={`${base}/orders`}
+              aria-current={onOrders ? "page" : undefined}
             >
-              <Utensils size={17} aria-hidden="true" />
-              <span>{tx("القائمة")}</span>
-            </button>
-            <button
-              type="button"
-              className={`cx-navlink${onOrders ? " is-active" : ""}`}
-              onClick={() => navigate(`${base}/orders`)}
-            >
-              <ReceiptText size={17} aria-hidden="true" />
-              <span>{tx("طلباتي")}</span>
-            </button>
-            {canAdmin && (
-              <button
-                type="button"
-                className="cx-navlink"
-                onClick={() => navigate(`/admin/${slug}`)}
-              >
-                <LayoutDashboard size={17} aria-hidden="true" />
-                <span>{tx("الإدارة")}</span>
-              </button>
-            )}
+              {tx("طلباتي")}
+            </Link>
+            {canAdmin && <Link to={`/admin/${slug}`}>{tx("الإدارة")}</Link>}
           </nav>
-
-          <div className="cx-head__tools">
-            {(!cafe.isOnline || cafe.tableContext) && (
-              <span className={`cx-live${cafe.isOnline ? "" : " is-off"}`}>
-                <i aria-hidden="true" />
-                {cafe.isOnline ? cafe.tableContext?.labelAr : tx("دون اتصال")}
-              </span>
-            )}
+          <div className="app-topbar__tools">
             <button
-              type="button"
-              className="cx-lang"
+              className="app-language"
               onClick={toggleLanguage}
-              aria-label={tx("تغيير اللغة / Change language")}
+              aria-label="تغيير اللغة / Change language"
             >
-              <Globe2 size={17} aria-hidden="true" />
-              <span>{language === "ar" ? "EN" : tx("عربي")}</span>
+              <Globe2 size={17} />
+              {language === "ar" ? "EN" : "عربي"}
             </button>
             <button
-              type="button"
               className="cx-cartbtn"
               onClick={cafe.openCart}
-              aria-label={`${language === "en" ? "Open basket" : "فتح سلة الطلب"}${
-                cafe.cartCount ? ` — ${cafe.cartCount} صنف` : ""
-              }`}
+              aria-label={language === "en" ? "Open basket" : "فتح سلة الطلب"}
             >
-              <ShoppingBasket size={21} aria-hidden="true" />
-              {cafe.cartCount > 0 && (
-                <b className="cx-cartbtn__badge" aria-hidden="true">
-                  {cafe.cartCount}
-                </b>
-              )}
+              <ShoppingBasket size={21} />
+              {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
             </button>
           </div>
         </div>
       </header>
-
-      <main id="cx-main" className="cx-main" tabIndex={-1}>
-        <div className="cx-page" key={location.pathname}>
-          <Outlet />
-        </div>
-        <div className="cx-bottompad" aria-hidden="true" />
-      </main>
-
-      {overlays}
-
-      {showDock && (
-        <div className="cx-dock">
-          <button
-            type="button"
-            className="cx-dock__btn"
-            onClick={cafe.openCart}
-          >
-            <span className="cx-dock__bag" aria-hidden="true">
-              <ShoppingBasket size={20} />
-              <b>{cafe.cartCount}</b>
-            </span>
-            <span className="cx-dock__mid">
-              <strong>{tx("عرض الطلب والمتابعة")}</strong>
-              <small>{tx("اضغط لإتمام طلبك")}</small>
-            </span>
-            <span className="cx-dock__total">{dockTotal}</span>
-            <span className="cx-dock__go" aria-hidden="true">
-              <span>{tx("تأكيد")}</span>
-            </span>
-          </button>
-        </div>
-      )}
-
-      {showTop && (
-        <button
-          type="button"
-          className="cx-topbtn"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label={tx("العودة إلى الأعلى")}
-        >
-          <ArrowUp size={20} aria-hidden="true" />
-        </button>
-      )}
-
-      {cafe.notice && (
+      {(!cafe.isOnline || cafe.tableContext) && (
         <div
-          className={`cx-toast cx-toast--${cafe.notice.kind}${showDock ? " cx-toast--above-dock" : ""}`}
+          className={`app-context${!cafe.isOnline ? " is-off" : ""}`}
           role="status"
-          aria-live="polite"
-          key={cafe.notice.message}
         >
-          <span className="cx-toast__icon" aria-hidden="true">
-            <NoticeIcon size={19} strokeWidth={2.4} />
-          </span>
-          <span className="cx-toast__content">
-            <strong className="cx-toast__title">
-              {language === "ar"
-                ? cafe.notice.kind === "success"
-                  ? tx("تمت الإضافة")
-                  : cafe.notice.kind === "error"
-                    ? tx("تعذّر إكمال الطلب")
-                    : cafe.notice.kind === "warning"
-                      ? tx("يرجى الانتباه")
-                      : cafe.notice.kind === "loading"
-                        ? tx("جارٍ التنفيذ")
-                        : tx("معلومة")
-                : cafe.notice.kind === "success"
-                  ? "Added to your order"
-                  : cafe.notice.kind === "error"
-                    ? "Something went wrong"
-                    : cafe.notice.kind === "warning"
-                      ? "Action needed"
-                      : cafe.notice.kind === "loading"
-                        ? "Working on it"
-                        : "Notice"}
-            </strong>
-            <span className="cx-toast__message">{noticeText}</span>
-          </span>
-          {cafe.notice.kind === "success" && (
-            <button
-              type="button"
-              className="cx-toast__action"
-              onClick={cafe.openCart}
-            >
-              {language === "ar" ? tx("السلة") : "Cart"}
-            </button>
+          {cafe.isOnline ? (
+            <>
+              <Check size={15} />
+              {language === "en"
+                ? `Ordering for ${cafe.tableContext?.labelEn || cafe.tableContext?.labelAr}`
+                : `الطلب للطاولة ${cafe.tableContext?.labelAr}`}
+            </>
+          ) : (
+            <>
+              <CircleAlert size={15} />
+              {tx("دون اتصال")}
+            </>
           )}
         </div>
       )}
-
-      {/* Mobile bottom dock navigation */}
-      <nav className="cx-bottab" aria-label={tx("التنقل السريع")}>
-        <Link
-          className={`cx-bottab__item${onMenu ? " is-active" : ""}`}
-          to={base}
-        >
-          <span className="cx-bottab__ico" aria-hidden="true">
-            <Utensils size={20} />
-          </span>
-          {tx("القائمة")}
-        </Link>
-        <Link
-          className={`cx-bottab__item${onOrders ? " is-active" : ""}`}
-          to={`${base}/orders`}
-        >
-          <span className="cx-bottab__ico" aria-hidden="true">
-            <ReceiptText size={20} />
-          </span>
-          {tx("طلباتي")}
-        </Link>
-        {canAdmin && (
-          <Link className="cx-bottab__item" to={`/admin/${slug}`}>
-            <span className="cx-bottab__ico" aria-hidden="true">
-              <LayoutDashboard size={20} />
-            </span>
-            {tx("الإدارة")}
-          </Link>
+      <div className={`app-layout${onMenu ? " has-order-rail" : ""}`}>
+        <main id="cx-main" className="cx-main" tabIndex={-1}>
+          <Outlet />
+        </main>
+        {onMenu && (
+          <aside className="desktop-order-rail">
+            <header>
+              <ShoppingBasket size={21} />
+              <h2>{language === "en" ? "Your order" : "طلبك"}</h2>
+              <span>{cafe.cartCount}</span>
+            </header>
+            {cafe.cart.length ? (
+              <>
+                <div className="rail-lines">
+                  {cafe.cart.map((line) => (
+                    <div key={line.key}>
+                      <span>{line.qty}×</span>
+                      <div>
+                        <b>
+                          {language === "en"
+                            ? line.item.en || line.item.name
+                            : line.item.name}
+                        </b>
+                        <small>
+                          {line.options
+                            .map((o) =>
+                              language === "en" ? o.en || o.name : o.name,
+                            )
+                            .join(" · ")}
+                        </small>
+                      </div>
+                      <strong>
+                        {cafe.currency === "usd"
+                          ? formatUsd(
+                              (line.item.price +
+                                line.options.reduce((a, o) => a + o.price, 0)) *
+                                line.qty,
+                              restaurant.rate,
+                            )
+                          : formatSyp(
+                              (line.item.price +
+                                line.options.reduce((a, o) => a + o.price, 0)) *
+                                line.qty,
+                            )}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+                <div className="rail-subtotal">
+                  <span>
+                    {language === "en" ? "Subtotal" : "المجموع الفرعي"}
+                  </span>
+                  <b>{dockTotal}</b>
+                </div>
+                <p>
+                  {language === "en"
+                    ? "Fees and discounts are calculated at checkout."
+                    : "تُحسب الرسوم والخصم عند إتمام الطلب."}
+                </p>
+                <button
+                  className="ui-button ui-button--primary"
+                  onClick={cafe.openCart}
+                >
+                  {language === "en" ? "Review your basket" : "راجع سلتك"}
+                  <ArrowUp size={18} />
+                </button>
+              </>
+            ) : (
+              <div className="rail-empty">
+                <ShoppingBasket size={42} strokeWidth={1.1} />
+                <h3>
+                  {language === "en"
+                    ? "A little room for delicious"
+                    : "في مكان لشي طيب"}
+                </h3>
+                <p>
+                  {language === "en"
+                    ? "Choose a dish from the menu. We’ll keep your order here."
+                    : "اختار أطباقك من المنيو. طلبك رح يكون هون."}
+                </p>
+              </div>
+            )}
+            <div className="rail-table">
+              <Utensils size={17} />
+              <span>
+                {language === "en"
+                  ? "Dining in? Scan your table QR."
+                  : "قاعد بالمطعم؟ امسح رمز طاولتك."}
+              </span>
+            </div>
+          </aside>
         )}
-        <button
-          type="button"
-          className="cx-bottab__item"
-          onClick={cafe.openCart}
+      </div>
+      {overlays}
+      {showDock && (
+        <div className="cx-dock">
+          <button className="cx-dock__btn" onClick={cafe.openCart}>
+            <span>
+              <ShoppingBasket size={20} />
+              <b>{cafe.cartCount}</b>
+            </span>
+            <strong>{language === "en" ? "View basket" : "عرض السلة"}</strong>
+            <strong>{dockTotal}</strong>
+          </button>
+        </div>
+      )}
+      <nav className="cx-bottab" aria-label={tx("التنقل الرئيسي")}>
+        <Link
+          to={base}
+          className={`cx-bottab__item${onMenu ? " is-active" : ""}`}
+          aria-current={onMenu ? "page" : undefined}
         >
-          <span className="cx-bottab__ico" aria-hidden="true">
-            <ShoppingBasket size={20} />
-            {cafe.cartCount > 0 && <b>{cafe.cartCount}</b>}
+          <Utensils size={21} />
+          <span>{tx("القائمة")}</span>
+        </Link>
+        <Link
+          to={`${base}/orders`}
+          className={`cx-bottab__item${onOrders ? " is-active" : ""}`}
+          aria-current={onOrders ? "page" : undefined}
+        >
+          <ReceiptText size={21} />
+          <span>{tx("طلباتي")}</span>
+        </Link>
+        <button className="cx-bottab__item" onClick={cafe.openCart}>
+          <ShoppingBasket size={21} />
+          <span>
+            {language === "en" ? "Basket" : "السلة"}
+            {cafe.cartCount > 0 ? ` (${cafe.cartCount})` : ""}
           </span>
-          {tx("السلة")}
         </button>
       </nav>
+      {cafe.notice &&
+        !cafe.selectedItem &&
+        !cafe.cartOpen &&
+        !cafe.checkoutOpen &&
+        !cafe.trackingOrder && (
+          <div className={`app-notice is-${cafe.notice.kind}`} role="status">
+            <NoticeIcon size={19} />
+            <span>{noticeText}</span>
+          </div>
+        )}
     </div>
   );
 }

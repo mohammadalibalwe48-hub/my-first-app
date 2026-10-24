@@ -6,8 +6,8 @@
   justify-content: center;
   padding: 28px;
   text-align: center;
-  background: #fbfcf8;
-  color: #35422b;
+  background: #ffffff;
+  color: #354154;
   font-family: "Tajawal", "Inter", sans-serif;
   gap: 14px;
 }
@@ -17,7 +17,7 @@
   width: 58px;
   height: 58px;
   border-radius: 18px;
-  background: #eff4e4;
+  background: #fff0e7;
   color: #71854b;
   font-size: 32px;
 }
@@ -31,13 +31,13 @@
   max-width: 420px;
   font-size: 15px;
   line-height: 1.8;
-  color: #707963;
+  color: #6d778b;
   margin: 0;
 }
 .app-recovery button {
   min-height: 48px;
   padding: 12px 24px;
-  background: #566631;
+  background: #ef542f;
   color: #fff;
   border: 0;
   border-radius: 13px;

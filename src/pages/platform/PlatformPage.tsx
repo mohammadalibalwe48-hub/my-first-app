@@ -42,8 +42,8 @@ import { useAuth } from "../../context/Auth";
 import { useUI } from "../../context/UI";
 import { formatSyp, modeLabels, statusLabels } from "../../domain";
 import "./platform.css";
-import "./platform-redesign.css";
-import "./platform-atlas.css";
+
+import "./platform-app.css";
 
 /* ---------------- types ---------------- */
 
@@ -256,10 +256,18 @@ export default function PlatformPage() {
         o.restaurant_slug.toLowerCase().includes(q),
     );
   }, [orders, query]);
-  const openCount = restaurants.filter((r) => r.acceptanceState === "open").length;
-  const pausedCount = restaurants.filter((r) => r.acceptanceState === "paused").length;
-  const closedCount = restaurants.filter((r) => r.acceptanceState === "closed").length;
-  const lastSync = overview?.generatedAt ? new Date(overview.generatedAt) : null;
+  const openCount = restaurants.filter(
+    (r) => r.acceptanceState === "open",
+  ).length;
+  const pausedCount = restaurants.filter(
+    (r) => r.acceptanceState === "paused",
+  ).length;
+  const closedCount = restaurants.filter(
+    (r) => r.acceptanceState === "closed",
+  ).length;
+  const lastSync = overview?.generatedAt
+    ? new Date(overview.generatedAt)
+    : null;
 
   const go = (slug: string) => navigate(`/admin/${slug}`);
   const doSignOut = () => void signOut().then(() => navigate("/"));
@@ -400,116 +408,69 @@ function Sidebar({
   onAssets: () => void;
   onSignOut: () => void;
 }) {
+  const { language } = useUI();
+  const en = language === "en";
   return (
-    <aside className="px-sidebar" aria-label="القائمة الرئيسية">
-      <div className="px-sidebar__scroll">
-        <div className="px-brand">
-          <BrandSeal />
-          <div className="px-brand__txt">
-            <b>SYRIAN QR</b>
-            <small>لوحة المنصة</small>
-          </div>
-        </div>
-
-        <nav className="px-nav" aria-label="أقسام المنصة">
-          <span className="px-nav__label">أقسام المنصة</span>
-          {NAV_ORDER.map((key) => {
-            const Icon = TAB_META[key].icon;
-            const active = tab === key;
-            return (
-              <button
-                type="button"
-                key={key}
-                className={`px-nav__item${active ? " is-active" : ""}`}
-                onClick={() => onTab(key)}
-                aria-current={active ? "page" : undefined}
-              >
-                <span className="px-nav__ico">
-                  <Icon aria-hidden />
-                </span>
-                <span className="px-nav__txt">{TAB_META[key].label}</span>
-                {key === "orders" && ordersCount > 0 && (
-                  <span className="px-nav__count px-tnum">{num(ordersCount)}</span>
-                )}
-              </button>
-            );
-          })}
-          <button type="button" className="px-nav__item" onClick={onAssets}>
-            <span className="px-nav__ico"><Images aria-hidden /></span>
-            <span className="px-nav__txt">مكتبة الصور</span>
-          </button>
-        </nav>
-
-        <div className="px-sidebar__net">
-          <span className="px-sidebar__net-head">
-            <Activity aria-hidden />
-            الشبكة الآن
-          </span>
-          <div className="px-sidebar__net-row">
-            <span>
-              <i className="is-open" aria-hidden />
-              {num(openCount)} مفتوح
-            </span>
-            <span>
-              <i className="is-paused" aria-hidden />
-              {num(pausedCount)}
-            </span>
-            <span>
-              <i className="is-closed" aria-hidden />
-              {num(closedCount)}
-            </span>
-          </div>
-          <div className="px-sidebar__net-bar" aria-hidden>
-            {restaurants.length > 0 && (
-              <>
-                <i
-                  className="seg-open"
-                  style={{ width: `${(openCount / restaurants.length) * 100}%` }}
-                />
-                <i
-                  className="seg-paused"
-                  style={{ width: `${(pausedCount / restaurants.length) * 100}%` }}
-                />
-                <i
-                  className="seg-closed"
-                  style={{ width: `${(closedCount / restaurants.length) * 100}%` }}
-                />
-              </>
-            )}
-          </div>
-          <span className="px-sidebar__net-foot">
-            {num(restaurants.length)} متجراً على المنصة
-          </span>
-        </div>
-
-        <div className="px-sidebar__bottom">
-          <div className="px-user">
-            <span className="px-user__avatar" aria-hidden>
-              {staffEmail ? staffEmail[0].toUpperCase() : "م"}
-            </span>
-            <span className="px-user__meta">
-              <b>{staffEmail || "مدير المنصة"}</b>
-              <small>صلاحية كاملة على كل المتاجر</small>
-            </span>
-          </div>
-
-          <div className="px-sbtnrow">
-            <button type="button" className="px-sbtn" onClick={onSite}>
-              <Globe2 aria-hidden />
-              الموقع العام
+    <aside className="px-sidebar platform-navigation">
+      <button className="platform-brand" onClick={onSite}>
+        <BrandSeal />
+        <span>
+          SYRIAN QR
+          <small>{en ? "Platform workspace" : "مساحة عمل المنصة"}</small>
+        </span>
+      </button>
+      <span className="platform-nav-heading">
+        {en ? "THE NETWORK" : "إدارة الشبكة"}
+      </span>
+      <nav>
+        {NAV_ORDER.map((id) => {
+          const Icon = TAB_META[id].icon;
+          return (
+            <button
+              key={id}
+              className={tab === id ? "is-on" : ""}
+              aria-current={tab === id ? "page" : undefined}
+              onClick={() => onTab(id)}
+            >
+              <Icon size={19} />
+              <span>
+                {en
+                  ? {
+                      overview: "Overview",
+                      restaurants: "Restaurants",
+                      orders: "Orders",
+                    }[id]
+                  : TAB_META[id].label}
+              </span>
+              {id === "orders" && ordersCount > 0 && <b>{ordersCount}</b>}
             </button>
-            <button type="button" className="px-sbtn" onClick={onAdmin}>
-              <ShieldCheck aria-hidden />
-              مركز الإدارة
-            </button>
-          </div>
-
-          <button type="button" className="px-sbtn px-sbtn--danger" onClick={onSignOut}>
-            <LogOut aria-hidden />
-            تسجيل الخروج
-          </button>
-        </div>
+          );
+        })}
+        <button onClick={onAssets}>
+          <Images size={19} />
+          <span>{en ? "Asset library" : "مكتبة الصور"}</span>
+        </button>
+      </nav>
+      <div className="platform-network-summary">
+        <Store size={20} />
+        <b>
+          {restaurants.length} {en ? "restaurants" : "مطاعم"}
+        </b>
+        <small>
+          {openCount} {en ? "accepting orders" : "تستقبل الطلبات"}
+        </small>
+        <button onClick={onAdmin}>
+          {en ? "Restaurant workspaces" : "مساحات عمل المطاعم"}
+          <ArrowRight size={14} />
+        </button>
       </div>
+      <footer>
+        <span>{staffEmail}</span>
+        <button onClick={onSignOut}>
+          <LogOut size={16} />
+          {en ? "Sign out" : "تسجيل الخروج"}
+        </button>
+      </footer>
     </aside>
   );
 }
@@ -550,7 +511,9 @@ function MobileTopBar({
         aria-label="تغيير اللغة"
       >
         <Languages aria-hidden />
-        <span className="px-ibtn__label">{language === "ar" ? "EN" : "عربي"}</span>
+        <span className="px-ibtn__label">
+          {language === "ar" ? "EN" : "عربي"}
+        </span>
       </button>
       <button
         type="button"
@@ -560,7 +523,12 @@ function MobileTopBar({
       >
         <RefreshCw aria-hidden className={refreshing ? "px-spin" : ""} />
       </button>
-      <button type="button" className="px-ibtn" onClick={onSite} aria-label="الموقع العام">
+      <button
+        type="button"
+        className="px-ibtn"
+        onClick={onSite}
+        aria-label="الموقع العام"
+      >
         <Globe2 aria-hidden />
       </button>
       <button
@@ -612,7 +580,9 @@ function MobileTabBar({
         );
       })}
       <button type="button" className="px-tabbar__item" onClick={onAssets}>
-        <span className="px-tabbar__ico"><Images aria-hidden /></span>
+        <span className="px-tabbar__ico">
+          <Images aria-hidden />
+        </span>
         <span className="px-tabbar__label">مكتبة الصور</span>
       </button>
     </nav>
@@ -796,7 +766,11 @@ function OverviewView({
           icon={Timer}
           label="قيد التشغيل"
           value={num(totals.activeOrders)}
-          hint={activeShare ? `${num(activeShare)}٪ من إجمالي الطلبات` : "بانتظار الطلبات"}
+          hint={
+            activeShare
+              ? `${num(activeShare)}٪ من إجمالي الطلبات`
+              : "بانتظار الطلبات"
+          }
         />
         <KpiPlate
           index={4}
@@ -819,11 +793,19 @@ function OverviewView({
       ) : (
         <div className="px-dashgrid">
           <section className="px-dashgrid__main">
-            <RankPanel rows={byRevenue} maxRevenue={maxRevenue} onOpen={onOpen} />
+            <RankPanel
+              rows={byRevenue}
+              maxRevenue={maxRevenue}
+              onOpen={onOpen}
+            />
           </section>
           <aside className="px-dashgrid__rail" aria-label="نظرة جانبية">
             <MixPanel orders={orders} />
-            <FeedPanel rows={recent} onOpen={onOpen} onAllOrders={onAllOrders} />
+            <FeedPanel
+              rows={recent}
+              onOpen={onOpen}
+              onAllOrders={onAllOrders}
+            />
           </aside>
         </div>
       )}
@@ -893,7 +875,11 @@ function RankPanel({
               className="px-btn px-btn--ghost px-rankcard__best"
               onClick={() => onOpen(best.slug)}
             >
-              <span className="px-rankcard__best-dot" style={{ "--c1": best.accent } as CSSProperties} aria-hidden />
+              <span
+                className="px-rankcard__best-dot"
+                style={{ "--c1": best.accent } as CSSProperties}
+                aria-hidden
+              />
               {best.nameAr}
               <ArrowUpRight aria-hidden />
               <span className="sr-only">، افتح لوحة {best.nameAr}</span>
@@ -997,14 +983,22 @@ function MixPanel({ orders }: { orders: PlatformOrder[] }) {
   const parts = MIX_SEGS.map((s, i) => {
     const frac = total > 0 ? mix[s.key] / total : 0;
     const from =
-      i === 0 ? 0 : MIX_SEGS.slice(0, i).reduce((a, x) => a + (total > 0 ? mix[x.key] / total : 0), 0);
+      i === 0
+        ? 0
+        : MIX_SEGS.slice(0, i).reduce(
+            (a, x) => a + (total > 0 ? mix[x.key] / total : 0),
+            0,
+          );
     const to = i === MIX_SEGS.length - 1 ? 1 : from + frac;
     return { ...s, n: mix[s.key], from, to };
   });
   const gradient =
     total > 0
       ? `conic-gradient(${parts
-          .map((s) => `${s.color} ${(s.from * 360).toFixed(2)}deg ${(s.to * 360).toFixed(2)}deg`)
+          .map(
+            (s) =>
+              `${s.color} ${(s.from * 360).toFixed(2)}deg ${(s.to * 360).toFixed(2)}deg`,
+          )
           .join(", ")})`
       : "conic-gradient(var(--surface-3) 0deg 360deg)";
 
@@ -1022,7 +1016,11 @@ function MixPanel({ orders }: { orders: PlatformOrder[] }) {
           role="img"
           aria-label={`${num(total)} ${total === 1 ? "طلب" : "طلباً"}`}
         >
-          <span className="px-donut__ring" style={{ background: gradient }} aria-hidden>
+          <span
+            className="px-donut__ring"
+            style={{ background: gradient }}
+            aria-hidden
+          >
             <span className="px-donut__hole">
               <b className="px-tnum">{num(total)}</b>
               <small>طلب</small>
@@ -1069,7 +1067,11 @@ function FeedPanel({
         kicker="نشاط مباشر"
         title="آخر الطلبات"
         id="feed-title"
-        extra={<span className="px-live px-live--sm"><i aria-hidden /> مباشر</span>}
+        extra={
+          <span className="px-live px-live--sm">
+            <i aria-hidden /> مباشر
+          </span>
+        }
         mark={<Activity />}
       />
       {rows.length === 0 ? (
@@ -1100,7 +1102,13 @@ function FeedPanel({
   );
 }
 
-function FeedRow({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => void }) {
+function FeedRow({
+  o,
+  onOpen,
+}: {
+  o: PlatformOrder;
+  onOpen: (slug: string) => void;
+}) {
   return (
     <button
       type="button"
@@ -1120,11 +1128,13 @@ function FeedRow({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => vo
         </b>
         <small>
           {modeLabels[o.mode]}
-          {o.table_label ? ` · ${o.table_label}` : ""} · {o.customer_name || "زبون"} ·{" "}
-          {dt(o.created_at)}
+          {o.table_label ? ` · ${o.table_label}` : ""} ·{" "}
+          {o.customer_name || "زبون"} · {dt(o.created_at)}
         </small>
       </span>
-      <span className="px-feedrow__total px-tnum">{orderTotal(o.total_syp)}</span>
+      <span className="px-feedrow__total px-tnum">
+        {orderTotal(o.total_syp)}
+      </span>
       <span className="sr-only">، افتح طلبات {o.restaurant_name}</span>
     </button>
   );
@@ -1155,7 +1165,9 @@ function RestaurantsView({
             <Store />
           </span>
           <b className="px-tnum">{num(restaurants.length)}</b>
-          <span>{restaurants.length === 1 ? "مطعم على الشبكة" : "مطاعم على الشبكة"}</span>
+          <span>
+            {restaurants.length === 1 ? "مطعم على الشبكة" : "مطاعم على الشبكة"}
+          </span>
         </span>
         <span className="px-netbar__sep" aria-hidden />
         <span className="px-netbar__cell">
@@ -1171,7 +1183,10 @@ function RestaurantsView({
           {num(closedCount)} مغلق
         </span>
         <span className="px-netbar__note">
-          مرتبة حسب الإيرادات · <span className="px-netbar__note-live"><i aria-hidden /> مباشر</span>
+          مرتبة حسب الإيرادات ·{" "}
+          <span className="px-netbar__note-live">
+            <i aria-hidden /> مباشر
+          </span>
         </span>
       </section>
 
@@ -1249,7 +1264,9 @@ function RestaurantCard({
           <span>الإيراد الكلي</span>
           <ChefHat aria-hidden />
         </span>
-        <strong className="px-rst__revenue px-tnum">{orderTotal(r.revenueSyp)}</strong>
+        <strong className="px-rst__revenue px-tnum">
+          {orderTotal(r.revenueSyp)}
+        </strong>
         <span className="px-rst__plate-sub">
           {num(r.orderCount)} {r.orderCount === 1 ? "طلب" : "طلبات"} ·{" "}
           {r.lastOrderAt ? `آخر طلب ${dt(r.lastOrderAt)}` : "بانتظار أول طلب"}
@@ -1297,7 +1314,11 @@ function RestaurantCard({
           <span className="px-rst__scope-dot" aria-hidden />
           نصيب المنصة من الطلبات
         </span>
-        <button type="button" className="px-btn px-btn--solid" onClick={() => onOpen(r.slug)}>
+        <button
+          type="button"
+          className="px-btn px-btn--solid"
+          onClick={() => onOpen(r.slug)}
+        >
           لوحة المطعم
           <ArrowRight className="px-forward" aria-hidden />
         </button>
@@ -1341,10 +1362,16 @@ function OrdersView({
     () =>
       STATUS_FILTERS.reduce(
         (acc, f) => {
-          acc[f.key] = orders.reduce((n, o) => n + (matchesFilter(o, f.key) ? 1 : 0), 0);
+          acc[f.key] = orders.reduce(
+            (n, o) => n + (matchesFilter(o, f.key) ? 1 : 0),
+            0,
+          );
           return acc;
         },
-        { all: 0, active: 0, completed: 0, cancelled: 0 } as Record<OrderFilter, number>,
+        { all: 0, active: 0, completed: 0, cancelled: 0 } as Record<
+          OrderFilter,
+          number
+        >,
       ),
     [orders],
   );
@@ -1412,7 +1439,11 @@ function OrdersView({
               title="لا نتائج مطابقة"
               text="جرّب تعديل كلمة البحث أو إعادة ضبط التصفية."
               action={
-                <button type="button" className="px-btn px-btn--solid" onClick={clearFilters}>
+                <button
+                  type="button"
+                  className="px-btn px-btn--solid"
+                  onClick={clearFilters}
+                >
                   إعادة ضبط الفلاتر
                 </button>
               }
@@ -1420,9 +1451,15 @@ function OrdersView({
           </div>
         ) : (
           <>
-            <div className="px-tablewrap" tabIndex={0} aria-label="جدول الطلبات، مرّر أفقياً للاطلاع على الأعمدة">
+            <div
+              className="px-tablewrap"
+              tabIndex={0}
+              aria-label="جدول الطلبات، مرّر أفقياً للاطلاع على الأعمدة"
+            >
               <table className="px-table">
-                <caption className="sr-only">سجل الطلبات الواردة عبر المنصة</caption>
+                <caption className="sr-only">
+                  سجل الطلبات الواردة عبر المنصة
+                </caption>
                 <thead>
                   <tr>
                     <th scope="col">الطلب</th>
@@ -1431,7 +1468,9 @@ function OrdersView({
                     <th scope="col">النوع</th>
                     <th scope="col">الحالة</th>
                     <th scope="col">الدفع</th>
-                    <th scope="col" className="px-table__num-col">الإجمالي</th>
+                    <th scope="col" className="px-table__num-col">
+                      الإجمالي
+                    </th>
                     <th scope="col">الوقت</th>
                     <th scope="col">
                       <span className="sr-only">فتح</span>
@@ -1474,7 +1513,13 @@ function OrdersView({
   );
 }
 
-function OrderRow({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => void }) {
+function OrderRow({
+  o,
+  onOpen,
+}: {
+  o: PlatformOrder;
+  onOpen: (slug: string) => void;
+}) {
   return (
     <tr>
       <td>
@@ -1487,7 +1532,10 @@ function OrderRow({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => v
       </td>
       <td>
         <span className="px-rest">
-          <i style={{ "--c1": o.accent_color ?? "var(--red)" } as CSSProperties} aria-hidden />
+          <i
+            style={{ "--c1": o.accent_color ?? "var(--red)" } as CSSProperties}
+            aria-hidden
+          />
           {o.restaurant_name}
         </span>
       </td>
@@ -1529,7 +1577,13 @@ function OrderRow({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => v
   );
 }
 
-function OrderCard({ o, onOpen }: { o: PlatformOrder; onOpen: (slug: string) => void }) {
+function OrderCard({
+  o,
+  onOpen,
+}: {
+  o: PlatformOrder;
+  onOpen: (slug: string) => void;
+}) {
   return (
     <article
       className="px-ocard"
@@ -1651,9 +1705,19 @@ function ContentSkeleton() {
   );
 }
 
-function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorPanel({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
   return (
-    <section className="px-card px-error" role="alert" aria-labelledby="error-title">
+    <section
+      className="px-card px-error"
+      role="alert"
+      aria-labelledby="error-title"
+    >
       <span className="px-error__seal" aria-hidden>
         <span className="px-error__seal-ring" />
         <TriangleAlert />
@@ -1662,11 +1726,17 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
       <h2 id="error-title">تعذّر تحميل بيانات المنصة</h2>
       <p className="px-error__msg">{message}</p>
       <div className="px-error__row">
-        <button type="button" className="px-btn px-btn--solid" onClick={onRetry}>
+        <button
+          type="button"
+          className="px-btn px-btn--solid"
+          onClick={onRetry}
+        >
           <RefreshCw aria-hidden />
           إعادة المحاولة
         </button>
-        <span className="px-error__hint">ستُعاد المحاولة تلقائياً كل ٣٠ ثانية</span>
+        <span className="px-error__hint">
+          ستُعاد المحاولة تلقائياً كل ٣٠ ثانية
+        </span>
       </div>
     </section>
   );

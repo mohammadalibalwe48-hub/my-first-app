@@ -422,65 +422,19 @@ export default function AdminWorkspacePage() {
         <header className="adm-bar">
           <div className="adm-bar__in">
             <button
-              type="button"
-              className="adm-bar__brand"
+              className="workspace-platform-link"
               onClick={() => navigate("/")}
-              aria-label="الرجوع إلى الموقع العام"
             >
-              <span className="adm-bar__seal">
-                <Utensils aria-hidden="true" />
-              </span>
-              <span className="adm-bar__word">
-                SYRIAN QR
-                <small>غرفة عمليات المطاعم</small>
-              </span>
+              SYRIAN <b>QR</b>
             </button>
-            <span className="adm-bar__sep" aria-hidden="true" />
-            <nav className="adm-bar__quick" aria-label="روابط سريعة">
-              {platformAdmin && (
-                <button
-                  type="button"
-                  className="adm-bar__link"
-                  aria-label="لوحة المنصة"
-                  onClick={() => navigate("/platform")}
-                >
-                  <LayoutDashboard aria-hidden="true" />
-                  <span className="adm-linklabel">لوحة المنصة</span>
-                </button>
-              )}
-              <button
-                type="button"
-                className="adm-bar__link"
-                aria-label="الرئيسية"
-                onClick={() => navigate("/")}
-              >
-                <Home aria-hidden="true" />
-                <span className="adm-linklabel">الرئيسية</span>
+            <span>
+              {language === "en" ? "Restaurant workspace" : "مساحة عمل المطعم"}
+            </span>
+            {platformAdmin && (
+              <button onClick={() => navigate("/platform")}>
+                {language === "en" ? "Platform" : "المنصة"}
               </button>
-              <button
-                type="button"
-                className="adm-bar__link"
-                aria-label="عرض المتجر"
-                onClick={() => navigate(`/c/${slug}`)}
-              >
-                <Store aria-hidden="true" />
-                <span className="adm-linklabel">عرض المتجر</span>
-                <ExternalLink
-                  aria-hidden="true"
-                  style={{ width: 13, height: 13 }}
-                />
-              </button>
-            </nav>
-            <span className="adm-bar__spacer" aria-hidden="true" />
-            <button
-              type="button"
-              className="adm-bar__signout"
-              aria-label="تسجيل الخروج"
-              onClick={() => void signOut()}
-            >
-              <LogOut aria-hidden="true" />
-              <span className="adm-linklabel">تسجيل الخروج</span>
-            </button>
+            )}
           </div>
         </header>
         <AdminView

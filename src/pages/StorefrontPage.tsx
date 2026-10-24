@@ -11,6 +11,7 @@ export default function StorefrontPage() {
 
   return (
     <MenuView
+      key={cafe.restaurant.id}
       restaurant={cafe.restaurant}
       categories={cafe.categories}
       currency={cafe.currency}

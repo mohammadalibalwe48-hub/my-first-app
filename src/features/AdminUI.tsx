@@ -1,9 +1,11 @@
 import "./admin.css";
 import "./dialogs.css";
 import "./onboarding.css";
-import "./admin-redesign.css";
+
 import "./workflows.css";
-import "./olive-workspace.css";
+import "./workspace-app.css";
+import { WorkspaceShell } from "./WorkspaceShell";
+import { useUI } from "../context/UI";
 import {
   useEffect,
   useRef,
@@ -42,6 +44,7 @@ import {
   Printer,
   QrCode,
   RefreshCw,
+  ReceiptText,
   Search,
   Settings,
   ShieldCheck,
@@ -412,13 +415,19 @@ function AdminView({
       if (!active) return;
       const bounds = nav.getBoundingClientRect();
       const item = active.getBoundingClientRect();
-      const shift = item.left < bounds.left ? item.left - bounds.left - 12 : item.right > bounds.right ? item.right - bounds.right + 12 : 0;
+      const shift =
+        item.left < bounds.left
+          ? item.left - bounds.left - 12
+          : item.right > bounds.right
+            ? item.right - bounds.right + 12
+            : 0;
       if (shift) nav.scrollBy({ left: shift });
     };
     // The UI provider applies document direction after mount; measure after layout too.
     const frame = window.requestAnimationFrame(revealActiveTab);
     const observer = new ResizeObserver(revealActiveTab);
-    if (rail.current?.firstElementChild) observer.observe(rail.current.firstElementChild);
+    if (rail.current?.firstElementChild)
+      observer.observe(rail.current.firstElementChild);
     window.addEventListener("resize", revealActiveTab);
     return () => {
       window.cancelAnimationFrame(frame);
@@ -459,391 +468,222 @@ function AdminView({
         : 0;
 
   return (
-    <div className="adm adm--workspace">
-      {/* ---- Deep-teal command mast: identity + live status + switch ---- */}
-      <header className="adm-mast">
-        <div className="adm-mast__in">
-          <div className="adm-mast__id">
-            <span className="adm-seal" aria-hidden="true">
-              {monogram(restaurant)}
-            </span>
-            <div className="adm-mast__id__txt">
-              <span className="adm-kicker adm-kicker--on-dark">
-                دفتر التشغيل · {todayLabel}
-              </span>
-              <h1 className="adm-mast__name">{restaurant.name}</h1>
-              <div className="adm-mast__meta">
-                {restaurant.city || restaurant.neighborhood ? (
-                  <span>
-                    <MapPin aria-hidden="true" />
-                    {[restaurant.neighborhood, restaurant.city]
-                      .filter(Boolean)
-                      .join("، ")}
-                  </span>
-                ) : null}
+    <WorkspaceShell
+      restaurantName={restaurant.name}
+      restaurantSlug={restaurant.id}
+      email={staffEmail}
+      role={roleLabel}
+      nav={TAB_ITEMS.filter((item) => allowedTabs.includes(item.id)).map(
+        (item) => ({ ...item, count: activeCountFor(item.id) }),
+      )}
+      tab={tab}
+      onSelect={(id) => setTab(id as AdminTab)}
+      memberships={memberships}
+      onSwitch={onSwitch}
+      onSignOut={onSignOut}
+      newOrders={liveNewOrders}
+    >
+      <OrderAlertsPanel />
+      {(tab === "kitchen" || tab === "cashier") && workstation}
+      {tab === "overview" && (
+        <>
+          <AdminOverview
+            orders={orders}
+            settings={settings}
+            onOpenOrders={() => setTab("orders")}
+            onOpenOrder={(order) => {
+              setTab("orders");
+              setSelectedOrder(order);
+            }}
+          />
+          <details className="workspace-setup">
+            <summary>
+              <Sparkles size={18} />
+              <span>تهيئة المطعم</span>
+              <b>
+                {onboardingProgress}/{FIRST_RUN_STEPS.length}
+              </b>
+              <ChevronDown size={16} />
+            </summary>
+            <FirstRunGuide
+              restaurantName={restaurant.name}
+              restaurantSlug={restaurant.id}
+              completed={onboarding.completed}
+              onToggleStep={toggleOnboardingStep}
+              onDismiss={() => {
+                updateOnboardingDismissed(true);
+                document
+                  .querySelector(".workspace-setup")
+                  ?.removeAttribute("open");
+              }}
+              onOpenTab={setTab}
+            />
+          </details>
+        </>
+      )}
+
+      {tab === "orders" && (
+        <>
+          <PageHead
+            kicker="مكتب الطلبات / حيّ التدفق"
+            title="خط إنتاج الطلبات"
+            lede="الطلبات تتحرك من الاستلام حتى التسليم. اضغط على أي بطاقة لفتح ملف الخدمة الكامل."
+            actions={
+              <>
                 <span className="adm-live">
                   <i className="adm-live__dot" aria-hidden="true" />
-                  بث مباشر · مستلم الطلبات الآن
+                  متصل الآن
                 </span>
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          />
 
-          <div className="adm-mast__tools">
-            <div
-              className="adm-maststat"
-              role="group"
-              aria-label="إيقاع التشغيل الآن"
-            >
-              <span className="adm-maststat__cell">
-                <strong className="adm-num">{liveOrdersToday}</strong>
-                <small>طلباً اليوم</small>
-              </span>
-              <span className="adm-maststat__sep" aria-hidden="true" />
-              <span className="adm-maststat__cell adm-maststat__cell--live">
-                <strong className="adm-num">{activeOrdersCount}</strong>
-                <small>يعمل الآن</small>
-                {liveNewOrders > 0 ? (
-                  <b className="adm-maststat__ping adm-num">
-                    {liveNewOrders} جديد
-                  </b>
-                ) : null}
-              </span>
-            </div>
-            <div className="adm-whoswitch">
-              <div className="adm-user">
-                <span className="adm-user__avatar" aria-hidden="true">
-                  {(membership?.displayName || staffEmail).slice(0, 1)}
-                </span>
-                <span className="adm-user__txt">
-                  <strong>{membership?.displayName || staffEmail}</strong>
-                  <small>
-                    <CheckCircle2 aria-hidden="true" />
-                    {roleLabel} · متصل
-                  </small>
-                </span>
-              </div>
-              <label className="adm-switchsel">
-                <Store aria-hidden="true" />
-                <span className="sr-only">تبديل المطعم</span>
-                <select
-                  value={restaurant.id}
-                  onChange={(event) => onSwitch(event.target.value)}
-                  aria-label="تبديل المطعم"
-                >
-                  {memberships.map((entry) => (
-                    <option
-                      key={entry.restaurantId}
-                      value={entry.restaurantSlug}
-                    >
-                      {entry.restaurantName}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    insetInlineEnd: 12,
-                    width: 15,
-                    height: 15,
-                    color: "rgba(255,255,255,0.7)",
-                    pointerEvents: "none",
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ---- Section rail ---- */}
-      <nav ref={rail} className="adm-nav" aria-label="فهرس مساحة العمل">
-        <div className="adm-nav__in">
-          {TAB_ITEMS.filter((item) => allowedTabs.includes(item.id)).map((item) => {
-            const Icon = item.icon;
-            const count = activeCountFor(item.id);
-            return (
-              <button
-                key={item.id}
-                className={`adm-nav__item${tab === item.id ? " is-on" : ""}`}
-                onClick={() => setTab(item.id)}
-                aria-current={tab === item.id ? "page" : undefined}
-                aria-label={item.label}
-              >
-                <Icon aria-hidden="true" />
-                <span className="adm-nav__label">{item.label}</span>
-                {count > 0 ? (
-                  <b className="adm-nav__badge adm-num">{count}</b>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* ---- Content ---- */}
-      <main className="adm-body">
-        <div className="adm-body__in">
-          <OrderAlertsPanel />
-          {(tab === "kitchen" || tab === "cashier") && workstation}
-          {tab === "overview" && (
-            <>
-              {onboarding.dismissed ? (
-                <aside className="adm-onboard-reopen">
-                  <span className="adm-onboard-reopen__mark">
-                    <Sparkles aria-hidden="true" />
-                  </span>
-                  <span className="adm-onboard-reopen__copy">
-                    <strong>تهيئة المطعم</strong>
-                    <small>
-                      {onboardingProgress} من {FIRST_RUN_STEPS.length} خطوات
-                      مكتملة
-                    </small>
-                  </span>
-                  <button
-                    className="adm-btn adm-btn--soft adm-btn--sm"
-                    onClick={() => updateOnboardingDismissed(false)}
-                  >
-                    متابعة الدليل
-                    <ArrowRight aria-hidden="true" />
-                  </button>
-                </aside>
-              ) : (
-                <FirstRunGuide
-                  restaurantName={restaurant.name}
-                  restaurantSlug={restaurant.id}
-                  completed={onboarding.completed}
-                  onToggleStep={toggleOnboardingStep}
-                  onDismiss={() => updateOnboardingDismissed(true)}
-                  onOpenTab={setTab}
-                />
-              )}
-              <AdminOverview
-                orders={orders}
-                settings={settings}
-                onOpenOrders={() => setTab("orders")}
-                onOpenOrder={(order) => {
-                  setTab("orders");
-                  setSelectedOrder(order);
-                }}
+          <div className="adm-toolbar">
+            <label className="adm-search">
+              <Search aria-hidden="true" />
+              <span className="sr-only">البحث في الطلبات</span>
+              <input
+                value={orderQuery}
+                onChange={(event) => setOrderQuery(event.target.value)}
+                placeholder="رقم الطلب، اسم العميل، أو الهاتف"
               />
-            </>
-          )}
+            </label>
 
-          {tab === "orders" && (
-            <>
-              <PageHead
-                kicker="مكتب الطلبات / حيّ التدفق"
-                title="خط إنتاج الطلبات"
-                lede="الطلبات تتحرك من الاستلام حتى التسليم. اضغط على أي بطاقة لفتح ملف الخدمة الكامل."
-                actions={
-                  <>
-                    <span className="adm-live">
-                      <i className="adm-live__dot" aria-hidden="true" />
-                      متصل الآن
-                    </span>
-                  </>
+            <div className="adm-seg" role="group" aria-label="تصفية حسب القناة">
+              {(
+                [
+                  ["all", "الكل"],
+                  ["dine-in", "في المطعم"],
+                  ["takeaway", "سفري"],
+                  ["delivery", "توصيل"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  className={`adm-seg__btn${adminFilter === value ? " is-on" : ""}`}
+                  onClick={() => setAdminFilter(value as "all" | Mode)}
+                >
+                  {value !== "all"
+                    ? (() => {
+                        const Icon = MODE_ICON[value as Mode];
+                        return <Icon aria-hidden="true" />;
+                      })()
+                    : null}
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <label className="adm-field" style={{ minWidth: 170 }}>
+              <select
+                aria-label="تصفية حسب الحالة"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as typeof statusFilter)
                 }
+              >
+                <option value="all">كل الحالات</option>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <section className="workspace-order-inbox">
+            <header>
+              <span>الطلب / العميل</span>
+              <span>طريقة الطلب</span>
+              <span>الحالة</span>
+              <span>الإجمالي</span>
+            </header>
+            {visibleOrders(orders, {
+              mode: adminFilter,
+              status: statusFilter,
+              query: orderQuery,
+            }).map((order) => (
+              <button
+                key={order.id}
+                className="workspace-order-row"
+                onClick={() => setSelectedOrder(order)}
+              >
+                <span>
+                  <b>#{order.id}</b>
+                  <small>{order.customer}</small>
+                </span>
+                <span>{modeLabels[order.mode]}</span>
+                <span>
+                  <StatusChip status={order.status} />
+                </span>
+                <strong>{formatSyp(order.total)}</strong>
+                <ArrowRight size={16} />
+              </button>
+            ))}
+            {visibleOrders(orders, {
+              mode: adminFilter,
+              status: statusFilter,
+              query: orderQuery,
+            }).length === 0 && (
+              <AdminEmpty
+                icon={ClipboardList}
+                title="لا توجد طلبات مطابقة"
+                copy="جرّب تغيير البحث أو الفلاتر."
               />
+            )}
+          </section>
+        </>
+      )}
 
-              <div className="adm-toolbar">
-                <label className="adm-search">
-                  <Search aria-hidden="true" />
-                  <span className="sr-only">البحث في الطلبات</span>
-                  <input
-                    value={orderQuery}
-                    onChange={(event) => setOrderQuery(event.target.value)}
-                    placeholder="رقم الطلب، اسم العميل، أو الهاتف"
-                  />
-                </label>
+      {tab === "menu" && (
+        <MenuManager
+          restaurant={restaurant}
+          restaurantDatabaseId={restaurantDatabaseId}
+          categories={categories}
+          onChange={onItemsChange}
+          onCategoriesChange={onCategoriesChange}
+        />
+      )}
 
-                <div
-                  className="adm-seg"
-                  role="group"
-                  aria-label="تصفية حسب القناة"
-                >
-                  {(
-                    [
-                      ["all", "الكل"],
-                      ["dine-in", "في المطعم"],
-                      ["takeaway", "سفري"],
-                      ["delivery", "توصيل"],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      className={`adm-seg__btn${adminFilter === value ? " is-on" : ""}`}
-                      onClick={() => setAdminFilter(value as "all" | Mode)}
-                    >
-                      {value !== "all"
-                        ? (() => {
-                            const Icon = MODE_ICON[value as Mode];
-                            return <Icon aria-hidden="true" />;
-                          })()
-                        : null}
-                      {label}
-                    </button>
-                  ))}
-                </div>
+      {tab === "tables" && (
+        <TablesManager
+          restaurant={restaurant}
+          restaurantDatabaseId={restaurantDatabaseId}
+        />
+      )}
 
-                <label className="adm-field" style={{ minWidth: 170 }}>
-                  <select
-                    aria-label="تصفية حسب الحالة"
-                    value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value as typeof statusFilter)
-                    }
-                  >
-                    <option value="all">كل الحالات</option>
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+      {tab === "reports" && (
+        <ReportsPanel
+          orders={orders}
+          restaurantDatabaseId={restaurantDatabaseId}
+        />
+      )}
 
+      {tab === "operations" && (
+        <OperationsPanel
+          restaurantId={restaurant.id}
+          restaurantDatabaseId={restaurantDatabaseId}
+        />
+      )}
 
-              </div>
+      {tab === "settings" && (
+        <SettingsPanel settings={settings} onChange={onSettingsChange} />
+      )}
 
-              <div className="adm-kb">
-                {(
-                  [
-                    "received",
-                    "confirmed",
-                    "preparing",
-                    "ready",
-                    "out-for-delivery",
-                    "completed",
-                    "cancelled",
-                  ] as Order["status"][]
-                ).map((status) => {
-                  const columnOrders = visibleOrders(orders, {
-                    mode: adminFilter,
-                    status: statusFilter,
-                    query: orderQuery,
-                  }).filter((o) => o.status === status);
-                  const Icon = STATUS_ICON[status];
-                  return (
-                    <section
-                      className="adm-kb__col"
-                      key={status}
-                      aria-label={
-                        status === "received"
-                          ? "طلبات جديدة"
-                          : statusLabels[status]
-                      }
-                    >
-                      <div
-                        className={`adm-kb__hd${status === "cancelled" ? " adm-kb__hd--cancelled" : ""}`}
-                        style={
-                          {
-                            "--kb-c":
-                              status === "received"
-                                ? "var(--ink)"
-                                : status === "confirmed"
-                                  ? "var(--teal)"
-                                  : status === "preparing"
-                                    ? "var(--teal-2)"
-                                    : status === "ready"
-                                      ? "var(--teal-3)"
-                                      : status === "completed"
-                                        ? "var(--success)"
-                                        : status === "cancelled"
-                                          ? "var(--danger)"
-                                          : "var(--teal)",
-                          } as CSSProperties
-                        }
-                      >
-                        <h3 className="adm-kb__title">
-                          <Icon aria-hidden="true" />
-                          {status === "received"
-                            ? "طلبات جديدة"
-                            : statusLabels[status]}
-                        </h3>
-                        <b className="adm-kb__count adm-num">
-                          {columnOrders.length}
-                        </b>
-                      </div>
-                      <div className="adm-kb__stack">
-                        {columnOrders.length === 0 && (
-                          <div className="adm-kb__empty">
-                            <CheckCircle2 aria-hidden="true" />
-                            {status === "cancelled"
-                              ? "لا ملغي اليوم"
-                              : status === "completed"
-                                ? "لا مكتملة بعد"
-                                : "لا توجد طلبات"}
-                          </div>
-                        )}
-                        {columnOrders.map((order) => (
-                          <OrderCard
-                            key={order.id}
-                            order={order}
-                            onStatus={onStatus}
-                            onWhatsApp={onWhatsApp}
-                            onOpen={() => setSelectedOrder(order)}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-
-              {selectedOrder && (
-                <OrderDetails
-                  order={
-                    orders.find((entry) => entry.id === selectedOrder.id) ??
-                    selectedOrder
-                  }
-                  onClose={() => setSelectedOrder(null)}
-                  onStatus={onStatus}
-                  onChange={onOrderChange}
-                  onWhatsApp={onWhatsApp}
-                />
-              )}
-            </>
-          )}
-
-          {tab === "menu" && (
-            <MenuManager
-              restaurant={restaurant}
-              restaurantDatabaseId={restaurantDatabaseId}
-              categories={categories}
-              onChange={onItemsChange}
-              onCategoriesChange={onCategoriesChange}
-            />
-          )}
-
-          {tab === "tables" && (
-            <TablesManager
-              restaurant={restaurant}
-              restaurantDatabaseId={restaurantDatabaseId}
-            />
-          )}
-
-          {tab === "reports" && (
-            <ReportsPanel
-              orders={orders}
-              restaurantDatabaseId={restaurantDatabaseId}
-            />
-          )}
-
-          {tab === "operations" && (
-            <OperationsPanel
-              restaurantId={restaurant.id}
-              restaurantDatabaseId={restaurantDatabaseId}
-            />
-          )}
-
-          {tab === "settings" && (
-            <SettingsPanel settings={settings} onChange={onSettingsChange} />
-          )}
-        </div>
-      </main>
-    </div>
+      {selectedOrder && (
+        <OrderDetails
+          order={
+            orders.find((entry) => entry.id === selectedOrder.id) ??
+            selectedOrder
+          }
+          onClose={() => setSelectedOrder(null)}
+          onStatus={onStatus}
+          onChange={onOrderChange}
+          onWhatsApp={onWhatsApp}
+        />
+      )}
+    </WorkspaceShell>
   );
 }
 
@@ -1012,545 +852,154 @@ function AdminOverview({
   orders: Order[];
   settings: RestaurantSettings;
   onOpenOrders: () => void;
-  onOpenOrder: (order: Order) => void;
+  onOpenOrder: (o: Order) => void;
 }) {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(todayStart.getDate() + 1);
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(todayStart.getDate() - 1);
-
-  const inRange = (iso: string, from: Date, to: Date) => {
-    const d = new Date(iso);
-    return d >= from && d < to;
-  };
-  const isPaid = (order: Order) => order.status !== "cancelled";
-
-  const todaysOrders = orders.filter((o) =>
-    inRange(o.createdAt, todayStart, tomorrowStart),
+  const { language } = useUI();
+  const en = language === "en";
+  const t = (a: string, b: string) => (en ? b : a);
+  const today = new Date().toDateString();
+  const todayOrders = orders.filter(
+    (o) => new Date(o.createdAt).toDateString() === today,
   );
-  const yesterdaysOrders = orders.filter((o) =>
-    inRange(o.createdAt, yesterdayStart, todayStart),
-  );
-  const todaysRevenue = todaysOrders
-    .filter(isPaid)
-    .reduce((sum, o) => sum + o.total, 0);
-  const yesterdaysRevenue = yesterdaysOrders
-    .filter(isPaid)
-    .reduce((sum, o) => sum + o.total, 0);
-  const activeOrders = orders.filter(
+  const active = orders.filter(
     (o) => !["completed", "cancelled"].includes(o.status),
-  ).length;
-  const pendingOrders = orders.filter((o) => o.status === "received").length;
-  const todaysPaidCount = todaysOrders.filter(isPaid).length;
-  const avgOrder = todaysPaidCount
-    ? Math.round(todaysRevenue / todaysPaidCount)
-    : 0;
-
-  const orderTrend = yesterdaysOrders.length
-    ? ((todaysOrders.length - yesterdaysOrders.length) /
-        yesterdaysOrders.length) *
-      100
-    : null;
-  const revenueTrend = yesterdaysRevenue
-    ? ((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100
-    : null;
-
-  const trendLabel = (trend: number | null) =>
-    trend === null
-      ? "—"
-      : `${Math.round(trend) >= 0 ? "+" : ""}${Math.round(trend)}% عن أمس`;
-
-  const queueOrders = orders
-    .filter((o) => !["completed", "cancelled"].includes(o.status))
-    .slice(0, 10);
-
-  const hourBuckets = Array.from({ length: 24 }, () => 0);
-  orders.forEach((o) => {
-    hourBuckets[new Date(o.createdAt).getHours()] += o.total;
-  });
-  const maxHour = Math.max(...hourBuckets, 1);
-  const operatingHours = Array.from({ length: 15 }, (_, i) => i + 9);
-  const peakHourValue = Math.max(...hourBuckets);
-  const peakHour = hourBuckets.indexOf(peakHourValue);
-
-  const statusOrder: Order["status"][] = [
-    "received",
-    "confirmed",
-    "preparing",
-    "ready",
-    "out-for-delivery",
-    "completed",
-    "cancelled",
-  ];
-
+  );
+  const revenue = todayOrders
+    .filter((o) => o.status !== "cancelled")
+    .reduce((a, o) => a + o.total, 0);
+  const pending = orders.filter(
+    (o) => o.paymentStatus === "pending" && o.status !== "cancelled",
+  );
   return (
-    <>
+    <section className="workspace-overview">
       <PageHead
-        kicker="مذكرة التشغيل / اليوم"
-        title="صورة المطعم الآن"
-        lede="قراءة سريعة لما يتحرك في المطبخ، وما يحتاج قراراً منك."
+        kicker={t("مطعمك، بنظرة واحدة", "YOUR DAY, AT A GLANCE")}
+        title={t("خلّينا نخلي الخدمة أسهل.", "Let’s make it a good service.")}
+        lede={t(
+          "تابع الأهم، وخلّي كل طلب يمشي بوقته.",
+          "Keep an eye on what matters and every order moving.",
+        )}
         actions={
-          <button className="adm-btn adm-btn--accent" onClick={onOpenOrders}>
-            افتح مكتب الطلبات
-            <ArrowRight aria-hidden="true" />
+          <button className="adm-btn adm-btn--teal" onClick={onOpenOrders}>
+            {t("افتح الطلبات", "Open order inbox")}
+            <ArrowRight size={16} />
           </button>
         }
       />
-
-      {orders.length === 0 ? (
-        <AdminEmpty
-          icon={BellRing}
-          title="ابدأ باستلام الطلبات"
-          copy="ستظهر مقاييس اليوم ومخطط الحركة مع أول طلب مؤكد. جهّز مكتب الطلبات الآن لتلتقط كل طلب من اللحظة الأولى."
-          tone="dark"
-        >
-          <button className="adm-btn adm-btn--gold" onClick={onOpenOrders}>
-            فتح مكتب الطلبات
-            <ArrowRight aria-hidden="true" />
-          </button>
-        </AdminEmpty>
-      ) : (
-        <>
-          {/* ---- Live revenue ledger ---- */}
-          <section className="ov-ledger">
-            <div className="ov-ledger__rev">
-              <small>المبيعات المحققة اليوم</small>
-              <strong>{formatSyp(todaysRevenue)}</strong>
-              {settings.currencyEstimate ? (
-                <div className="adm-mast__meta" style={{ marginTop: 0 }}>
-                  ≈ {formatUsd(todaysRevenue, settings.rate)} USD
-                </div>
-              ) : null}
-              <div className="ov-ledger__meta">
-                {revenueTrend === null ? (
-                  <span className="ov-trend ov-trend--flat">
-                    — لا أمس للمقارنة
-                  </span>
-                ) : revenueTrend >= 0 ? (
-                  <span className="ov-trend">
-                    <ArrowUp aria-hidden="true" />
-                    {trendLabel(revenueTrend)}
-                  </span>
-                ) : (
-                  <span className="ov-trend ov-trend--down">
-                    <ArrowDown aria-hidden="true" />
-                    {trendLabel(revenueTrend)}
-                  </span>
-                )}
-                <span className="adm-chip adm-chip--brand">
-                  <i className="adm-chip__dot" aria-hidden="true" />
-                  {todaysOrders.length} طلباً اليوم
-                </span>
-              </div>
-            </div>
-            <div className="ov-ledger__read">
-              <h2>
-                {activeOrders
-                  ? `${activeOrders} طلبات تتحرك الآن`
-                  : "الإيقاع هادئ حالياً"}
-              </h2>
-              <p>
-                {pendingOrders
-                  ? `${pendingOrders} طلبات جديدة تنتظر التأكيد. افتح مكتب الطلبات حتى لا تتأخر الوصفات.`
-                  : "لا توجد طلبات جديدة معلقة، ويمكن للفريق متابعة التحضير."}
-              </p>
-              <button className="adm-btn adm-btn--gold" onClick={onOpenOrders}>
-                راجع خط الإنتاج
-              </button>
-            </div>
-          </section>
-
-          {/* ---- KPI stat band ---- */}
-          <div className="ov-kpis">
-            <article className="ov-kpi">
-              <div className="ov-kpi__top">
-                <span className="ov-kpi__lbl">
-                  <ClipboardList aria-hidden="true" />
-                  طلبات اليوم
-                </span>
-                {orderTrend !== null && orderTrend >= 0 ? (
-                  <span className="ov-kpi__sub is-up">
-                    +{Math.round(orderTrend)}%
-                  </span>
-                ) : orderTrend !== null ? (
-                  <span className="ov-kpi__sub is-down">
-                    {Math.round(orderTrend)}%
-                  </span>
-                ) : null}
-              </div>
-              <strong className="ov-kpi__val adm-num">
-                {todaysOrders.length}
-              </strong>
-              <span className="ov-kpi__sub">{trendLabel(orderTrend)}</span>
-            </article>
-
-            <article className="ov-kpi ov-kpi--accent">
-              <div className="ov-kpi__top">
-                <span className="ov-kpi__lbl">
-                  <Flame aria-hidden="true" />
-                  قيد المعالجة
-                </span>
-              </div>
-              <strong className="ov-kpi__val adm-num">{activeOrders}</strong>
-              <span className="ov-kpi__sub">
-                {pendingOrders} جديدة لم تُؤكَّد
-              </span>
-            </article>
-
-            <article className="ov-kpi">
-              <div className="ov-kpi__top">
-                <span className="ov-kpi__lbl">
-                  <UtensilsCrossed aria-hidden="true" />
-                  المطبخ يشتغل
-                </span>
-              </div>
-              <strong className="ov-kpi__val adm-num">
-                {orders.filter((o) => ["preparing", "ready"].includes(o.status))
-                  .length || 0}
-              </strong>
-              <span className="ov-kpi__sub">وصفات قيد التحضير أو جاهزة</span>
-            </article>
-
-            <article className="ov-kpi ov-kpi--gold">
-              <div className="ov-kpi__top">
-                <span className="ov-kpi__lbl">
-                  <ShoppingBasket aria-hidden="true" />
-                  متوسط الطلب
-                </span>
-              </div>
-              <strong className="ov-kpi__val">{formatSyp(avgOrder)}</strong>
-              <span className="ov-kpi__sub">
-                {todaysPaidCount} طلب محتسب اليوم
-              </span>
-            </article>
-          </div>
-
-          {/* ---- Live queue: active orders awaiting attention ---- */}
-          <section className="adm-card ov-queue">
-            <div className="adm-card__hd">
-              <div>
-                <span className="adm-kicker">طابور التشغيل · مباشر</span>
-                <h3 style={{ marginTop: 6 }}>الطلبات النشطة الآن</h3>
-              </div>
-              <button
-                className="adm-btn adm-btn--soft adm-btn--sm"
-                onClick={onOpenOrders}
-              >
-                افتح مكتب الطلبات
-                <ArrowRight aria-hidden="true" />
-              </button>
-            </div>
-            <div className="adm-card__bd">
-              {queueOrders.length === 0 ? (
-                <div className="ov-queue__idle">
-                  <span className="ov-queue__idle__ico" aria-hidden="true">
-                    <CheckCircle2 />
-                  </span>
-                  <div>
-                    <strong>لا توجد طلبات نشطة</strong>
-                    <small>
-                      أُنجزت الطلبات أو أُلغيت — المكتب جاهز لاستقبال الطلب
-                      التالي.
-                    </small>
-                  </div>
-                </div>
-              ) : (
-                <div className="ov-queue__row">
-                  {queueOrders.map((entry) => (
-                    <button
-                      className="ov-queue__ticket"
-                      data-status={entry.status}
-                      key={entry.id}
-                      onClick={() => onOpenOrder(entry)}
-                    >
-                      <span className="ov-queue__top">
-                        <b className="adm-num">#{entry.id}</b>
-                        <StatusChip status={entry.status} compact />
-                      </span>
-                      <span className="ov-queue__who">
-                        <strong>{entry.customer}</strong>
-                        <small>
-                          {entry.mode === "delivery" ? (
-                            <Truck aria-hidden="true" />
-                          ) : entry.mode === "dine-in" ? (
-                            <Utensils aria-hidden="true" />
-                          ) : (
-                            <ShoppingBasket aria-hidden="true" />
-                          )}
-                          {entry.table || entry.address || "طلب مباشر"}
-                        </small>
-                      </span>
-                      <span className="ov-queue__foot">
-                        <small className="ov-queue__time adm-num">
-                          <Clock aria-hidden="true" />
-                          {fmtClock(entry.createdAt)}
-                        </small>
-                        <strong className="ov-queue__total adm-num">
-                          {formatSyp(entry.total)}
-                        </strong>
-                      </span>
-                      <ArrowRight className="ov-queue__go" aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <div className="adm-grid adm-cols-2">
-            {/* ---- Hourly rhythm chart ---- */}
-            <section className="adm-card">
-              <div className="adm-card__hd">
-                <div>
-                  <span className="adm-kicker">إيقاع اليوم</span>
-                  <h3 style={{ marginTop: 6 }}>المبيعات حسب الساعة</h3>
-                </div>
-                {peakHourValue > 0 ? (
-                  <span className="adm-chip adm-chip--mode">
-                    <Clock aria-hidden="true" />
-                    الذروة {formatSyp(peakHourValue)} · {peakHour}:00
-                  </span>
-                ) : null}
-              </div>
-              <div className="adm-card__bd">
-                {peakHourValue > 0 ? (
-                  <div
-                    className="ov-chart"
-                    role="img"
-                    aria-label="المبيعات حسب الساعة"
-                  >
-                    {operatingHours.map((hour) => {
-                      const value = hourBuckets[hour];
-                      const height = value ? (value / maxHour) * 100 : 0;
-                      return (
-                        <div
-                          className={`ov-chart__col${hour === peakHour ? " is-peak" : ""}`}
-                          key={hour}
-                          title={
-                            value
-                              ? `${formatSyp(value)} — ${hour}:00`
-                              : undefined
-                          }
-                        >
-                          <div
-                            className="ov-chart__bar"
-                            style={{ height: `${height || 3}%` }}
-                          />
-                          <small>{hour}</small>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p style={{ color: "var(--text-3)", fontSize: "0.86rem" }}>
-                    لا توجد بيانات مبيعات للساعات بعد.
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {/* ---- Status breakdown ---- */}
-            <section className="adm-card">
-              <div className="adm-card__hd">
-                <div>
-                  <span className="adm-kicker">سجل الحركة</span>
-                  <h3 style={{ marginTop: 6 }}>حالة كل طلب</h3>
-                </div>
-                <span
-                  className="adm-chip adm-chip--mode"
-                  style={{ fontSize: "0.72rem" }}
-                >
-                  {activeOrders} نشط · {orders.length} إجمالي
-                </span>
-              </div>
-              <div className="adm-card__bd">
-                <div>
-                  {statusOrder.map((status) => {
-                    const count = orders.filter(
-                      (o) => o.status === status,
-                    ).length;
-                    const revenue = orders
-                      .filter(
-                        (o) => o.status === status && o.status !== "cancelled",
-                      )
-                      .reduce((sum, o) => sum + o.total, 0);
-                    const color =
-                      status === "received"
-                        ? "var(--ink)"
-                        : status === "confirmed"
-                          ? "var(--teal)"
-                          : status === "preparing"
-                            ? "var(--teal-2)"
-                            : status === "ready"
-                              ? "var(--teal-3)"
-                              : status === "out-for-delivery"
-                                ? "var(--teal-3)"
-                                : status === "completed"
-                                  ? "var(--success)"
-                                  : "var(--danger)";
-                    return (
-                      <div
-                        className="ov-status__row"
-                        key={status}
-                        style={{ "--dot-c": color } as CSSProperties}
-                      >
-                        <i className="ov-status__dot" aria-hidden="true" />
-                        <span className="ov-status__name">
-                          {statusLabels[status]}
-                        </span>
-                        <b className="ov-status__count adm-num">{count}</b>
-                        <span className="ov-status__rev">
-                          {revenue ? formatSyp(revenue) : "—"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div className="ov-foot">
-            <span className="ov-foot__txt">
-              <strong className="adm-num">{activeOrders}</strong> طلبات تحتاج
-              المتابعة · <strong className="adm-num">{pendingOrders}</strong>{" "}
-              جديدة تنتظر التأكيد
-            </span>
-            <button className="adm-btn adm-btn--accent" onClick={onOpenOrders}>
-              دخول مكتب الطلبات
-              <ArrowRight aria-hidden="true" />
-            </button>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
-
-/* ============================================================================
-   OrderCard + OrderDetails — the service ticket & its full file
-   ========================================================================== */
-
-function OrderCard({
-  order,
-  onStatus,
-  onWhatsApp,
-  onOpen,
-}: {
-  order: Order;
-  onStatus: (id: string, s: Order["status"]) => void;
-  onWhatsApp: (o: Order) => void;
-  onOpen: () => void;
-}) {
-  const next: Record<string, Order["status"]> = {
-    received: "confirmed",
-    confirmed: "preparing",
-    preparing: "ready",
-    ready: order.mode === "delivery" ? "out-for-delivery" : "completed",
-  };
-  const locator = order.table || order.address || "طلب مباشر";
-  const nextStatus = next[order.status];
-  return (
-    <article className={`adm-oc adm-oc--${order.status}`}>
-      <header className="adm-oc__head">
-        <span className="adm-oc__no adm-num">
-          #{order.id}
-          <small>· {fmtClock(order.createdAt)}</small>
-        </span>
-        <span className="adm-oc__chips">
-          <ModeChip mode={order.mode} />
-        </span>
-      </header>
-
-      <button className="adm-oc__who" onClick={onOpen}>
-        <span className="adm-oc__avatar" aria-hidden="true">
-          {order.customer.slice(0, 1)}
-        </span>
-        <span className="adm-oc__who__id">
-          <strong>{order.customer}</strong>
-          <small>
-            {order.mode === "delivery" ? (
-              <Truck aria-hidden="true" />
-            ) : order.mode === "dine-in" ? (
-              <Utensils aria-hidden="true" />
-            ) : (
-              <ShoppingBasket aria-hidden="true" />
-            )}
-            {locator}
-          </small>
-        </span>
-        <span className="adm-oc__open">
-          فتح الملف
-          <ArrowRight aria-hidden="true" />
-        </span>
-      </button>
-
-      <div className="adm-oc__items">
-        {order.lines.slice(0, 4).map((line) => (
-          <div className="adm-oc__item" key={line.key}>
-            <b className="adm-num">{line.qty}×</b>
+      <div className="workspace-metrics">
+        {[
+          {
+            label: t("مبيعات اليوم", "Today’s sales"),
+            value: formatSyp(revenue),
+            Icon: Wallet,
+            detail: t("قيمة الطلبات غير الملغاة", "Non-cancelled order value"),
+          },
+          {
+            label: t("طلبات اليوم", "Today’s orders"),
+            value: String(todayOrders.length),
+            Icon: ReceiptText,
+            detail: t("من بداية اليوم", "Since the start of today"),
+          },
+          {
+            label: t("طلبات قيد التشغيل", "Orders in progress"),
+            value: String(active.length),
+            Icon: Utensils,
+            detail: t("تحتاج متابعة الفريق", "With your team right now"),
+          },
+          {
+            label: t("بانتظار الدفع", "Awaiting payment"),
+            value: String(pending.length),
+            Icon: Banknote,
+            detail: t("تحتاج مراجعة الكاشير", "Ready for cashier review"),
+          },
+        ].map(({ label, value, Icon, detail }) => (
+          <article key={label}>
             <span>
-              {line.item.name}
-              {line.options.length ? (
-                <small> ({line.options.map((o) => o.name).join("، ")})</small>
-              ) : null}
+              <Icon size={19} />
+              {label}
             </span>
-            <strong className="adm-num">
-              {formatSyp(
-                (line.item.price +
-                  line.options.reduce((sum, o) => sum + o.price, 0)) *
-                  line.qty,
-              )}
-            </strong>
-          </div>
+            <strong>{value}</strong>
+            <small>{detail}</small>
+          </article>
         ))}
-        {order.lines.length > 4 ? (
-          <div className="adm-oc__item">
-            <span style={{ color: "var(--text-3)", fontSize: "0.78rem" }}>
-              + {order.lines.length - 4} أصناف إضافية في الملف الكامل
+      </div>
+      <div className="workspace-overview-grid">
+        <section className="workspace-queue">
+          <header>
+            <h3>{t("التالي على السُفرة", "Next in service")}</h3>
+            <span>
+              {active.length} {t("طلبات", "orders")}
             </span>
-          </div>
-        ) : null}
+          </header>
+          {active.slice(0, 6).map((o) => (
+            <button key={o.id} onClick={() => onOpenOrder(o)}>
+              <span className="queue-order-number">#{o.id}</span>
+              <div>
+                <b>{o.customer}</b>
+                <small>
+                  {t(modeLabels[o.mode], modeLabels[o.mode])} ·{" "}
+                  {o.lines.reduce((a, l) => a + l.qty, 0)} {t("أصناف", "items")}
+                </small>
+              </div>
+              <StatusChip status={o.status} />
+              <ArrowRight size={17} />
+            </button>
+          ))}
+          {!active.length && (
+            <AdminEmpty
+              icon={CheckCircle2}
+              title={t("كل شي ماشي تمام", "All caught up")}
+              copy={t(
+                "الطلبات الجديدة رح تظهر هون.",
+                "New orders will appear here.",
+              )}
+            />
+          )}
+        </section>
+        <section className="workspace-service">
+          <header>
+            <h3>{t("إيقاع الخدمة", "Service snapshot")}</h3>
+            <span
+              className={`service-dot${settings.isOpen ? "" : " is-closed"}`}
+            >
+              {settings.isOpen
+                ? t("يستقبل طلبات", "Accepting orders")
+                : t("متوقف", "Paused")}
+            </span>
+          </header>
+          {(
+            [
+              "received",
+              "confirmed",
+              "preparing",
+              "ready",
+              "completed",
+            ] as Order["status"][]
+          ).map((status) => {
+            const n = orders.filter((o) => o.status === status).length;
+            return (
+              <div className="service-status" key={status}>
+                <span>{statusLabels[status]}</span>
+                <b>{n}</b>
+                <div>
+                  <i
+                    style={{
+                      width: `${orders.length ? (n / orders.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <p>
+            {t(
+              "أرقام حقيقية من طلبات مطعمك الحالية.",
+              "Live totals from your restaurant’s current orders.",
+            )}
+          </p>
+        </section>
       </div>
-
-      <div className="adm-oc__total">
-        <small>
-          <PayChip status={order.paymentStatus} />
-        </small>
-        <strong className="adm-num">{formatSyp(order.total)}</strong>
-      </div>
-
-      <footer className="adm-oc__foot">
-        <button
-          className="adm-oc__footbtn"
-          onClick={() => onWhatsApp(order)}
-          title="مراسلة العميل عبر واتساب"
-        >
-          <MessageCircle aria-hidden="true" />
-          مراسلة العميل
-        </button>
-        {nextStatus ? (
-          <button
-            className={`adm-oc__footbtn adm-oc__footbtn--main`}
-            onClick={() => onStatus(order.id, nextStatus)}
-          >
-            {nextStatus === "confirmed"
-              ? "تأكيد واستلام"
-              : nextStatus === "preparing"
-                ? "إرسال للمطبخ"
-                : nextStatus === "ready"
-                  ? "تحديد كجاهز"
-                  : "إتمام الطلب"}
-          </button>
-        ) : (
-          <span className="adm-oc__footbtn adm-oc__footbtn--idle">
-            <StatusChip status={order.status} />
-          </span>
-        )}
-      </footer>
-    </article>
+    </section>
   );
 }
 
@@ -3430,7 +2879,10 @@ function OperationsPanel({
               </label>
             </div>
 
-            <p>إشعارات الجهاز والصوت تُفعّل من شريط «تنبيهات الطلبات» أعلى الصفحة. الإعداد خاص بكل جهاز، ويشمل شاشة المطبخ والكاشير.</p>
+            <p>
+              إشعارات الجهاز والصوت تُفعّل من شريط «تنبيهات الطلبات» أعلى
+              الصفحة. الإعداد خاص بكل جهاز، ويشمل شاشة المطبخ والكاشير.
+            </p>
           </div>
         </section>
 
@@ -4583,7 +4035,6 @@ export {
   TablesManager,
   TableCard,
   SettingsPanel,
-  OrderCard,
   OrderDetails,
   MenuManager,
   CategoryManager,
