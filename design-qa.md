@@ -39,6 +39,22 @@ CSS viewports use deviceScaleFactor 1. Full-page captures may exceed viewport he
 - Images: existing restaurant/dish images remain attached to their data. Missing-image states use real library icons; no generated menu records, reviews or ratings.
 - Copy: actual ordering and account workflows, including table QR requirements and fees. Staff sign-in removes an extra modal-opening step. Local browser fixture names/photos are not production data.
 
+## Homepage follow-up — selected food browsing rail
+
+The selected source is the first image in the latest ideation set. It replaces the previous promotional split hero with a centered search, photo-led category filters, a swipeable desktop restaurant rail, compact mobile restaurant rows and a table QR help strip. The target also includes a small mobile preview.
+
+Implementation evidence: `/tmp/final-homepage-rail/design-comparison.png` places the selected desktop region beside the rendered 1440px homepage. `/tmp/final-homepage-rail/mobile-comparison.png` places the source mobile preview beside the rendered 390px viewport. Full-page captures cover 320, 390, 768 and 1440px in Arabic; English is captured at 1440px. All CSS captures use deviceScaleFactor 1.
+
+Review findings and fixes:
+
+1. [P2, fixed] The first pass left the search area too empty compared with the source. The updated hero frames it with the two existing restaurant photos, without decorative placeholder artwork.
+2. [P2, fixed] The first mobile pass placed a large image above each card's details, while the selected preview uses compact rows. The cards now put the photo beside the name, category and menu action, so both choices appear sooner.
+3. [P2, fixed] The initial English title omitted the preposition in “Discover restaurants in Damascus.” The copy now preserves the Arabic heading hierarchy.
+
+Fidelity review: DM Sans/Tajawal and the large black/coral heading preserve the source hierarchy with readable Arabic and English wrapping. Centering, section gaps, rounded search and photo chips follow the reference; the desktop rail shows one active restaurant and a preview of the next, while mobile uses full-width horizontal rows. White and warm-ivory surfaces, coral actions, real Sufra/Cozy photo crops and outlined icons match the selected style. Copy uses the two real restaurant types and Damascus, with no unsupported ratings, popularity, distance or offers. The source mock shows more food-category chips than this app has restaurant types, so the implementation only filters by the two real types plus all venues.
+
+Responsive and interaction review: no page-level horizontal overflow at 320, 390, 768 or 1440px. Both restaurant photos load; the desktop rail control moves between venues. Search, category filters, empty search state, Arabic/English switching, restaurant menu navigation and staff access remain connected. The mobile image/text rows and language direction were reviewed against the selected phone preview.
+
 ## Validation
 
 Production build, forced TypeScript check; customer responsive checks, required options, saved dishes, quantity/removal, checkout stages, failed-submit retry and idempotency, receipt persistence/reorder; all nine admin tabs and restricted roles; notification/service-worker tests; startup and restored-session recovery. Browser checks use mocked APIs and create no production orders. Production verification is read-only. Physical iPhone/Safari testing is not claimed.
