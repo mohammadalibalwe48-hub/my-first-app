@@ -60,7 +60,7 @@
   margin-top: 3px;
 }
 .adm-work-ticket__time.is-late {
-  color: #9b4c30;
+  color: var(--sq-saffron-ink);
 }
 .adm-work-ticket__lines {
   list-style: none;
@@ -80,7 +80,7 @@
   border-radius: 8px;
   padding: 2px 7px;
   color: var(--ow-forest);
-  background: #eff1e6;
+  background: var(--sq-sunken);
   font-size: 0.85rem;
   font-weight: 800;
   white-space: nowrap;
@@ -97,10 +97,10 @@
   margin: 6px 0 0;
   padding: 7px 10px;
   border-inline-start: 2px solid var(--ow-terracotta);
-  background: #fbf2ed;
+  background: var(--sq-saffron-soft);
   border-radius: 5px;
   font-size: 0.82rem;
-  color: #783d2a;
+  color: var(--sq-saffron-ink);
 }
 .adm-work-ticket__payment {
   display: flex;
@@ -125,8 +125,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 14px 18px;
-  border-block-start: 1px solid #eeece3;
-  background: #f8f7f1;
+  border-block-start: 1px solid var(--sq-line);
+  background: var(--sq-canvas);
 }
 .adm-work-ticket__actions .adm-btn {
   width: 100%;
@@ -164,10 +164,10 @@
   justify-content: space-between;
   gap: 14px;
   min-height: 60px;
-  border: 1px solid #e4e2d8;
+  border: 1px solid var(--sq-line);
   border-radius: 12px;
   padding: 12px 14px;
-  background: #fffefa;
+  background: var(--sq-surface);
   text-align: start;
   font-size: 0.88rem;
   cursor: pointer;
@@ -179,18 +179,18 @@
 .adm-work-stock__item > b {
   flex-shrink: 0;
   border-radius: 20px;
-  background: #eeede5;
-  color: #6c7469;
+  background: var(--sq-sunken);
+  color: var(--sq-text-2);
   padding: 3px 9px;
   font-size: 0.72rem;
 }
 .adm-work-stock__item[aria-pressed="true"] > b {
-  color: #244d38;
-  background: #e6eedc;
+  color: var(--sq-ink);
+  background: var(--sq-sunken);
 }
 .adm-work-stock__item:hover:not(:disabled) {
-  border-color: #8ca995;
-  background: #f5f7ee;
+  border-color: var(--sq-text-3);
+  background: var(--sq-sunken);
 }
 .adm-work-stock__item:disabled {
   opacity: 0.55;

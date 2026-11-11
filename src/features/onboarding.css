@@ -32,11 +32,11 @@
   gap: 22px;
   padding: clamp(20px, 3vw, 32px) clamp(20px, 3vw, 34px) 20px;
   color: #fff;
-  background: radial-gradient(90% 160% at 100% 0%, rgba(255, 196, 0, 0.12), transparent 50%), linear-gradient(125deg, var(--teal-deep), var(--teal));
+  background: radial-gradient(90% 160% at 100% 0%, rgb(233 162 59 / 0.12), transparent 50%), linear-gradient(125deg, var(--teal-deep), var(--teal));
 }
 
 html[dir="rtl"] .adm-onboard__intro {
-  background: radial-gradient(90% 160% at 0% 0%, rgba(255, 196, 0, 0.12), transparent 50%), linear-gradient(235deg, var(--teal-deep), var(--teal));
+  background: radial-gradient(90% 160% at 0% 0%, rgb(233 162 59 / 0.12), transparent 50%), linear-gradient(235deg, var(--teal-deep), var(--teal));
 }
 
 .adm-onboard__intro-copy { flex: 1; min-width: 0; padding-inline-end: 34px; }
@@ -78,7 +78,7 @@ html[dir="rtl"] .adm-onboard__intro {
 .adm-onboard__close svg { width: 16px; height: 16px; }
 
 .adm-onboard__meter { height: 4px; background: rgba(255, 255, 255, 0.12); }
-.adm-onboard__meter span { display: block; height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--yellow), #f1a44b); transition: width 0.4s var(--ease-out); }
+.adm-onboard__meter span { display: block; height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--yellow), var(--sq-saffron)); transition: width 0.4s var(--ease-out); }
 
 .adm-onboard__steps {
   display: grid;

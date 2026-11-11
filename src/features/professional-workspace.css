@@ -1,148 +1,207 @@
-/* Staff surfaces only: keep the public menu and landing page untouched. */
+/* Staff surfaces (restaurant workspace, platform console, staff sign-in) in the
+   Saffron & Ink system. Colour tokens are aliased in workspace-app.css and
+   platform-app.css; this layer styles the shared chrome. The public menu and
+   homepage are untouched. */
+
+/* ---- Workspace shell ------------------------------------------------------ */
 #root .workspace-app.adm {
-  --ow-forest: #24513c;
-  --ow-terracotta: #d9a47a;
-  --ow-lime: #e8f0e9;
-  --teal: #24513c;
-  --teal-2: #1c4231;
-  --teal-3: #527760;
-  --teal-deep: #183a2a;
-  --ink: #20231f;
-  --text: #252923;
-  --text-2: #737970;
-  --text-3: #989d95;
-  --line: #e8e7e1;
-  --line-2: #deded6;
-  --surface: #fff;
-  --surface-2: #f8f8f4;
-  --surface-3: #edf3ed;
-  --paper: #f5f5f0;
-  color: var(--text);
-  background: var(--paper);
+  color: var(--sq-text);
+  background: var(--sq-canvas);
+}
+
+#root .adm-root .adm-bar {
+  background: var(--sq-surface);
+  border-bottom-color: var(--sq-line-2);
 }
 
 #root .workspace-command {
-  background: #fff;
-  color: #41473f;
-  border-bottom-color: var(--line);
+  background: var(--sq-surface);
+  color: var(--sq-text-2);
+  border-bottom-color: var(--sq-line);
   padding-inline: clamp(22px, 3vw, 42px);
 }
 
 #root .workspace-command__brand > span {
-  color: #fff;
-  background: #20231f;
-  border-radius: 12px;
+  color: var(--sq-saffron);
+  background: var(--sq-ink);
+  border-radius: 13px;
 }
 
 #root .workspace-command__brand strong {
-  color: #20231f;
-  letter-spacing: -0.025em;
+  color: var(--sq-ink);
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 #root .workspace-command__brand small,
 #root .workspace-account-menu small {
-  color: #858b82;
+  color: var(--sq-text-2);
 }
 
 #root .workspace-command__tools > button {
-  border-radius: 11px;
+  min-height: 40px;
+  min-width: 40px;
+  justify-content: center;
+  border: 1px solid var(--sq-line);
+  border-radius: 999px;
+  background: var(--sq-surface);
+  color: var(--sq-ink);
+  font-weight: 600;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
 #root .workspace-command__tools > button:hover {
-  background: #f3f4ef;
+  background: var(--sq-sunken);
 }
 
 #root .workspace-command__tools .workspace-preview {
-  background: #20231f;
+  padding-inline: 18px;
+  background: var(--sq-ink);
   color: #fff;
-  border-color: #20231f;
-  font-weight: 650;
+  border-color: var(--sq-ink);
 }
 
 #root .workspace-command__tools .workspace-preview:hover {
-  background: #24513c;
-  border-color: #24513c;
+  background: var(--sq-ink-2);
+  border-color: var(--sq-ink-2);
 }
 
-#root .workspace-bell b,
-#root .adm--workspace .adm-nav__item.is-on b {
-  background: #24513c;
-  color: #fff;
+#root .workspace-bell b {
+  background: var(--sq-saffron);
+  color: var(--sq-ink);
+  border-color: var(--sq-surface);
+  font-weight: 700;
 }
 
 #root .workspace-account > span {
-  background: #e8f0e9;
-  color: #24513c;
+  background: var(--sq-saffron-soft);
+  color: var(--sq-saffron-ink);
   font-weight: 700;
 }
 
 #root .workspace-account-menu {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: 0 18px 44px rgb(29 37 29 / 12%);
+  background: var(--sq-surface);
+  border: 1px solid var(--sq-line);
+  border-radius: 18px;
+  box-shadow: var(--sq-shadow-lg);
 }
 
+#root .workspace-account-menu strong {
+  color: var(--sq-ink);
+}
+
+/* ---- Sidebar: ink with inverted local tokens ------------------------------- */
 #root .workspace-navigation.adm-nav {
-  background: #20231f;
+  --text: #fbf6ee;
+  --text-2: rgb(246 239 228 / 0.74);
+  --text-3: rgb(246 239 228 / 0.58);
+  --line: rgb(255 255 255 / 0.1);
+  background: var(--sq-ink);
   border-inline-end: 0;
-  color: #bec4bb;
-  padding: 25px 14px 22px;
+  color: rgb(246 239 228 / 0.74);
+  padding: 24px 14px 22px;
 }
 
-#root .workspace-switch {
-  color: #f4f5ef;
-  background: #2b302a;
-  border: 1px solid #3b403a;
-  border-radius: 13px;
+#root .workspace-navigation .workspace-switch {
+  color: #fbf6ee;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 14px;
 }
 
-#root .workspace-switch select {
+#root .workspace-navigation .workspace-switch svg {
+  color: var(--sq-saffron);
+}
+
+/* Outranks the generic workspace field rule, which would turn this into a white input. */
+#root .adm--workspace .workspace-navigation .workspace-switch select:not([multiple]) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   color: inherit;
   background: transparent;
+  box-shadow: none;
+}
+
+#root .workspace-navigation .workspace-switch select option {
+  color: var(--sq-ink);
 }
 
 #root .workspace-nav-label {
-  color: #858d82;
-  letter-spacing: 0.11em;
+  color: rgb(246 239 228 / 0.58);
+  font-weight: 650;
+  letter-spacing: 0.14em;
+}
+
+[dir="rtl"] #root .workspace-nav-label {
+  letter-spacing: 0;
 }
 
 #root .workspace-navigation .adm-nav__item {
-  color: #c3c9c0;
+  color: rgb(246 239 228 / 0.74);
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 12px;
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
 #root .workspace-navigation .adm-nav__item:hover {
   color: #fff;
-  background: #2b302a;
+  background: rgb(255 255 255 / 0.06);
 }
 
 #root .workspace-navigation .adm-nav__item.is-on {
   color: #fff;
-  background: #315b43;
-  border-color: #41684f;
-  box-shadow: inset 3px 0 #a8c4a8;
+  background: rgb(233 162 59 / 0.16);
+  border-color: rgb(233 162 59 / 0.22);
+  box-shadow: inset 3px 0 0 var(--sq-saffron);
+}
+
+[dir="rtl"] #root .workspace-navigation .adm-nav__item.is-on {
+  box-shadow: inset -3px 0 0 var(--sq-saffron);
+}
+
+#root .workspace-navigation .adm-nav__item svg {
+  color: inherit;
 }
 
 #root .workspace-navigation .adm-nav__item.is-on svg {
-  color: #d0e1d1;
+  color: var(--sq-saffron);
+}
+
+#root .workspace-navigation .adm-nav__item > b {
+  background: rgb(255 255 255 / 0.12);
+  color: #fbf6ee;
+  font-weight: 700;
+}
+
+#root .adm--workspace .workspace-navigation .adm-nav__item.is-on > b {
+  background: var(--sq-saffron);
+  color: var(--sq-ink);
 }
 
 #root .workspace-nav-help {
-  color: #e1e6dd;
-  background: #2b302a;
-  border: 1px solid #3b403a;
-  border-radius: 15px;
+  color: #fbf6ee;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 16px;
+}
+
+#root .workspace-nav-help svg {
+  color: var(--sq-saffron);
+}
+
+#root .workspace-nav-help b {
+  color: #fbf6ee;
 }
 
 #root .workspace-nav-help small {
-  color: #a8afa4;
+  color: rgb(246 239 228 / 0.62);
 }
 
+/* ---- Content ------------------------------------------------------------------ */
 #root .workspace-app .adm-body {
-  background: #f5f5f0;
+  background: var(--sq-canvas);
 }
 
 #root .workspace-app .adm-body__in {
@@ -151,161 +210,311 @@
 }
 
 #root .adm--workspace :is(h1, h2, h3, h4) {
-  color: #20231f;
-  letter-spacing: -0.035em;
+  color: var(--sq-ink);
+  letter-spacing: -0.015em;
+}
+
+/* Headings that sit on the dark order-sheet header and revenue card stay light. */
+#root .adm--workspace :is(.adm-sheet__head, .ov-ledger) :is(h1, h2, h3, h4) {
+  color: #fff;
+}
+
+#root .adm--workspace .adm-title {
+  font-family: var(--sq-font-display);
+  font-size: clamp(30px, 3vw, 40px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+[dir="rtl"] #root .adm--workspace .adm-title {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+[dir="rtl"] #root .adm--workspace :is(h1, h2, h3, h4) {
+  letter-spacing: 0;
+}
+
+#root .adm--workspace .adm-kicker {
+  font-family: var(--sq-font-ui);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  color: var(--sq-saffron-ink);
+}
+
+[dir="rtl"] #root .adm--workspace .adm-kicker {
+  font-size: 13px;
+  letter-spacing: 0;
 }
 
 #root .adm--workspace :is([class*="card"], [class*="panel"], [class*="surface"]) {
-  border-color: #e8e7e1;
-  border-radius: 18px;
-  box-shadow: 0 2px 8px rgb(34 39 32 / 3%);
+  border-color: var(--sq-line);
+  border-radius: 20px;
+  box-shadow: var(--sq-shadow-xs);
 }
 
 #root .adm--workspace :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-  color: #252923;
-  background-color: #fff;
-  border-color: #ddded7;
-  border-radius: 10px;
+  color: var(--sq-ink);
+  background-color: var(--sq-surface);
+  border-color: var(--sq-line-strong);
+  border-radius: 12px;
+}
+
+#root .adm--workspace :is(input, select, textarea)::placeholder {
+  color: var(--sq-text-3);
 }
 
 #root .adm--workspace :is(input, select, textarea):focus-visible {
-  outline: 3px solid rgb(66 115 79 / 19%);
-  outline-offset: 1px;
-  border-color: #527760;
+  outline: none;
+  border-color: var(--sq-ink);
+  box-shadow: var(--sq-ring);
+}
+
+#root .adm--workspace :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--sq-ink);
 }
 
 #root .adm--workspace :is(button, [role="button"]):is([class*="primary"], [class*="solid"], [class*="submit"]),
 #root .adm--workspace button[type="submit"] {
   color: #fff;
-  background: #20231f;
-  border-color: #20231f;
-  border-radius: 11px;
+  background: var(--sq-ink);
+  border-color: var(--sq-ink);
+  border-radius: 12px;
   font-weight: 650;
 }
 
 #root .adm--workspace :is(button, [role="button"]):is([class*="primary"], [class*="solid"], [class*="submit"]):hover,
 #root .adm--workspace button[type="submit"]:hover {
-  background: #24513c;
-  border-color: #24513c;
+  background: var(--sq-ink-2);
+  border-color: var(--sq-ink-2);
 }
 
+/* Saffron marks one highlighted action per view, with ink text for contrast. */
+#root .adm--workspace .adm-btn--accent {
+  background: var(--sq-saffron);
+  border-color: var(--sq-saffron);
+  color: var(--sq-ink);
+}
+
+#root .adm--workspace .adm-btn--accent:hover:not(:disabled) {
+  background: var(--sq-saffron-2);
+  border-color: var(--sq-saffron-2);
+}
+
+/* Secondary controls stay neutral, as in the storefront. */
+#root .adm--workspace .adm-btn--soft {
+  background: var(--sq-sunken);
+  border-color: transparent;
+  color: var(--sq-ink);
+}
+
+#root .adm--workspace .adm-btn--soft:hover:not(:disabled) {
+  background: var(--sq-sunken-2);
+}
+
+#root .adm--workspace :is(.adm-seg__btn.is-on, .adm-seg button.is-on) {
+  background: var(--sq-surface);
+  color: var(--sq-ink);
+  box-shadow: var(--sq-shadow-xs), 0 0 0 1px var(--sq-line);
+}
+
+#root .adm--workspace .adm-seg__btn.is-on--accent {
+  background: var(--sq-ink);
+  color: #fff;
+}
+
+/* Destructive and error states use the danger colour, not the brand accent. */
+#root .adm--workspace :is(.adm-alert--err, .adm-cancel-note) {
+  background: var(--sq-danger-soft);
+  color: var(--sq-danger);
+}
+
+#root .adm--workspace .adm-kb__hd--cancelled {
+  background: var(--sq-danger-soft);
+}
+
+#root .adm--workspace :is(.adm-dish__mini--danger:hover, .adm-icobtn--danger:hover:not(:disabled), .adm-btn--danger:hover:not(:disabled)) {
+  background: var(--sq-danger);
+  border-color: var(--sq-danger);
+  color: #fff;
+}
+
+#root .adm--workspace .adm-toggle input:checked + .adm-toggle__track {
+  background: var(--sq-success);
+}
+
+/* The live badge was built for a dark masthead; on the light page it reads as status. */
+#root .adm--workspace .adm-body .adm-live {
+  border-color: #cfe5d6;
+  background: var(--sq-success-soft);
+  color: var(--sq-success);
+}
+
+#root .adm--workspace .adm-body .adm-live__dot {
+  background: var(--sq-success);
+}
+
+#root .adm--workspace .ov-kpi::before,
+#root .adm--workspace .adm-maststat__ping {
+  background: var(--sq-saffron);
+}
+
+#root .adm--workspace .ov-chart__col.is-peak .ov-chart__bar {
+  background: linear-gradient(to top, #c98516, var(--sq-saffron));
+}
+
+#root .adm--workspace .rv-row__fill--hot {
+  background: linear-gradient(to right, #c98516, var(--sq-saffron));
+}
+
+[dir="rtl"] #root .adm--workspace .rv-row__fill--hot {
+  background: linear-gradient(to left, #c98516, var(--sq-saffron));
+}
+
+/* ---- Platform console ----------------------------------------------------------- */
 #root .px,
 #root .pa-page {
-  --px-bg: #f5f5f0;
-  --px-surface: #fff;
-  --px-surface-2: #fafaf7;
-  --px-surface-3: #edf3ed;
-  --px-ink: #252923;
-  --px-ink-2: #737970;
-  --px-ink-3: #989d95;
-  --px-line: #e8e7e1;
-  --px-line-2: #deded6;
-  --px-teal: #24513c;
-  --px-teal-2: #1c4231;
-  --px-teal-3: #527760;
-  --px-teal-deep: #183a2a;
-  --px-sb: #20231f;
-  background: #f5f5f0;
-  color: #252923;
+  background: var(--sq-canvas);
+  color: var(--sq-text);
 }
 
 #root .platform-navigation.px-sidebar {
-  background: #20231f;
-  color: #bec4bb;
+  --px-ink: #fbf6ee;
+  --px-ink-2: rgb(246 239 228 / 0.74);
+  --px-ink-3: rgb(246 239 228 / 0.58);
+  --px-line: rgb(255 255 255 / 0.1);
+  --px-on-dark: #fbf6ee;
+  --px-on-dark-2: rgb(246 239 228 / 0.62);
+  background: var(--sq-ink);
+  color: rgb(246 239 228 / 0.74);
   border-inline-end: 0;
 }
 
 #root .platform-brand,
 #root .platform-brand .px-seal {
-  color: #f5f6f1;
+  color: #fbf6ee;
 }
 
 #root .platform-brand .px-seal {
-  background: #315b43;
-  border-radius: 12px;
+  color: var(--sq-ink);
+  background: var(--sq-saffron);
+  border-radius: 13px;
 }
 
 #root .platform-brand small,
 #root .platform-nav-heading {
-  color: #92998f;
+  color: rgb(246 239 228 / 0.58);
 }
 
 #root .platform-navigation > nav > button {
-  color: #c3c9c0;
-  border-radius: 11px;
+  color: rgb(246 239 228 / 0.74);
+  border-radius: 12px;
   transition: color 150ms ease, background-color 150ms ease;
 }
 
 #root .platform-navigation > nav > button:hover {
   color: #fff;
-  background: #2b302a;
+  background: rgb(255 255 255 / 0.06);
 }
 
 #root .platform-navigation > nav > button.is-on {
   color: #fff;
-  background: #315b43;
+  background: rgb(233 162 59 / 0.16);
+  box-shadow: inset 3px 0 0 var(--sq-saffron);
+}
+
+[dir="rtl"] #root .platform-navigation > nav > button.is-on {
+  box-shadow: inset -3px 0 0 var(--sq-saffron);
 }
 
 #root .platform-navigation > nav > button.is-on svg {
-  color: #d0e1d1;
+  color: var(--sq-saffron);
+}
+
+#root .platform-navigation > nav > button b {
+  background: var(--sq-saffron);
+  color: var(--sq-ink);
 }
 
 #root .platform-network-summary {
-  color: #f3f5ef;
-  background: #2b302a;
-  border: 1px solid #3b403a;
-  border-radius: 15px;
+  color: #fbf6ee;
+  background: rgb(255 255 255 / 0.05);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 16px;
+}
+
+#root .platform-network-summary :is(strong, b, svg) {
+  color: #fbf6ee;
 }
 
 #root .platform-network-summary > small,
 #root .platform-navigation > footer {
-  color: #a8afa4;
+  color: rgb(246 239 228 / 0.62);
+}
+
+#root .platform-network-summary :is(a, button) {
+  color: var(--sq-saffron);
 }
 
 #root .platform-navigation > footer > button {
-  color: #e1e6dd;
+  color: #fbf6ee;
   border-radius: 10px;
 }
 
 #root .px :is(h1, h2, h3, h4) {
-  color: #20231f;
-  letter-spacing: -0.035em;
+  color: var(--sq-ink);
+  letter-spacing: -0.015em;
+}
+
+#root .platform-navigation :is(h1, h2, h3, h4) {
+  color: #fbf6ee;
+}
+
+[dir="rtl"] #root .px :is(h1, h2, h3, h4) {
+  letter-spacing: 0;
 }
 
 #root .px :is([class*="card"], [class*="panel"], [class*="plate"]) {
-  border-color: #e8e7e1;
-  border-radius: 18px;
-  box-shadow: 0 2px 8px rgb(34 39 32 / 3%);
+  border-color: var(--sq-line);
+  border-radius: 20px;
+  box-shadow: var(--sq-shadow-xs);
 }
 
 #root .px :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-  color: #252923;
-  background-color: #fff;
-  border-color: #ddded7;
-  border-radius: 10px;
+  color: var(--sq-ink);
+  background-color: var(--sq-surface);
+  border-color: var(--sq-line-strong);
+  border-radius: 12px;
 }
 
 #root .px :is(input, select, textarea):focus-visible {
-  outline: 3px solid rgb(66 115 79 / 19%);
-  outline-offset: 1px;
-  border-color: #527760;
+  outline: none;
+  border-color: var(--sq-ink);
+  box-shadow: var(--sq-ring);
 }
 
 #root .px :is(button, [role="button"]):is([class*="primary"], [class*="solid"], [class*="submit"]),
 #root .px button[type="submit"] {
   color: #fff;
-  background: #20231f;
-  border-color: #20231f;
-  border-radius: 11px;
+  background: var(--sq-ink);
+  border-color: var(--sq-ink);
+  border-radius: 12px;
   font-weight: 650;
 }
 
 #root .px :is(button, [role="button"]):is([class*="primary"], [class*="solid"], [class*="submit"]):hover,
 #root .px button[type="submit"]:hover {
-  background: #24513c;
-  border-color: #24513c;
+  background: var(--sq-ink-2);
+  border-color: var(--sq-ink-2);
 }
 
+#root .px .px-lang__opt.is-on {
+  color: #fff;
+}
+
+/* ---- Staff sign-in ---------------------------------------------------------------- */
 #root .staff-entry {
   --teal: #1c1714;
   --teal-2: #2e2620;
@@ -315,6 +524,7 @@
   --line: #e8dfd3;
   --surface-2: #f4eee6;
   --paper: #faf6f0;
+  font-family: var(--sq-font-ui);
 }
 
 #root .staff-entry :is(h1, h2, h3) {
@@ -328,14 +538,14 @@
 }
 
 #root .staff-entry :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
-  border-color: #e8dfd3;
+  border-color: var(--sq-line-strong);
   border-radius: 12px;
 }
 
 #root .staff-entry :is(input, select, textarea):focus-visible {
-  outline: 3px solid rgb(233 162 59 / 35%);
-  outline-offset: 1px;
+  outline: none;
   border-color: #1c1714;
+  box-shadow: var(--sq-ring);
 }
 
 #root .staff-entry :is(button, [role="button"]):is([class*="primary"], [class*="solid"], [class*="submit"]),
@@ -351,24 +561,6 @@
 #root .staff-entry button[type="submit"]:hover {
   background: #2e2620;
   border-color: #2e2620;
-}
-
-@media (max-width: 900px) {
-  #root .workspace-app .adm-body__in {
-    padding: 24px 18px;
-  }
-
-  #root .workspace-navigation.adm-nav {
-    background: #20231f;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #root .workspace-command__tools > button,
-  #root .workspace-navigation .adm-nav__item,
-  #root .platform-navigation > nav > button {
-    transition: none;
-  }
 }
 
 #root .staff-entry { background: #faf6f0; }
@@ -387,3 +579,27 @@
 #root .staff-entry .inline-staff-auth input { background: #fff; }
 #root .staff-entry .inline-staff-auth .auth-card > p { color: #685e55; }
 #root .staff-entry[dir="rtl"] :is(.staff-entry__story h1, .inline-staff-auth .auth-card > h2) { font-family: "El Messiri", "Fraunces", serif; font-weight: 700; letter-spacing: 0; }
+
+/* ---- Responsive and motion --------------------------------------------------------- */
+@media (max-width: 900px) {
+  #root .workspace-app .adm-body__in {
+    padding: 24px 18px;
+  }
+
+  #root .workspace-navigation.adm-nav {
+    padding-block: 12px;
+  }
+
+  #root .workspace-navigation .adm-nav__item.is-on,
+  [dir="rtl"] #root .workspace-navigation .adm-nav__item.is-on {
+    box-shadow: inset 0 -3px 0 var(--sq-saffron);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .workspace-command__tools > button,
+  #root .workspace-navigation .adm-nav__item,
+  #root .platform-navigation > nav > button {
+    transition: none;
+  }
+}
