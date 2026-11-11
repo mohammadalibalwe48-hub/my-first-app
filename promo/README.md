@@ -23,7 +23,7 @@ npm install
 npm run setup            # optional: local Mesa lavapipe, ~3-4x faster software WebGL
 npm run render           # 900 PNG frames -> out/frames (resumable: add --missing)
 npm run audio            # soundtrack -> out/audio/soundtrack.wav
-npm run encode           # -> out/qr-syria-promo-30s.mp4
+npm run encode           # -> out/qr-syria-promo-30s.mp4 (master; add -- --web for a ~23 MB web cut)
 npm run verify           # stream facts, loudness, decodes the end-card QR from the MP4
 ```
 
