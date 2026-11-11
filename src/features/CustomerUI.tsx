@@ -821,7 +821,7 @@ function CheckoutModal({
               }
             >
               {language === "en" ? "Continue" : "متابعة"}
-              <ArrowRight size={17} />
+              <ArrowRight className="cx-arrow" size={17} />
             </button>
           ) : !backendReady ? (
             <p className="cx-note cx-note--danger">
