@@ -763,9 +763,14 @@
 }
 
 /* ---- Restaurant profile ------------------------------------------------- */
+/* Label and name block share one grid so long owner-entered names grow the
+   card instead of overlapping the label or being clipped. */
 .restaurant-profile {
   position: relative;
   isolation: isolate;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 360px;
   overflow: hidden;
   border-radius: var(--sq-r-xl);
   background: var(--sq-ink);
@@ -773,7 +778,7 @@
   box-shadow: var(--sq-shadow);
 }
 .restaurant-profile__scene {
-  position: relative;
+  display: contents;
 }
 .restaurant-profile__scene::after {
   content: "";
@@ -790,18 +795,20 @@
   );
 }
 .restaurant-profile__cover {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 360px;
+  height: 100%;
 }
 .restaurant-profile__scene-label {
-  position: absolute;
-  top: 20px;
-  inset-inline: 20px;
+  position: relative;
   z-index: 2;
+  grid-row: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin: 20px 20px 0;
   color: #fff;
 }
 .restaurant-profile__scene-label > span {
@@ -840,10 +847,10 @@
   background: rgb(255 255 255 / 0.26);
 }
 .restaurant-profile__body {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
+  position: relative;
   z-index: 2;
+  grid-row: 2;
+  align-self: end;
   display: flex;
   align-items: flex-end;
   gap: 20px;
@@ -3028,8 +3035,8 @@
   .app-notice {
     bottom: calc(150px + env(safe-area-inset-bottom));
   }
-  .restaurant-profile__cover {
-    height: 330px;
+  .restaurant-profile {
+    min-height: 330px;
   }
   .restaurant-profile__body {
     gap: 16px;
@@ -3181,15 +3188,12 @@
     padding: 0 16px 132px;
   }
   .restaurant-profile {
+    min-height: 340px;
     margin-inline: -16px;
     border-radius: 0 0 var(--sq-r-xl) var(--sq-r-xl);
   }
-  .restaurant-profile__cover {
-    height: 340px;
-  }
   .restaurant-profile__scene-label {
-    top: 16px;
-    inset-inline: 16px;
+    margin: 16px 16px 0;
   }
   .restaurant-profile__scene-label > span {
     padding: 7px 12px;
