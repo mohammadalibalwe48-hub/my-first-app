@@ -1,0 +1,28 @@
+{
+  "name": "qr-syria-promo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "30-second 3D promo video for QR SYRIA, rendered deterministically with Three.js + headless Chrome + ffmpeg",
+  "scripts": {
+    "setup": "bash scripts/setup-lavapipe.sh",
+    "still": "node render.mjs --still",
+    "render": "node render.mjs",
+    "audio": "node audio/build-audio.mjs",
+    "encode": "node encode.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@fontsource/archivo-black": "^5.3.0",
+    "@fontsource/dm-sans": "^5.3.0",
+    "@fontsource/tajawal": "^5.3.0",
+    "opentype.js": "^2.0.0",
+    "puppeteer-core": "^25.17.0",
+    "qrcode": "^1.5.4",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0"
+  }
+}

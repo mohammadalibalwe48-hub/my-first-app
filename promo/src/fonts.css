@@ -1,0 +1,10 @@
+/* Local copies of the website's typefaces (DM Sans + Tajawal) plus Archivo Black
+   as a stand-in for the logo's Arial Black, which is not available on Linux. */
+@font-face { font-family: "DM Sans"; font-weight: 500; src: url("/node_modules/@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 700; src: url("/node_modules/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 800; src: url("/node_modules/@fontsource/dm-sans/files/dm-sans-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 900; src: url("/node_modules/@fontsource/dm-sans/files/dm-sans-latin-900-normal.woff2") format("woff2"); }
+@font-face { font-family: "Tajawal"; font-weight: 500; src: url("/node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Tajawal"; font-weight: 700; src: url("/node_modules/@fontsource/tajawal/files/tajawal-arabic-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Tajawal"; font-weight: 800; src: url("/node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "Archivo Black"; font-weight: 400; src: url("/node_modules/@fontsource/archivo-black/files/archivo-black-latin-400-normal.woff2") format("woff2"); }
