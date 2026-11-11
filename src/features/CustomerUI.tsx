@@ -32,7 +32,6 @@ import {
 } from "../domain";
 import { useOverlay, money, moneySecondary } from "./customer/core";
 import "./customer/app.css";
-import "./customer/atelier.css";
 const modeIcon = (mode: Mode) =>
   mode === "dine-in" ? Store : mode === "takeaway" ? ShoppingBasket : Truck;
 const modeIconBig = (mode: Mode) =>
@@ -749,8 +748,8 @@ function CheckoutModal({
               )}
               <div className="cx-slip__row">
                 <span>
-                  {tx("الإجمالي ·")}
-                  <b className="mono-num">{itemCount}</b>
+                  {tx("الإجمالي ·")}{" "}
+                  <b className="mono-num">{itemCount}</b>{" "}
                   {tx("صنفاً")}
                 </span>
                 <strong>{money(totals.total, currency, rate, language)}</strong>
@@ -822,7 +821,7 @@ function CheckoutModal({
               }
             >
               {language === "en" ? "Continue" : "متابعة"}
-              <ArrowRight size={17} />
+              <ArrowRight className="cx-arrow" size={17} />
             </button>
           ) : !backendReady ? (
             <p className="cx-note cx-note--danger">

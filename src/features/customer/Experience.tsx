@@ -5,6 +5,7 @@ import {
   QrCode,
   Check,
   Clock,
+  Flame,
   Heart,
   Leaf,
   MapPin,
@@ -329,15 +330,11 @@ export function MenuView({
                 aria-pressed={category === entry}
                 onClick={() => setCategory(entry)}
               >
-                <span className="category-symbol">
-                  {index === 0 ? (
-                    <Utensils size={19} />
-                  ) : index === 1 ? (
-                    <Heart size={19} />
-                  ) : (
-                    <ReceiptText size={19} />
-                  )}
-                </span>
+                {index < 2 && (
+                  <span className="category-symbol">
+                    {index === 0 ? <Utensils size={19} /> : <Flame size={19} />}
+                  </span>
+                )}
                 {categoryName(entry)}
               </button>
             ),

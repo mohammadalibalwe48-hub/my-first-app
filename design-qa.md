@@ -62,3 +62,17 @@ Production build, forced TypeScript check; customer responsive checks, required 
 Final responsive checks pass for all nine workspace tabs at 320/390/768/1280px, including Arabic and English layouts, active-tab visibility after live count updates, editor bounds and restricted navigation. Platform console, asset library and direct staff sign-in checks also pass.
 
 final result: passed
+
+## Saffron & Ink release
+
+This release supersedes the colour, typography and homepage-rail details above. The component tree, flows and review fixes still apply. Before/after screenshots are attached to PR #13.
+
+- Homepage: a two-column restaurant card grid (one column on phones) replaces the swipeable rail and its previous/next controls. The search also submits and scrolls to results. The "How it works" and "For restaurants" sections describe only existing features.
+- Storefront cover: the restaurant name and subtitle share a grid with the top label over the cover photo. Long owner-entered names make the card taller instead of overlapping the label or being clipped.
+- Validation:
+  - Production build passes.
+  - `smoke_customer_design.py` (320/390/768/1280px, Arabic and English), `smoke_workflows.py`, `smoke_admin_design.py` and `smoke_order_alerts.py` pass.
+  - `smoke_app_recovery.py` scenarios pass, except its chunk-outage request-count assertion. That assertion fails the same way on the previous build in this environment.
+  - A long-name cover check passes at 320/390/768/1280px in both languages.
+  - An arrow-direction check passes (22 checks): action arrows on the homepage, order rail, basket and checkout point forward in both Arabic and English.
+  - No page-level horizontal overflow at 320/390/768/1440px.
