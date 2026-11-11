@@ -43,7 +43,7 @@ const restaurants = [
 ];
 
 const categories = [
-  { id: "all", ar: "كل الأماكن", en: "All places", Icon: Utensils },
+  { id: "all", ar: "كل الأماكن", en: "All", Icon: Utensils },
   {
     id: "food",
     ar: "مأكولات شامية",
@@ -53,7 +53,7 @@ const categories = [
   {
     id: "coffee",
     ar: "قهوة وحلويات",
-    en: "Coffee & sweets",
+    en: "Coffee",
     image: restaurants[1].image,
   },
 ];
@@ -155,9 +155,9 @@ export default function LandingPage({
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={t(
                     "ابحث عن مطعم أو أكلة…",
-                    "Search a restaurant or cuisine…",
+                    "Search for a restaurant or dish",
                   )}
-                  aria-label={t("ابحث عن مطعم أو نوع من المأكولات", "Search restaurants or food types")}
+                  aria-label={t("ابحث عن مطعم أو نوع من المأكولات", "Search for a restaurant or dish")}
                 />
                 {query && (
                   <IconButton
@@ -178,6 +178,7 @@ export default function LandingPage({
                       key={item.id}
                       type="button"
                       className={`discovery-category${category === item.id ? " is-active" : ""}`}
+                      aria-label={t(item.ar, item.en)}
                       aria-pressed={category === item.id}
                       onClick={() => setCategory(item.id)}
                     >
@@ -270,7 +271,7 @@ export default function LandingPage({
                     onClick={() => onOpenCafe(restaurant.slug)}
                     aria-label={t(
                       `افتح منيو ${restaurant.ar}`,
-                      `Open ${restaurant.en} menu`,
+                      `Open menu ${restaurant.en === "Sufra Sham" ? "Sufra" : restaurant.en}`,
                     )}
                   >
                     <span className="discovery-place__media">

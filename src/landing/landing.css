@@ -1,11 +1,11 @@
 .food-home {
-  --landing-paper: #f5f4ee;
+  --landing-paper: #f7f7f2;
   --landing-surface: #fffefa;
-  --landing-ink: #1c211c;
+  --landing-ink: #191d18;
   --landing-muted: #72766d;
   --landing-line: #e4e4da;
-  --landing-green: #24543e;
-  --landing-green-deep: #173c2c;
+  --landing-green: #225238;
+  --landing-green-deep: #191d18;
   --landing-green-soft: #e9eee6;
   --landing-font: "DM Sans", "Tajawal", sans-serif;
   min-height: 100vh;
