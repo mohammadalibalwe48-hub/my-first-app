@@ -519,6 +519,7 @@
   --teal: #1c1714;
   --teal-2: #2e2620;
   --teal-3: #8f5300;
+  --yellow: var(--sq-saffron);
   --ink: #1c1714;
   --text: #1c1714;
   --line: #e8dfd3;

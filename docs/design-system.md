@@ -14,8 +14,9 @@ The current direction is **Saffron & Ink**: warm ivory surfaces, espresso-ink ty
 - `src/features/WorkspaceShell.tsx`: restaurant switcher, workspace navigation, account menu, notification shortcut and command header.
 - `src/features/AdminUI.tsx`: redesigned overview with actual metrics, queue and service status; searchable order inbox replaces the seven-column board. Existing protected editors and order actions remain connected.
 - `src/features/StaffWorkstation.tsx`: kitchen preparation-stage and cashier payment-stage filters, within the shared workspace.
-- `src/features/workspace-app.css`: workspace and direct staff sign-in components. Previous forest/olive overrides and the old promotional entry styles are removed.
-- `src/pages/platform/platform-app.css`: platform-owner navigation and owner-console component system.
+- `src/features/workspace-app.css`: workspace and direct staff sign-in components. Its token block aliases the workspace's legacy names (`--teal`, `--red`, `--yellow`, `--text-*`, `--ow-*`) to the shared Saffron & Ink tokens.
+- `src/features/professional-workspace.css`: the staff theme layer for the workspace shell, sidebars, fields, buttons, platform console and staff sign-in.
+- `src/pages/platform/platform-app.css`: platform-owner navigation and owner-console component system; its `--px-*` tokens alias the same palette.
 
 ## Experience rules
 
@@ -31,10 +32,17 @@ The current direction is **Saffron & Ink**: warm ivory surfaces, espresso-ink ty
 
 ## Visual foundation
 
-- Tokens live once, as `--sq-*` custom properties at the top of `src/features/customer/app.css`, and are shared by the storefront and the homepage (`src/landing/landing.css`). Components use tokens rather than hard-coded colours; the former `atelier.css` override layer is folded in and removed.
+- Tokens live once, as `--sq-*` custom properties in `src/styles.css`, and are shared by the storefront, homepage, staff workspace and platform console. Components use tokens rather than hard-coded colours; the former `atelier.css` override layer is folded in and removed.
 - Palette: ink `#1c1714`, ivory canvas `#faf6f0`, white surfaces, saffron `#e9a23b` (fills only, with ink text) and saffron-ink `#8f5300` for accent text. Semantic success, warning and danger colours are separate. Body, label and accent text pairs meet WCAG AA; the lighter tertiary tone is reserved for placeholders, icons and disabled controls.
 - Typography: Fraunces (Latin) and El Messiri (Arabic) for display headings; Inter (Latin) and IBM Plex Sans Arabic for UI text. Body copy is at least 12px on phones and usually 13.5–15px.
 - Signature details: a low-contrast Damascene eight-point star lattice on ink surfaces, pill controls, soft layered shadows and restrained hover lift (disabled for reduced motion and touch).
 - Large rectangular food images, clear prices, contained dialogs (bottom sheets on phones) and visible focus outlines. Existing restaurant image and content data stays attached to its restaurant. No fake ratings, nutrition, discounts, estimated delivery promises or production fixture records are added.
 
-Responsive product grids use two columns on phones, three on tablets, and two or three alongside the desktop order rail. Mobile keeps menu/orders/basket navigation reachable. The staff sign-in page, browser theme colour and boot screen use the same palette; the staff workspace keeps its current styling.
+Responsive product grids use two columns on phones, three on tablets, and two or three alongside the desktop order rail. Mobile keeps menu/orders/basket navigation reachable. The staff sign-in page, browser theme colour and boot screen use the same palette.
+
+## Staff workspace and platform console
+
+- Shell: white command bar, ivory content canvas, and an ink sidebar whose active item has a saffron tint and edge marker (bottom marker on the mobile tab strip).
+- Actions: ink for primary buttons, saffron with ink text for the single highlighted action per view, neutral sunken fills for secondary buttons, and a raised white segment for the active choice in segmented controls.
+- Status colours are semantic and distinct: new (saffron), accepted (neutral), preparing and out for delivery (info blue), ready (solid green), completed and verified (soft green), payment pending (warning), cancelled and rejected (danger).
+- Page titles use the display font; dense data, labels and numbers stay in the UI font. The smallest legacy text sizes were raised to 11–13.5px.
