@@ -180,11 +180,12 @@
 }
 
 .discovery-hero h1 {
+  font-family: var(--landing-font);
   max-width: 610px;
   margin: 20px 0 17px;
   font-size: clamp(52px, 6.2vw, 82px);
-  font-weight: 720;
-  letter-spacing: -0.075em;
+  font-weight: 700;
+  letter-spacing: -0.045em;
   line-height: 0.98;
 }
 
@@ -659,7 +660,7 @@
   display: block;
   margin-block-start: 9px;
   font-size: 27px;
-  font-weight: 720;
+  font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 1.2;
 }
@@ -841,6 +842,7 @@
   }
 
   .discovery-hero h1 {
+  font-family: var(--landing-font);
     font-size: clamp(49px, 6.2vw, 68px);
   }
 
@@ -899,6 +901,7 @@
   }
 
   .discovery-hero h1 {
+  font-family: var(--landing-font);
     max-width: 460px;
     margin-block: 15px 11px;
     font-size: clamp(48px, 13vw, 72px);
@@ -1131,6 +1134,7 @@
   }
 
   .discovery-hero h1 {
+  font-family: var(--landing-font);
     font-size: 47px;
   }
 
