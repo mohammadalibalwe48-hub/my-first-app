@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
+  ArrowDown,
+  QrCode,
   Check,
   Clock,
   Heart,
@@ -116,16 +118,31 @@ export function MenuView({
   return (
     <div className="experience-menu">
       <section className="restaurant-profile">
-        <FoodPhoto
-          src={
-            restaurant.design?.content.coverUrl ||
-            restaurant.items.find((i) => i.image)?.image ||
-            "/images/syrian-table-hero.webp"
-          }
-          alt=""
-          priority
-          className="restaurant-profile__cover"
-        />
+        <div className="restaurant-profile__scene">
+          <FoodPhoto
+            src={
+              restaurant.design?.content.coverUrl ||
+              (cafe.slug === "cozy"
+                ? "/images/coffee.webp"
+                : "/images/syrian-table-hero.webp")
+            }
+            alt=""
+            priority
+            className="restaurant-profile__cover"
+          />
+          <div className="restaurant-profile__scene-label">
+            <span>
+              <QrCode size={15} />
+              {tr("تجربة طعام على ذوقك", "A little taste of something good")}
+            </span>
+            <a
+              href="#menu-discovery"
+              aria-label={tr("تصفح القائمة", "Explore the menu")}
+            >
+              <ArrowDown size={21} />
+            </a>
+          </div>
+        </div>
         <div className="restaurant-profile__body">
           <span className="restaurant-profile__logo">
             {restaurant.design?.content.logoUrl ? (
@@ -222,8 +239,9 @@ export function MenuView({
             {restaurant.design.content.bannerText}
           </p>
         )}
-      <section className="menu-discovery">
+      <section id="menu-discovery" className="menu-discovery">
         <SectionTitle
+          eyebrow={tr("اختار. اطلب. استمتع.", "EXPLORE. ORDER. ENJOY.")}
           title={tr("شو عبالك اليوم؟", "What are you craving?")}
           action={
             <IconButton

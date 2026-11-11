@@ -32,6 +32,7 @@ import {
 } from "../domain";
 import { useOverlay, money, moneySecondary } from "./customer/core";
 import "./customer/app.css";
+import "./customer/atelier.css";
 const modeIcon = (mode: Mode) =>
   mode === "dine-in" ? Store : mode === "takeaway" ? ShoppingBasket : Truck;
 const modeIconBig = (mode: Mode) =>

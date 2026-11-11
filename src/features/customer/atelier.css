@@ -1,0 +1,147 @@
+/* A quiet, photo-led dining experience. */
+.experience-app .cx-main:focus { box-shadow: none; outline: none; }
+.experience-app .menu-catalogue { padding-top: 10px; }
+.experience-app .restaurant-about { border: 1px solid #e5e7df; border-radius: 13px; background: #fff; }
+.experience-app .restaurant-about summary { font-size: 12px; padding: 14px 16px; color: #59614f; }
+.experience-app .restaurant-about a { color: #234d34; }
+
+.experience-app {
+  --accent: #173d2c;
+  --primary: #173d2c;
+  --bg: #f7f7f2;
+  --paper: #fff;
+  --line: #e5e7df;
+  --muted: #74786e;
+  background: var(--bg);
+  color: #191d18;
+}
+.experience-app .ui-button--primary { background: #191d18; color: #fff; }
+.experience-app .ui-button--primary:hover { background: #314837; }
+.experience-app button, .experience-app a { -webkit-tap-highlight-color: transparent; }
+.experience-app :is(button, a, input, select, textarea):focus-visible { outline: 2px solid #497359; outline-offset: 4px; }
+.experience-app .app-topbar { background: #ffffffed; border-color: #e5e7df; backdrop-filter: blur(18px); }
+.experience-app .app-topbar { max-width: 1400px; min-height: 82px; padding-inline: 36px; }
+.experience-app .app-back { border: 1px solid #e5e7df; width: 42px; height: 42px; border-radius: 50%; color: #191d18; }
+.experience-app .app-restaurant { font-size: 16px; letter-spacing: -.4px; }
+.experience-app .app-restaurant > span { background: #eef1e9; color: #244834; border-radius: 12px; }
+.experience-app .app-restaurant small { font-size: 11px; letter-spacing: 0; }
+.experience-app .app-desktop-nav { gap: 6px; }
+.experience-app .app-desktop-nav a { padding: 10px 20px; border-radius: 30px; font-size: 13px; }
+.experience-app .app-desktop-nav a[aria-current="page"] { background: #1b211a; color: #fff; }
+.experience-app .app-language { color: #454b42; font-size: 12px; }
+.experience-app .cx-cartbtn { border-radius: 50%; background: #eef1e9; color: #1b211a; border: 0; }
+.experience-app .app-layout { max-width: 1400px; padding: 36px 36px 72px; }
+.experience-app .app-layout.has-order-rail { grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; }
+.experience-app .restaurant-profile { border: 0; border-radius: 26px; box-shadow: 0 4px 26px #27391e05; }
+.restaurant-profile__scene { position: relative; }
+.experience-app .restaurant-profile__cover { height: 295px; }
+.restaurant-profile__scene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, #0000 45%, #0c130c85); pointer-events: none; }
+.restaurant-profile__scene-label { position: absolute; inset-inline: 26px; bottom: 36px; display: flex; align-items: center; justify-content: space-between; color: #fff; z-index: 1; }
+.restaurant-profile__scene-label > span { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 500; }
+.restaurant-profile__scene-label a { border: 1px solid #ffffff70; border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; background: #ffffff14; color: #fff; }
+.experience-app .restaurant-profile__body { position: relative; margin-top: -18px; border-radius: 24px 24px 0 0; background: #fff; padding: 28px 30px; gap: 19px; z-index: 2; }
+.experience-app .restaurant-profile__logo { margin-top: 0; width: 72px; height: 72px; border: 0; border-radius: 16px; background: #19271e; color: #e2e9d6; }
+.experience-app .restaurant-profile__body h1 { font-size: clamp(26px, 2.9vw, 38px); line-height: 1.15; letter-spacing: -1.4px; margin: 7px 0 11px; color: #141914; }
+.experience-app[dir="rtl"] .restaurant-profile__body h1 { letter-spacing: 0; }
+.experience-app .restaurant-profile__body .ui-eyebrow { font-size: 10px; letter-spacing: 1.4px; color: #73796a; }
+.experience-app .restaurant-profile__body p { font-size: 13px; margin-bottom: 9px; }
+.experience-app .restaurant-profile__body small { font-size: 11px; }
+.experience-app .restaurant-notice { background: #edf2e9; border: 1px solid #e1e8d9; color: #38553e; margin-top: 18px; }
+.experience-app .menu-discovery { padding-top: 32px; scroll-margin-top: 100px; }
+.experience-app .ui-section-title { margin-bottom: 20px; }
+.experience-app .ui-section-title span { color: #727a68; font-size: 10px; letter-spacing: 1.8px; }
+.experience-app .ui-section-title h2 { font-size: clamp(24px, 2.6vw, 32px); color: #191d18; font-weight: 750; letter-spacing: -.9px; margin-top: 7px; }
+.experience-app[dir="rtl"] .ui-section-title h2 { letter-spacing: 0; }
+.experience-app .cx-search { background: #fff; border-color: #e6e8df; border-radius: 14px; min-height: 54px; }
+.experience-app .cx-search input { font-size: 13px; }
+.experience-app .saved-toggle { min-width: 54px; min-height: 54px; background: #fff; border-color: #e6e8df; border-radius: 14px; }
+.experience-app .saved-toggle.is-on { background: #e8eee2; color: #21452f; border-color: #bccbb1; }
+.experience-app .cx-cats { gap: 8px; padding-block: 18px 20px; }
+.experience-app .cx-cats button { min-height: 42px; border-radius: 11px; background: #fff; border: 1px solid #e2e5da; padding: 10px 18px; font-size: 12px; color: #3d4439; }
+.experience-app .cx-cats .cx-cat.is-on { background: #1c211a; border-color: #1c211a; color: #fff; }
+.experience-app .menu-catalogue > header { margin: 12px 0 20px; }
+.experience-app .menu-catalogue > header h2 { color: #252d22; font-size: 18px; }
+.experience-app .cx-grid { gap: 24px; }
+.experience-app .cx-dish { background: #fff; border: 1px solid #e7e9df; padding: 9px; border-radius: 23px; transition: box-shadow .2s, border-color .2s; }
+.experience-app .cx-dish:hover { border-color: #c9d3bf; box-shadow: 0 8px 24px #23381e09; }
+.experience-app .product-photo { margin: 0; border-radius: 16px; overflow: hidden; }
+.experience-app .cx-dish__media { aspect-ratio: 1.45; }
+.experience-app .product-save { top: 11px; inset-inline-end: 11px; width: 36px; height: 36px; border: 0; background: #fffffff0; backdrop-filter: blur(8px); box-shadow: 0 2px 9px #00000008; }
+.experience-app .product-save.is-on { background: #1e3d2c; color: #fff; }
+.experience-app .product-label { top: auto; bottom: 12px; inset-inline-start: 12px; background: #fff; color: #314b2e; border-radius: 6px; padding: 5px 9px; font-size: 9px; font-weight: 750; letter-spacing: .5px; }
+.experience-app .product-info { padding: 16px 10px 10px; min-height: 158px; gap: 7px; }
+.experience-app .cx-dish__name { color: #191d18; font-size: 17px; letter-spacing: -.3px; }
+.experience-app .product-info > p { font-size: 12px; line-height: 1.65; color: #777c70; }
+.experience-app .product-bottom > strong { color: #225238; font-size: 17px; letter-spacing: -.4px; }
+.experience-app .cx-add { background: #1c251c; color: #fff; border-radius: 50%; width: 39px; height: 39px; min-height: 39px; }
+.experience-app .cx-add:hover { background: #3c5b3c; }
+.experience-app .desktop-order-rail { border-color: #e4e7dc; border-radius: 24px; padding: 24px; top: 108px; }
+.experience-app .desktop-order-rail > header { color: #2c4531; border-color: #edf0e7; }
+.experience-app .desktop-order-rail h2 { color: #1d261c; font-size: 19px; letter-spacing: -.6px; }
+.experience-app .rail-empty { padding-block: 36px; }
+.experience-app .rail-empty > svg { color: #526947; background: #f1f4eb; border-radius: 50%; padding: 16px; box-sizing: content-box; }
+.experience-app .rail-empty h3 { color: #303b29; font-size: 15px; }
+.experience-app .rail-empty p { font-size: 12px; line-height: 1.8; }
+.experience-app .rail-table { background: #f3f5ed; border-radius: 12px; padding: 14px 10px; color: #59694f; line-height: 1.7; }
+.experience-app .menu-footer { color: #87907c; padding-block: 32px; }
+.experience-app .cx-sheet { border-radius: 26px; }
+
+.experience-app .cx-stepper { background: #f4f6ef; border-color: #e1e5d8; border-radius: 12px; }
+.experience-app .order-receipt { border-radius: 22px; border-color: #e2e7da; box-shadow: none; }
+.experience-app .cx-bottab { background: #ffffffed; backdrop-filter: blur(18px); border-color: #e4e7df; }
+.experience-app .cx-bottab__item { color: #7e8576; font-size: 10px; gap: 4px; }
+.experience-app .cx-bottab__item.is-active { color: #223b26; }
+.experience-app .cx-bottab__item.is-active svg { background: #e8efdf; border-radius: 9px; box-sizing: content-box; padding: 4px 16px; margin-block: -4px; }
+.experience-app .cx-dock__btn { background: #1c291e; border-radius: 17px; box-shadow: 0 8px 24px #17271b25; }
+@media (min-width: 600px) and (max-width: 900px) {
+  .experience-app .cx-grid { gap: 16px; }
+  .experience-app .cx-dish__name { font-size: 15px; }
+  .experience-app .product-info { padding-inline: 5px; }
+}
+@media (max-width: 900px) {
+  .experience-app .app-topbar { min-height: 68px; padding-inline: 20px; }
+  .experience-app .app-layout, .experience-app .app-layout.has-order-rail { display: block; padding: 22px 24px 110px; }
+  .experience-app .restaurant-profile__cover { height: 280px; }
+}
+@media (max-width: 599px) {
+  .experience-app .app-topbar { padding-inline: 16px; gap: 10px; min-height: 64px; }
+  .experience-app .app-back { width: 34px; height: 34px; }
+  .experience-app .app-restaurant { font-size: 13px; }
+  .experience-app .app-restaurant > span { display: none; }
+  .experience-app .app-restaurant small { font-size: 9px; }
+  .experience-app .app-topbar__tools { gap: 12px; }
+  .experience-app .app-language { font-size: 11px; }
+  .experience-app .app-layout, .experience-app .app-layout.has-order-rail { padding: 0 16px 110px; }
+  .experience-app .restaurant-profile { margin-inline: -16px; border-radius: 0 0 26px 26px; }
+  .experience-app .restaurant-profile__cover { height: 205px; }
+  .restaurant-profile__scene-label { inset-inline: 20px; bottom: 34px; }
+  .restaurant-profile__scene-label > span { font-size: 10px; }
+  .experience-app .restaurant-profile__body { padding: 24px 20px 22px; gap: 14px; border-radius: 24px 24px 0 0; }
+  .experience-app .restaurant-profile__logo { width: 54px; height: 54px; border-radius: 12px; }
+  .experience-app .restaurant-profile__body h1 { font-size: 28px; letter-spacing: -1px; }
+  .experience-app .restaurant-profile__body .ui-eyebrow { font-size: 8px; letter-spacing: 1.1px; }
+  .experience-app .restaurant-profile__body p { font-size: 12px; }
+  .experience-app .menu-discovery { padding-top: 26px; scroll-margin-top: 80px; }
+  .experience-app .ui-section-title h2 { font-size: 26px; }
+  .experience-app .ui-section-title span { font-size: 8px; letter-spacing: 1.5px; }
+  .experience-app .cx-search, .experience-app .saved-toggle { min-height: 48px; }
+  .experience-app .saved-toggle { min-width: 48px; }
+  .experience-app .cx-cats { margin-inline-end: -16px; padding-inline-end: 16px; gap: 7px; }
+  .experience-app .cx-cats button { min-height: 39px; padding: 9px 14px; font-size: 11px; }
+  .experience-app .cx-grid { gap: 12px; }
+  .experience-app .cx-dish { padding: 6px; border-radius: 18px; }
+  .experience-app .product-photo { margin: 0; border-radius: 13px; }
+  .experience-app .cx-dish__media { aspect-ratio: 1.05; }
+  .experience-app .product-info { padding: 12px 4px 6px; min-height: 146px; }
+  .experience-app .cx-dish__name { font-size: 14px; letter-spacing: -.4px; }
+  .experience-app .product-info > p { font-size: 10px; line-height: 1.6; }
+  .experience-app .product-bottom { gap: 4px; }
+  .experience-app .product-bottom > strong { font-size: 13px; }
+  .experience-app .cx-add { width: 32px; height: 32px; min-height: 32px; }
+  .experience-app .product-save { width: 30px; height: 30px; min-height: 30px; top: 8px; inset-inline-end: 8px; }
+  .experience-app .product-label { font-size: 8px; padding: 4px 7px; bottom: 8px; inset-inline-start: 8px; }
+  .experience-app .cx-sheet { border-radius: 24px 24px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience-app .cx-dish { transition: none; }
+}
