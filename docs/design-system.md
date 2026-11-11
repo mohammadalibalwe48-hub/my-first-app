@@ -1,6 +1,6 @@
 # SYRIAN QR — food app experience
 
-The chosen direction is the user's white-and-coral mobile food-app reference. This release replaces the customer component tree and old stylesheet stack, rather than applying another theme to the previous interface.
+The current direction is **Saffron & Ink**: warm ivory surfaces, espresso-ink type and primary actions, and a saffron accent for commit actions (quick add, final order confirmation), active states and highlights. It builds on the food-app component tree below; behaviour, routes and component ownership are unchanged.
 
 ## Components and ownership
 
@@ -31,6 +31,10 @@ The chosen direction is the user's white-and-coral mobile food-app reference. Th
 
 ## Visual foundation
 
-White surfaces, light neutral backgrounds, coral actions and warm accents; DM Sans for English UI and Tajawal for Arabic. Large rectangular food images, compact navigation, clear product pricing, contained dialogs and focus indicators. Existing restaurant image/content data stays attached to its restaurant. No fake ratings, nutrition, discounts, estimated delivery promises or production fixture records are added.
+- Tokens live once, as `--sq-*` custom properties at the top of `src/features/customer/app.css`, and are shared by the storefront and the homepage (`src/landing/landing.css`). Components use tokens rather than hard-coded colours; the former `atelier.css` override layer is folded in and removed.
+- Palette: ink `#1c1714`, ivory canvas `#faf6f0`, white surfaces, saffron `#e9a23b` (fills only, with ink text) and saffron-ink `#8f5300` for accent text. Semantic success, warning and danger colours are separate. Body, label and accent text pairs meet WCAG AA; the lighter tertiary tone is reserved for placeholders, icons and disabled controls.
+- Typography: Fraunces (Latin) and El Messiri (Arabic) for display headings; Inter (Latin) and IBM Plex Sans Arabic for UI text. Body copy is at least 12px on phones and usually 13.5–15px.
+- Signature details: a low-contrast Damascene eight-point star lattice on ink surfaces, pill controls, soft layered shadows and restrained hover lift (disabled for reduced motion and touch).
+- Large rectangular food images, clear prices, contained dialogs (bottom sheets on phones) and visible focus outlines. Existing restaurant image and content data stays attached to its restaurant. No fake ratings, nutrition, discounts, estimated delivery promises or production fixture records are added.
 
-Responsive product grids use two columns on phones, three on tablets, and two or three alongside the desktop order rail. Mobile keeps menu/orders/basket navigation reachable. The PWA/browser theme and recovery surfaces use the new app materials.
+Responsive product grids use two columns on phones, three on tablets, and two or three alongside the desktop order rail. Mobile keeps menu/orders/basket navigation reachable. The staff sign-in page, browser theme colour and boot screen use the same palette; the staff workspace keeps its current styling.
