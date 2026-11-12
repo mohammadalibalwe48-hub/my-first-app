@@ -2,10 +2,10 @@
   width: 100%;
   min-width: 0;
   padding: 14px 18px;
-  border: 1px solid #e4e2d8;
+  border: 1px solid var(--sq-line);
   border-radius: 16px;
-  background: #fffefa;
-  color: #20352b;
+  background: var(--sq-surface);
+  color: var(--sq-ink);
 }
 .order-alerts__buttons {
   display: flex;
@@ -20,7 +20,7 @@
 .order-alerts__help {
   margin-top: 8px;
   font-size: 0.76rem;
-  color: #656e63;
+  color: var(--sq-text-2);
 }
 .order-alerts__help summary {
   cursor: pointer;

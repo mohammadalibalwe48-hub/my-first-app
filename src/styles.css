@@ -16,6 +16,57 @@
      - Border gray#E2E2E2  — hairline rules
    ========================================================================== */
 
+/* Saffron & Ink tokens shared by the homepage, storefront, staff workspace and
+   platform console. Legacy names (--teal, --red, --px-*) are aliased to these
+   per surface. */
+:root {
+    --sq-ink: #1c1714;
+    --sq-ink-2: #2e2620;
+    --sq-ink-3: #4a4038;
+    --sq-text: #1c1714;
+    --sq-text-2: #685e55;
+    --sq-text-3: #8a8077;
+    --sq-canvas: #faf6f0;
+    --sq-surface: #ffffff;
+    --sq-sunken: #f4eee6;
+    --sq-sunken-2: #ebe2d6;
+    --sq-line: #e8dfd3;
+    --sq-line-2: #f0e9df;
+    --sq-line-strong: #d3c5b2;
+    --sq-saffron: #e9a23b;
+    --sq-saffron-2: #f2b552;
+    --sq-saffron-soft: #fcefd9;
+    --sq-saffron-ink: #8f5300;
+    --sq-success: #2f6b47;
+    --sq-success-soft: #e8f3eb;
+    --sq-danger: #b42318;
+    --sq-danger-soft: #fdeeec;
+    --sq-warn: #8a5600;
+    --sq-warn-soft: #fff5e1;
+    --sq-info: #2f5d86;
+    --sq-info-soft: #e7eef5;
+    --sq-r-sm: 12px;
+    --sq-r: 16px;
+    --sq-r-lg: 22px;
+    --sq-r-xl: 28px;
+    --sq-shadow-xs: 0 1px 2px rgb(28 23 20 / 0.05);
+    --sq-shadow: 0 1px 2px rgb(28 23 20 / 0.04),
+        0 14px 34px -18px rgb(28 23 20 / 0.24);
+    --sq-shadow-lg: 0 2px 6px rgb(28 23 20 / 0.06),
+        0 32px 80px -28px rgb(28 23 20 / 0.45);
+    --sq-ring: 0 0 0 4px rgb(233 162 59 / 0.24);
+    --sq-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --sq-font-ui: "Inter", "IBM Plex Sans Arabic", system-ui, sans-serif;
+    --sq-font-display: "Fraunces", "El Messiri", Georgia, serif;
+    /* Damascene eight-point star lattice, used at low contrast on ink surfaces. */
+    --sq-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23f3e6d3' stroke-opacity='.08'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Cpath d='M28 11 45 28 28 45 11 28Z'/%3E%3Cpath d='M0 5 5 0M51 0l5 5M56 51l-5 5M5 56 0 51'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+[dir="rtl"] {
+    --sq-font-ui: "IBM Plex Sans Arabic", "Inter", system-ui, sans-serif;
+    --sq-font-display: "El Messiri", "Fraunces", serif;
+}
+
 :root {
     /* ---- Brand palette ------------------------------------------------- */
     --teal: #063239;

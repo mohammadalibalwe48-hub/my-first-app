@@ -76,3 +76,14 @@ This release supersedes the colour, typography and homepage-rail details above. 
   - A long-name cover check passes at 320/390/768/1280px in both languages.
   - An arrow-direction check passes (22 checks): action arrows on the homepage, order rail, basket and checkout point forward in both Arabic and English.
   - No page-level horizontal overflow at 320/390/768/1440px.
+
+## Staff workspace and platform console
+
+The restaurant workspace (all nine sections, kitchen and cashier views, order sheet and item editor), platform console, asset library and app-recovery screen use the same Saffron & Ink tokens as the storefront.
+
+- Fixed while restyling: the platform sidebar covered the content because the theme layer overwrote the sidebar width token with a colour; the order sheet title, the live badge and the active payment-status segment had unreadable text; cancelled orders shared the new-order chip colour; and the workspace wordmark read "QR SYRIAN" in Arabic.
+- Validation:
+  - Production build passes.
+  - `smoke_admin_design.py` (all nine tabs at 320/390/768/1280px in Arabic and English, plus kitchen and cashier roles), `smoke_workflows.py`, `smoke_customer_design.py` and `smoke_order_alerts.py` pass. `smoke_app_recovery.py` scenarios pass, apart from the pre-existing chunk-outage request-count assertion.
+  - Storefront and homepage captures at 390 and 1440px are byte-identical to the previous release; only the staff sign-in captures change.
+  - New status and accent text pairs meet WCAG AA.
